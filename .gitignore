@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Environment & secrets
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Prisma
+apps/api/prisma/*.db
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local portable dev data (never commit)
+infra/.local/
+
+# GitHub Actions - temporarily not tracked
+.github/workflows/
+
+# GitHub Actions - temporarily not tracked
+.github/workflows/

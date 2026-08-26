@@ -1,0 +1,1853 @@
+// Prisma schema — Manhar Nexus
+// Phase 2 (Nexus Core): vertical-neutral foundation every business inherits.
+//   business_type · business · location · setting · audit_event · numbering_series
+// Tenant isolation (ADR-002): every tenant-scoped table carries business_id NOT NULL,
+// enforced at the repository layer. Location isolation via nullable location_id scope.
+// Immutability + audit (ADR-016). Optimistic concurrency (ADR-017) via version columns.
+// Money/time (ADR-015): currency code stored; timestamps are UTC (timestamptz).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+
+enum BusinessStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ServiceMode {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+  DRIVE_THROUGH
+  ROOM_SERVICE
+}
+
+enum ModuleStatus {
+  TRIAL
+  PENDING_SETUP
+  ACTIVE
+  SUSPENDED
+  DISABLED
+  ARCHIVED
+}
+
+enum LocationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// Who caused an audited action. USER arrives in Phase 3; for now
+/// internal-admin realm calls and system jobs are the actors.
+enum ActorType {
+  INTERNAL_ADMIN
+  USER
+  SYSTEM
+}
+
+enum SettingValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+// ─── Phase 12 enums ───────────────────────────────────────────────────────────
+
+/// Commercial lifecycle of a client account (from Manhar's perspective).
+enum CommercialStatus {
+  PROSPECT
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CHURNED
+}
+
+/// What Manhar sells: setup services, recurring subscriptions, one-time add-ons, trials.
+enum OfferingType {
+  SETUP_FEE
+  RECURRING
+  ONE_TIME
+  TRIAL
+}
+
+/// State machine for an Activation Request (client onboarding workflow).
+enum ActivationStatus {
+  REQUESTED
+  QUOTED
+  APPROVED
+  PENDING_SETUP
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+// ─────────────────────────────────────────────────────────────
+// Global catalog (NOT tenant-scoped): the verticals Manhar offers.
+// ─────────────────────────────────────────────────────────────
+
+model BusinessType {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Stable machine key, e.g. "restaurant" (kebab-case).
+  key         String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  businesses Business[]
+
+  @@map("business_type")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tenant root: one client organization (Business Workspace).
+// ─────────────────────────────────────────────────────────────
+
+model Business {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String
+  legalName      String?
+  businessTypeId String         @db.Uuid
+  /// ISO 4217; INR default (ASSUMPTION A-04). Money is minor units elsewhere (ADR-015).
+  currencyCode   String         @default("INR")
+  /// IANA tz; display timezone for business-level times (ADR-015).
+  timezone       String         @default("Asia/Kolkata")
+  status         BusinessStatus @default(ACTIVE)
+  /// URL-friendly unique handle, e.g. "the-grand-cafe".
+  slug           String?        @unique
+  /// Brand accent color in hex, e.g. "#FF6B35".
+  accentColor    String?
+  /// URL to the business logo image.
+  logoUrl        String?
+  /// Legal name as it appears on invoices (falls back to legalName/name).
+  invoiceName    String?
+  /// Full address block for invoices.
+  invoiceAddress String?
+  /// GST / tax registration number.
+  taxId          String?
+  /// Phase 12: Manhar's commercial view of this client.
+  commercialStatus CommercialStatus @default(PROSPECT)
+  /// Internal notes visible only to Manhar staff.
+  accountNotes   String?
+  /// Manhar staff member (name/email) responsible for this account.
+  assignedTo     String?
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+
+  businessType      BusinessType       @relation(fields: [businessTypeId], references: [id])
+  locations         Location[]
+  settings          Setting[]
+  auditEvents       AuditEvent[]
+  numberingSeries   NumberingSeries[]
+  users             User[]
+  roles             Role[]
+  moduleActivations   ModuleActivation[]
+  alertRules          AlertRule[]
+  locationHours       LocationHours[]
+  locationServiceModes LocationServiceMode[]
+  taxCategories       TaxCategory[]
+  catalogCategories  CatalogCategory[]
+  catalogItems       CatalogItem[]
+  catalogVariants    CatalogVariant[]
+  modifierGroups     ModifierGroup[]
+  modifierOptions    ModifierOption[]
+  diningAreas        DiningArea[]
+  diningTables       DiningTable[]
+  staffProfiles      StaffProfile[]
+  guests             Guest[]
+  bookings           Booking[]
+  productionAreas             ProductionArea[]
+  guestSessions               GuestSession[]
+  serviceRequests             ServiceRequest[]
+  serviceRequestLines         ServiceRequestLine[]
+  serviceRequestLineModifiers ServiceRequestLineModifier[]
+  invoices                    Invoice[]
+  invoiceLines                InvoiceLine[]
+  payments                    Payment[]
+  refunds                     Refund[]
+  printAgents                 PrintAgent[]
+  printerProfiles             PrinterProfile[]
+  printTemplates              PrintTemplate[]
+  printJobs                   PrintJob[]
+  alertNotifications          AlertNotification[]
+  // Phase 12 commercial back-relations
+  clientPriceOverrides        ClientPriceOverride[]
+  activationRequests          ActivationRequest[]
+  deploymentChecklists        DeploymentChecklist[]
+  // Phase 13 onboarding
+  onboardingProgress          OnboardingProgress?
+  // Phase 16 operating costs
+  expenseCategories           ExpenseCategory[]
+  expenses                    Expense[]
+
+  @@index([businessTypeId])
+  @@map("business")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Location: physical operating site; operational scope unit.
+// ─────────────────────────────────────────────────────────────
+
+model Location {
+  id         String         @id @default(uuid()) @db.Uuid
+  businessId String         @db.Uuid
+  name       String
+  /// Optional short code, unique within the business when present.
+  code       String?
+  /// Null inherits the business timezone.
+  timezone   String?
+  status     LocationStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime       @updatedAt @db.Timestamptz(6)
+
+  business          Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  settings          Setting[]
+  numberingSeries   NumberingSeries[]
+  userRoleLocations UserRoleLocation[]
+  hours             LocationHours[]
+  serviceModes      LocationServiceMode[]
+  diningAreas       DiningArea[]
+  diningTables      DiningTable[]
+  bookings          Booking[]
+  productionAreas  ProductionArea[]
+  guestSessions    GuestSession[]
+  serviceRequests  ServiceRequest[]
+  invoices         Invoice[]
+  payments         Payment[]
+  printAgents      PrintAgent[]
+  printerProfiles  PrinterProfile[]
+  printTemplates   PrintTemplate[]
+  printJobs        PrintJob[]
+  expenses         Expense[]
+
+  @@unique([businessId, code])
+  @@index([businessId])
+  @@map("location")
+}
+
+/// Operating hours for a location, one row per day-of-week (0=Sunday…6=Saturday).
+/// Cascade delete: removing a location removes its hours.
+model LocationHours {
+  id         String   @id @default(uuid()) @db.Uuid
+  locationId String   @db.Uuid
+  /// ADR-002 defence-in-depth: denormalised from parent location.
+  businessId String   @db.Uuid
+  /// 0=Sunday … 6=Saturday
+  dayOfWeek  Int
+  /// "HH:MM" or null when isClosed
+  openTime   String?
+  /// "HH:MM" or null when isClosed
+  closeTime  String?
+  isClosed   Boolean  @default(false)
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@unique([locationId, dayOfWeek])
+  @@index([locationId])
+  @@index([businessId])
+  @@map("location_hours")
+}
+
+/// Service modes offered at a location (e.g. DINE_IN, TAKEOUT, DELIVERY).
+/// Composite PK: at most one row per (location, mode). Cascade delete.
+model LocationServiceMode {
+  locationId String      @db.Uuid
+  /// ADR-002 defence-in-depth: denormalised from parent location.
+  businessId String      @db.Uuid
+  mode       ServiceMode
+  isEnabled  Boolean     @default(true)
+  updatedAt  DateTime    @updatedAt @db.Timestamptz(6)
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@id([locationId, mode])
+  @@index([locationId])
+  @@index([businessId])
+  @@map("location_service_mode")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Setting: typed, scoped configuration with business/location precedence.
+// location_id NULL = business scope; set = location override.
+// Uniqueness enforced by partial indexes (see migration raw SQL).
+// ─────────────────────────────────────────────────────────────
+
+model Setting {
+  id         String           @id @default(uuid()) @db.Uuid
+  businessId String           @db.Uuid
+  locationId String?          @db.Uuid
+  namespace  String
+  key        String
+  value      Json
+  valueType  SettingValueType
+  /// Optimistic concurrency + monotonic change counter (ADR-017).
+  version    Int              @default(1)
+  createdAt  DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime         @updatedAt @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  // Restrict (not Cascade): a location's overrides must be removed via an
+  // audited path, never silently deleted when a location is removed.
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@index([businessId, locationId, namespace])
+  @@map("setting")
+}
+
+// ─────────────────────────────────────────────────────────────
+// AuditEvent: append-only, hash-chained per business (ADR-016).
+// No updatedAt — rows are immutable; corrections are new events.
+// ─────────────────────────────────────────────────────────────
+
+model AuditEvent {
+  id           String    @id @default(uuid()) @db.Uuid
+  businessId   String    @db.Uuid
+  /// Monotonic per-business sequence (gap = tampering signal).
+  sequence     BigInt
+  actorType    ActorType
+  actorId      String?
+  actorLabel   String?
+  /// Dotted action, e.g. "business.created", "setting.updated".
+  action       String
+  resourceType String
+  resourceId   String?
+  // Intentionally NO foreign key: activity history is immutable and must
+  // survive the deletion of any location it references (append-only record).
+  locationId   String?   @db.Uuid
+  metadata     Json
+  /// Previous event hash in this business's chain (null for first).
+  prevHash     String?
+  /// sha256 over the canonical event payload incl. prevHash.
+  hash         String
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, sequence])
+  @@index([businessId, createdAt])
+  @@index([businessId, resourceType, resourceId])
+  @@map("audit_event")
+}
+
+// ─────────────────────────────────────────────────────────────
+// NumberingSeries: gapless/consumed-forever number allocation source
+// (invoice/checkout/service-request numbers). Allocation is transactional.
+// Uniqueness enforced by partial indexes (see migration raw SQL).
+// ─────────────────────────────────────────────────────────────
+
+model NumberingSeries {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  locationId String?  @db.Uuid
+  /// Series key, e.g. "checkout", "service_request".
+  key        String
+  prefix     String?
+  nextValue  BigInt   @default(1)
+  padding    Int      @default(0)
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  // Restrict: a location-scoped series must not outlive its location.
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@map("numbering_series")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 3 — Authentication & Access (ADR-004/005/021/022/023)
+// Two realms: PLATFORM (Manhar staff, cross-business) and BUSINESS
+// (scoped to one Business Workspace). Authorization derives its
+// TenantScope from the authenticated principal, NEVER the URL.
+// ═════════════════════════════════════════════════════════════
+
+enum UserRealm {
+  PLATFORM
+  BUSINESS
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+/// A login identity (ADR-005: distinct from a future Staff Profile).
+model User {
+  id             String     @id @default(uuid()) @db.Uuid
+  realm          UserRealm
+  /// NULL only when realm = PLATFORM (enforced by a CHECK in migration SQL).
+  businessId     String?    @db.Uuid
+  /// Stored lowercased; globally unique for MVP (see ADR-022).
+  email          String
+  /// argon2id PHC string (ADR-004). Nullable to allow PIN-only users later.
+  passwordHash   String?
+  displayName    String
+  status         UserStatus @default(ACTIVE)
+  /// Bumped to invalidate ALL of this user's sessions at once (logout-all,
+  /// permission change) — gives ≤60s revocation without Redis.
+  tokenVersion   Int        @default(0)
+  failedAttempts Int        @default(0)
+  lockedUntil    DateTime?  @db.Timestamptz(6)
+  lastLoginAt    DateTime?  @db.Timestamptz(6)
+  /// Reserved (ADR-005 groundwork): 1:0..1 link to a future staff_profile.
+  /// No table/FK yet; deactivating a user never clears it (history rule).
+  staffProfileId String?    @db.Uuid
+  /// Reserved for optional TOTP MFA (ADR-004); unused in Phase 3.
+  totpSecret     String?
+  totpEnabledAt  DateTime?  @db.Timestamptz(6)
+  version        Int        @default(1)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(6)
+
+  business           Business?           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  userRoles          UserRole[]
+  sessions           Session[]
+  alertNotifications AlertNotification[]
+  approvedExpenses   Expense[]           @relation("ApprovedExpenses")
+  createdExpenses    Expense[]           @relation("CreatedExpenses")
+
+  @@index([businessId])
+  @@index([realm])
+  // Login looks up by the stored (already-lowercased) email; a plain b-tree
+  // index serves that equality (the lower(email) unique index below cannot).
+  @@index([email])
+  @@map("app_user")
+}
+
+/// A named set of permissions. System roles (businessId NULL, isSystem) are
+/// global templates; custom roles are per-business.
+model Role {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String?  @db.Uuid
+  /// Machine key, kebab-case (e.g. "owner"). Unique per scope (partial indexes).
+  key        String
+  name       String
+  description String?
+  isSystem   Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  business    Business?        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  permissions RolePermission[]
+  userRoles   UserRole[]
+
+  @@index([businessId])
+  @@map("role")
+}
+
+/// One permission grant on a role. permissionKey is validated against the
+/// static PermissionRegistry on write (no permissions table). '*' = wildcard.
+model RolePermission {
+  id            String   @id @default(uuid()) @db.Uuid
+  roleId        String   @db.Uuid
+  permissionKey String
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionKey])
+  @@index([permissionKey])
+  @@map("role_permission")
+}
+
+/// Assignment of a Role to a User, with location scope.
+model UserRole {
+  id           String   @id @default(uuid()) @db.Uuid
+  /// Denormalized scope; NULL for platform assignments. No FK (kept lean).
+  businessId   String?  @db.Uuid
+  userId       String   @db.Uuid
+  roleId       String   @db.Uuid
+  /// true = all locations in scope; false = only the granted locations below.
+  allLocations Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role               @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  locations UserRoleLocation[]
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([businessId])
+  @@map("user_role")
+}
+
+/// Explicit location grants for a UserRole when allLocations = false.
+model UserRoleLocation {
+  userRoleId String @db.Uuid
+  locationId String @db.Uuid
+
+  userRole UserRole @relation(fields: [userRoleId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([userRoleId, locationId])
+  @@index([locationId])
+  @@map("user_role_location")
+}
+
+/// A login session. Access JWTs reference it (sid + sessionVersion); revoking
+/// or bumping the version kills live access tokens on the next request (≤60s).
+model Session {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  /// Denormalized; NULL for platform sessions. No FK (kept lean).
+  businessId     String?   @db.Uuid
+  sessionVersion Int       @default(0)
+  /// Frontline device binding groundwork (ADR-004); no FK yet.
+  deviceId       String?   @db.Uuid
+  ip             String?
+  userAgent      String?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  lastSeenAt     DateTime  @default(now()) @db.Timestamptz(6)
+  expiresAt      DateTime  @db.Timestamptz(6)
+  revokedAt      DateTime? @db.Timestamptz(6)
+  revokedReason  String?
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@index([userId])
+  @@index([revokedAt])
+  @@map("session")
+}
+
+/// Rotating, single-use refresh token (opaque; only its sha256 hash is stored).
+/// Reusing a rotated token revokes the whole family (theft detection).
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  sessionId String    @db.Uuid
+  familyId  String    @db.Uuid
+  tokenHash String    @unique
+  issuedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  expiresAt DateTime  @db.Timestamptz(6)
+  rotatedTo String?   @db.Uuid
+  revokedAt DateTime? @db.Timestamptz(6)
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([familyId])
+  @@map("refresh_token")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 5 — Module Engine (ADR-025)
+// Per-business module lifecycle. Manifests are code-defined (ModuleRegistry);
+// only activation state + config live in the database.
+// AVAILABLE is implicit (no row). All other statuses have a row.
+// ═════════════════════════════════════════════════════════════
+
+/// Per-business module activation record. One row per (business, module).
+model ModuleActivation {
+  id               String       @id @default(uuid()) @db.Uuid
+  businessId       String       @db.Uuid
+  /// Stable module key, e.g. "restaurant", "catalog". Validated against ModuleRegistry.
+  moduleKey        String
+  status           ModuleStatus @default(PENDING_SETUP)
+  /// Module-specific config (default = {}). Preserved on disable/suspend.
+  config           Json         @default("{}")
+  setupCompletedAt DateTime?    @db.Timestamptz(6)
+  activatedAt      DateTime?    @db.Timestamptz(6)
+  suspendedAt      DateTime?    @db.Timestamptz(6)
+  disabledAt       DateTime?    @db.Timestamptz(6)
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, moduleKey])
+  @@index([businessId])
+  @@index([businessId, status])
+  @@map("module_activation")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 6 — Configuration Center
+// Alert-rule registry: per-business event→role→channel notification rules.
+// Attachment service is deferred (blocked by BLOCKER-B01: no local MinIO).
+// ═════════════════════════════════════════════════════════════
+
+/// Delivery channel for alert rules. IN_APP only in Phase 6.
+enum AlertChannel {
+  IN_APP
+}
+
+// ─── Phase 7 enums ────────────────────────────────────────────────────────────
+
+enum ModifierGroupType {
+  SINGLE
+  MULTIPLE
+}
+
+enum DiningTableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  CLEANING
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  SEATED
+  NO_SHOW
+  CANCELLED
+}
+
+/// Maps one platform event to one role for one delivery channel per business.
+/// Multiple rules may target the same event (fan-out). Rules are enabled/disabled
+/// without deletion so history is auditable.
+model AlertRule {
+  id            String       @id @default(uuid()) @db.Uuid
+  businessId    String       @db.Uuid                         @map("business_id")
+  /// Dotted event key, e.g. "order.completed", "booking.created".
+  eventKey      String                                        @map("event_key")
+  /// Role key that should receive the alert, e.g. "owner", "manager".
+  targetRoleKey String                                        @map("target_role_key")
+  channel       AlertChannel @default(IN_APP)
+  enabled       Boolean      @default(true)
+  version       Int          @default(1)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(6)      @map("updated_at")
+
+  business      Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  notifications AlertNotification[]
+
+  @@unique([businessId, eventKey, targetRoleKey, channel])
+  @@index([businessId])
+  @@index([businessId, eventKey])
+  @@map("alert_rule")
+}
+
+/// High-volume login telemetry INCLUDING failures (drives lockout + forensics).
+/// Deliberately FK-free so it survives user deletion and pre-auth attempts.
+model LoginEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String?  @db.Uuid
+  userId     String?  @db.Uuid
+  emailTried String?
+  /// success | bad_credentials | locked | suspended | pending | reuse_detected | unknown_user
+  outcome    String
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("login_event")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 7 — Restaurant MVP Foundation
+// Catalog, Dining Space, Staff Profiles, Guests, Bookings.
+// Column names match the SQL migration (camelCase = no @map needed).
+// Money is stored as integer minor units (paise for INR) per ADR-015.
+// Tenant isolation: every model carries businessId NOT NULL (ADR-002).
+// ═════════════════════════════════════════════════════════════
+
+// ─── Catalog ──────────────────────────────────────────────────────────────────
+
+model TaxCategory {
+  id        String   @id @default(uuid()) @db.Uuid
+  businessId String  @db.Uuid
+  name      String
+  /// Decimal 0.0000–1.0000 (e.g. 0.0500 = 5 %). Stored as NUMERIC(6,4).
+  rate      Decimal  @db.Decimal(6, 4)
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  catalogItems CatalogItem[]
+
+  @@index([businessId])
+  @@map("tax_category")
+}
+
+model CatalogCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  businessId  String   @db.Uuid
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  catalogItems CatalogItem[]
+
+  @@index([businessId])
+  @@map("catalog_category")
+}
+
+model CatalogItem {
+  id                  String   @id @default(uuid()) @db.Uuid
+  businessId          String   @db.Uuid
+  categoryId          String   @db.Uuid
+  taxCategoryId       String?  @db.Uuid
+  /// Optional kitchen routing: which production area prepares this item.
+  productionAreaId    String?  @db.Uuid
+  name                String
+  description         String?
+  /// Price in minor units (paise for INR). ADR-015.
+  basePriceMinorUnits Int      @default(0)
+  isAvailable         Boolean  @default(true)
+  isActive            Boolean  @default(true)
+  sortOrder           Int      @default(0)
+  version             Int      @default(1)
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(6)
+
+  business            Business                   @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  category            CatalogCategory            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  taxCategory         TaxCategory?               @relation(fields: [taxCategoryId], references: [id], onDelete: SetNull)
+  productionArea      ProductionArea?            @relation(fields: [productionAreaId], references: [id], onDelete: SetNull)
+  variants            CatalogVariant[]
+  modifierGroups      CatalogItemModifierGroup[]
+  serviceRequestLines ServiceRequestLine[]
+
+  @@index([businessId])
+  @@index([categoryId])
+  @@map("catalog_item")
+}
+
+model CatalogVariant {
+  id                 String   @id @default(uuid()) @db.Uuid
+  catalogItemId      String   @db.Uuid
+  businessId         String   @db.Uuid
+  name               String
+  /// Delta from the base price in minor units (may be negative).
+  priceAdjMinorUnits Int      @default(0)
+  isAvailable        Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  version            Int      @default(1)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  catalogItem         CatalogItem        @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  business            Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  serviceRequestLines ServiceRequestLine[]
+
+  @@index([catalogItemId])
+  @@index([businessId])
+  @@map("catalog_variant")
+}
+
+model ModifierGroup {
+  id            String            @id @default(uuid()) @db.Uuid
+  businessId    String            @db.Uuid
+  name          String
+  selectionType ModifierGroupType @default(SINGLE)
+  isRequired    Boolean           @default(false)
+  minSelections Int               @default(0)
+  maxSelections Int?
+  sortOrder     Int               @default(0)
+  isActive      Boolean           @default(true)
+  version       Int               @default(1)
+  createdAt     DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime          @updatedAt @db.Timestamptz(6)
+
+  business     Business                   @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  options      ModifierOption[]
+  catalogItems CatalogItemModifierGroup[]
+
+  @@index([businessId])
+  @@map("modifier_group")
+}
+
+model ModifierOption {
+  id                 String   @id @default(uuid()) @db.Uuid
+  modifierGroupId    String   @db.Uuid
+  businessId         String   @db.Uuid
+  name               String
+  priceAdjMinorUnits Int      @default(0)
+  isDefault          Boolean  @default(false)
+  isAvailable        Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  version            Int      @default(1)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  modifierGroup               ModifierGroup              @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  business                    Business                   @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  serviceRequestLineModifiers ServiceRequestLineModifier[]
+
+  @@index([modifierGroupId])
+  @@index([businessId])
+  @@map("modifier_option")
+}
+
+/// Junction: CatalogItem ↔ ModifierGroup (many-to-many with sort order).
+model CatalogItemModifierGroup {
+  catalogItemId   String @db.Uuid
+  modifierGroupId String @db.Uuid
+  sortOrder       Int    @default(0)
+
+  catalogItem   CatalogItem   @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  modifierGroup ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+
+  @@id([catalogItemId, modifierGroupId])
+  @@index([modifierGroupId])
+  @@map("catalog_item_modifier_group")
+}
+
+// ─── Dining Space ─────────────────────────────────────────────────────────────
+
+model DiningArea {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  locationId String   @db.Uuid
+  name       String
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location Location      @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  tables   DiningTable[]
+
+  @@index([businessId])
+  @@index([locationId])
+  @@map("dining_area")
+}
+
+model DiningTable {
+  id           String            @id @default(uuid()) @db.Uuid
+  diningAreaId String            @db.Uuid
+  businessId   String            @db.Uuid
+  locationId   String            @db.Uuid
+  code         String
+  capacity     Int               @default(4)
+  status       DiningTableStatus @default(AVAILABLE)
+  isActive     Boolean           @default(true)
+  version      Int               @default(1)
+  createdAt    DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @db.Timestamptz(6)
+
+  diningArea    DiningArea     @relation(fields: [diningAreaId], references: [id], onDelete: Restrict)
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location      Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  bookings      Booking[]
+  guestSessions GuestSession[]
+
+  @@unique([diningAreaId, code])
+  @@index([businessId])
+  @@index([diningAreaId])
+  @@map("dining_table")
+}
+
+// ─── People ───────────────────────────────────────────────────────────────────
+
+/// Operational staff record (display identity). Distinct from the User login
+/// identity per ADR-005. Linked to User.staffProfileId in Phase 8.
+model StaffProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  businessId  String   @db.Uuid
+  displayName String
+  /// Informal role tag (e.g. "waiter", "manager"). Not RBAC-linked yet.
+  roleTag     String   @default("staff")
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  business        Business         @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  guestSessions   GuestSession[]
+  serviceRequests ServiceRequest[]
+
+  @@index([businessId])
+  @@map("staff_profile")
+}
+
+model Guest {
+  id          String    @id @default(uuid()) @db.Uuid
+  businessId  String    @db.Uuid
+  displayName String
+  phone       String?
+  notes       String?
+  tags        Json      @default("[]")
+  visitCount  Int       @default(0)
+  lastVisitAt DateTime? @db.Timestamptz(6)
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  bookings      Booking[]
+  guestSessions GuestSession[]
+
+  @@index([businessId])
+  @@map("guest")
+}
+
+// ─── Bookings ─────────────────────────────────────────────────────────────────
+
+model Booking {
+  id            String        @id @default(uuid()) @db.Uuid
+  businessId    String        @db.Uuid
+  locationId    String        @db.Uuid
+  diningTableId String?       @db.Uuid
+  guestId       String?       @db.Uuid
+  partySize     Int           @default(2)
+  scheduledAt   DateTime      @db.Timestamptz(6)
+  status        BookingStatus @default(PENDING)
+  notes         String?
+  version       Int           @default(1)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
+
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location      Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  diningTable   DiningTable?   @relation(fields: [diningTableId], references: [id], onDelete: SetNull)
+  guest         Guest?         @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  guestSessions GuestSession[]
+
+  @@index([businessId])
+  @@index([locationId, scheduledAt])
+  @@map("booking")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 8 — Restaurant Operations
+// Guest Session (one visit occupying a table), Service Request
+// (one ordering round), Service Request Lines (items with full
+// financial snapshot per ADR-016), Service Request Line Modifiers
+// (modifier snapshot), and Production Areas (kitchen routing).
+//
+// Key invariants:
+//   - Snapshot fields on lines/modifiers are immutable after creation.
+//   - Live FKs (catalogItemId, variantId, modifierOptionId) use SetNull
+//     so historical records survive future menu changes.
+//   - idempotencyKey UNIQUE(businessId, idempotencyKey) prevents
+//     duplicate order submission on client retry (ADR-017).
+//   - requestNumber is assigned at SENT time via NumberingSeries
+//     (gapless per ADR-016; gaps from abandoned drafts are acceptable).
+// ═════════════════════════════════════════════════════════════
+
+// ─── Phase 8 enums ────────────────────────────────────────────
+
+enum GuestSessionStatus {
+  OPEN
+  CLOSED
+  VOID
+}
+
+enum ServiceRequestStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  PREPARING
+  READY
+  SERVED
+  CLOSED
+  CANCELLED
+}
+
+enum ServiceLineStatus {
+  PENDING
+  PREPARING
+  READY
+  SERVED
+  CANCELLED
+}
+
+// ─── Kitchen Routing ──────────────────────────────────────────
+
+/// A named production station (e.g. Hot Kitchen, Tandoor, Beverages).
+/// CatalogItems reference their area for kitchen routing.
+model ProductionArea {
+  id         String   @id @default(uuid()) @db.Uuid
+  businessId String   @db.Uuid
+  locationId String   @db.Uuid
+  name       String
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  version    Int      @default(1)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location     Location      @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  catalogItems CatalogItem[]
+
+  @@index([businessId])
+  @@index([locationId])
+  @@map("production_area")
+}
+
+// ─── Guest Session ─────────────────────────────────────────────
+
+/// One continuous visit: from seating to session-close.
+/// All service request rounds for the visit belong to this session.
+model GuestSession {
+  id              String             @id @default(uuid()) @db.Uuid
+  businessId      String             @db.Uuid
+  locationId      String             @db.Uuid
+  diningTableId   String             @db.Uuid
+  bookingId       String?            @db.Uuid
+  guestId         String?            @db.Uuid
+  assignedStaffId String?            @db.Uuid
+  partySize       Int                @default(1)
+  status          GuestSessionStatus @default(OPEN)
+  openedAt        DateTime           @default(now()) @db.Timestamptz(6)
+  closedAt        DateTime?          @db.Timestamptz(6)
+  notes           String?
+  version         Int                @default(1)
+  createdAt       DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime           @updatedAt @db.Timestamptz(6)
+
+  business        Business         @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location        Location         @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  diningTable     DiningTable      @relation(fields: [diningTableId], references: [id], onDelete: Restrict)
+  booking         Booking?         @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  guest           Guest?           @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  assignedStaff   StaffProfile?    @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  serviceRequests ServiceRequest[]
+  invoices        Invoice[]
+
+  @@index([businessId])
+  @@index([locationId, status])
+  @@index([diningTableId, status])
+  @@map("guest_session")
+}
+
+// ─── Service Requests ──────────────────────────────────────────
+
+/// One ordering round within a guest session.
+/// requestNumber is null until SENT (allocated from NumberingSeries "service_request").
+model ServiceRequest {
+  id             String               @id @default(uuid()) @db.Uuid
+  businessId     String               @db.Uuid
+  locationId     String               @db.Uuid
+  sessionId      String               @db.Uuid
+  staffId        String?              @db.Uuid
+  roundNumber    Int                  @default(1)
+  /// Human-readable display number; null until SENT.
+  requestNumber  String?
+  status         ServiceRequestStatus @default(DRAFT)
+  /// Client-generated UUID; prevents duplicate sends on retry.
+  idempotencyKey String               @db.Uuid
+  notes          String?
+  cancelReason   String?
+  sentAt         DateTime?            @db.Timestamptz(6)
+  acceptedAt     DateTime?            @db.Timestamptz(6)
+  preparedAt     DateTime?            @db.Timestamptz(6)
+  servedAt       DateTime?            @db.Timestamptz(6)
+  version        Int                  @default(1)
+  createdAt      DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime             @updatedAt @db.Timestamptz(6)
+
+  business Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location Location             @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  session  GuestSession         @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  staff    StaffProfile?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  lines    ServiceRequestLine[]
+
+  @@unique([businessId, idempotencyKey])
+  @@index([businessId])
+  @@index([sessionId])
+  @@index([businessId, status])
+  @@index([locationId, status])
+  @@map("service_request")
+}
+
+/// One line item in a service request — snapshot fields are immutable.
+/// Live FKs use SetNull; snapshot fields are the financial source of truth.
+model ServiceRequestLine {
+  id                      String            @id @default(uuid()) @db.Uuid
+  serviceRequestId        String            @db.Uuid
+  businessId              String            @db.Uuid
+  catalogItemId           String?           @db.Uuid
+  variantId               String?           @db.Uuid
+  /// Snapshot at order time — immutable.
+  itemNameSnapshot        String
+  variantNameSnapshot     String?
+  /// Final unit price in minor units (base + variant adj) at order time.
+  unitPriceMinorUnits     Int
+  /// Tax rate 0.0000–1.0000 snapshot at order time.
+  taxRateSnapshot         Decimal           @db.Decimal(6, 4)
+  taxCategoryNameSnapshot String?
+  quantity                Int               @default(1)
+  notes                   String?
+  kitchenNote             String?
+  status                  ServiceLineStatus @default(PENDING)
+  cancelReason            String?
+  version                 Int               @default(1)
+  createdAt               DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime          @updatedAt @db.Timestamptz(6)
+
+  serviceRequest ServiceRequest               @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  business       Business                     @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  catalogItem    CatalogItem?                @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+  variant        CatalogVariant?             @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  modifiers      ServiceRequestLineModifier[]
+  invoiceLines   InvoiceLine[]
+
+  @@index([serviceRequestId])
+  @@index([businessId])
+  @@map("service_request_line")
+}
+
+/// Modifier snapshot per service request line — immutable after creation.
+model ServiceRequestLineModifier {
+  id                 String  @id @default(uuid()) @db.Uuid
+  lineId             String  @db.Uuid
+  businessId         String  @db.Uuid
+  modifierOptionId   String? @db.Uuid
+  /// Snapshot at order time — immutable.
+  optionNameSnapshot String
+  priceAdjMinorUnits Int     @default(0)
+
+  line           ServiceRequestLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  business       Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  modifierOption ModifierOption?    @relation(fields: [modifierOptionId], references: [id], onDelete: SetNull)
+
+  @@index([lineId])
+  @@index([businessId])
+  @@map("service_request_line_modifier")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 9 — Checkout & Payments
+// Invoice (immutable bill for a session), InvoiceLine (snapshot
+// per billed service request line), Payment (one collected
+// payment against an invoice), Refund (reversal-only per ADR-016).
+//
+// Key invariants:
+//   - Invoice lines snapshot all financials at creation time — immutable.
+//   - At most one active (DRAFT/FINALISED/PAID) invoice per session,
+//     enforced by partial unique index in the migration SQL.
+//   - Payments are idempotent via UNIQUE(businessId, idempotencyKey).
+//   - Failed/timeout payment never marks invoice PAID.
+//   - Corrections via Refund reversal records; Payment rows are immutable.
+//   - Money in integer minor units (ADR-015). Provider-agnostic (ADR-008).
+// ═════════════════════════════════════════════════════════════
+
+// ─── Phase 9 enums ────────────────────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  FINALISED
+  PAID
+  VOIDED
+}
+
+enum PaymentStatus {
+  PENDING
+  CAPTURED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  OTHER
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+// ─── Invoice ──────────────────────────────────────────────────
+
+/// Immutable bill for one guest session. Created on checkout initiation;
+/// locked (FINALISED) before payment; PAID when a payment is captured.
+/// Voided invoices are superseded by a new draft if needed.
+model Invoice {
+  id                   String        @id @default(uuid()) @db.Uuid
+  businessId           String        @db.Uuid
+  locationId           String        @db.Uuid
+  sessionId            String?       @db.Uuid
+  /// Human-readable invoice number; null until FINALISED.
+  invoiceNumber        String?
+  status               InvoiceStatus @default(DRAFT)
+  currencyCode         String        @default("INR")
+  /// Sum of (unitPrice + modifiers) * qty across all lines.
+  subtotalMinorUnits   Int
+  /// Sum of per-line tax amounts.
+  totalTaxMinorUnits   Int
+  /// subtotalMinorUnits + totalTaxMinorUnits.
+  grandTotalMinorUnits Int
+  /// Optional rounding adjustment to reach a whole-unit total.
+  roundingMinorUnits   Int           @default(0)
+  /// [{name, rate, taxableAmountMinorUnits, taxAmountMinorUnits}]
+  taxBreakdown         Json          @default("[]")
+  notes                String?
+  voidReason           String?
+  version              Int           @default(1)
+  createdAt            DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime      @updatedAt @db.Timestamptz(6)
+  finalisedAt          DateTime?     @db.Timestamptz(6)
+  paidAt               DateTime?     @db.Timestamptz(6)
+  voidedAt             DateTime?     @db.Timestamptz(6)
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  session  GuestSession?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  lines    InvoiceLine[]
+  payments Payment[]
+
+  @@index([businessId])
+  @@index([locationId, status])
+  @@index([sessionId])
+  @@map("invoice")
+}
+
+/// Snapshot of one billed service request line — immutable after creation.
+/// Live FK (serviceRequestLineId) uses SetNull; snapshots are the source of truth.
+model InvoiceLine {
+  id                     String  @id @default(uuid()) @db.Uuid
+  invoiceId              String  @db.Uuid
+  businessId             String  @db.Uuid
+  serviceRequestLineId   String? @db.Uuid
+  // Snapshot fields — immutable
+  itemNameSnapshot       String
+  variantNameSnapshot    String?
+  modifiersSummary       String?
+  quantity               Int
+  unitPriceMinorUnits    Int
+  modifiersMinorUnits    Int     @default(0)
+  taxRateSnapshot        Decimal @db.Decimal(6, 4)
+  taxCategoryName        String?
+  // Computed totals — set at creation, immutable
+  lineSubtotalMinorUnits Int
+  lineTaxMinorUnits      Int
+  lineTotalMinorUnits    Int
+
+  invoice            Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  business           Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  serviceRequestLine ServiceRequestLine? @relation(fields: [serviceRequestLineId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([businessId])
+  @@map("invoice_line")
+}
+
+// ─── Payment ──────────────────────────────────────────────────
+
+/// One payment collected against an invoice.
+/// Cash: captured immediately. UPI/Card: PENDING until staff confirms.
+/// Never mutated after CAPTURED — corrections via Refund records.
+model Payment {
+  id                     String        @id @default(uuid()) @db.Uuid
+  businessId             String        @db.Uuid
+  locationId             String        @db.Uuid
+  invoiceId              String        @db.Uuid
+  /// Client-generated UUID; prevents duplicate payment submission on retry.
+  idempotencyKey         String        @db.Uuid
+  method                 PaymentMethod
+  status                 PaymentStatus @default(PENDING)
+  amountMinorUnits       Int
+  currencyCode           String        @default("INR")
+  /// For CASH: amount tendered by the guest.
+  cashReceivedMinorUnits Int?
+  /// For CASH: change returned to the guest.
+  changeMinorUnits       Int?
+  /// For UPI: reference/transaction ID entered by staff.
+  referenceCode          String?
+  providerOrderId        String?
+  providerTransactionId  String?
+  notes                  String?
+  failureReason          String?
+  version                Int           @default(1)
+  createdAt              DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime      @updatedAt @db.Timestamptz(6)
+  capturedAt             DateTime?     @db.Timestamptz(6)
+  failedAt               DateTime?     @db.Timestamptz(6)
+  cancelledAt            DateTime?     @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location Location  @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  invoice  Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  refunds  Refund[]
+
+  @@unique([businessId, idempotencyKey])
+  @@index([businessId])
+  @@index([invoiceId])
+  @@map("payment")
+}
+
+// ─── Refund ───────────────────────────────────────────────────
+
+/// Reversal record — immutable append-only correction per ADR-016.
+/// Original Payment rows are never mutated; refunds are tracked here.
+model Refund {
+  id               String       @id @default(uuid()) @db.Uuid
+  businessId       String       @db.Uuid
+  paymentId        String       @db.Uuid
+  reason           String
+  amountMinorUnits Int
+  status           RefundStatus @default(PENDING)
+  notes            String?
+  providerRefundId String?
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  processedAt      DateTime?    @db.Timestamptz(6)
+  failedAt         DateTime?    @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  payment  Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@index([paymentId])
+  @@map("refund")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 10 — Printing & Hardware (ADR-007/ADR-025)
+// PrintAgent (local daemon), PrinterProfile (physical printer),
+// PrintTemplate (configurable receipt/KOT layout), PrintJob
+// (truthful state machine: QUEUED→SENT→PRINTED|FAILED|OFFLINE).
+//
+// Key invariants:
+//   - API 2xx NEVER means "printed successfully" — only agent
+//     confirmation (PRINTED) does (ADR-007 hard rule).
+//   - PrintJob payload is built at enqueue time; agent has all
+//     data it needs without further API calls.
+//   - Idempotency: UNIQUE(businessId, idempotencyKey) on PrintJob.
+//   - Reprints create NEW jobs (parentJobId linkage) — never modify
+//     the original job.
+//   - Agent authenticates via sha256-hashed secret (service-to-service
+//     token, not user JWT).
+// ═════════════════════════════════════════════════════════════
+
+// ─── Phase 10 enums ──────────────────────────────────────────
+
+enum PrintPurpose {
+  RECEIPT
+  KOT
+}
+
+enum PrintJobStatus {
+  QUEUED
+  SENT
+  PRINTED
+  FAILED
+  OFFLINE
+  CANCELLED
+}
+
+enum PrintJobSourceType {
+  INVOICE
+  SERVICE_REQUEST
+  MANUAL
+}
+
+enum PrinterConnectionType {
+  NETWORK_ESC_POS
+  USB_ESC_POS
+}
+
+// ─── Print Agent ─────────────────────────────────────────────
+
+/// Represents a local print daemon registered at one location.
+/// The agent authenticates via secretHash (sha256 of a bearer token).
+/// One agent can manage multiple PrinterProfiles at its location.
+model PrintAgent {
+  id         String    @id @default(uuid()) @db.Uuid
+  businessId String    @db.Uuid
+  locationId String    @db.Uuid
+  name       String
+  /// sha256 hex of the agent's bearer secret — never stored in plaintext.
+  secretHash String
+  lastSeenAt DateTime? @db.Timestamptz(6)
+  isActive   Boolean   @default(true)
+  version    Int       @default(1)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(6)
+
+  business  Business         @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location  Location         @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  printers  PrinterProfile[]
+
+  @@index([businessId])
+  @@index([locationId])
+  @@map("print_agent")
+}
+
+// ─── Printer Profile ─────────────────────────────────────────
+
+/// Configuration for one physical printer at a location.
+/// The `purpose` determines which jobs are routed here (RECEIPT or KOT).
+/// `deviceConfig` holds connection-specific params (host/port or USB path).
+model PrinterProfile {
+  id             String                @id @default(uuid()) @db.Uuid
+  businessId     String                @db.Uuid
+  locationId     String                @db.Uuid
+  /// Optional: which agent manages this printer. Null = no agent yet.
+  agentId        String?               @db.Uuid
+  name           String
+  purpose        PrintPurpose
+  connectionType PrinterConnectionType
+  /// Connection params: { host, port } for NETWORK; { devicePath } for USB.
+  deviceConfig   Json                  @default("{}")
+  isActive       Boolean               @default(true)
+  version        Int                   @default(1)
+  createdAt      DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(6)
+
+  business  Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location  Location    @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  agent     PrintAgent? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  printJobs PrintJob[]
+
+  @@index([businessId])
+  @@index([locationId])
+  @@index([businessId, purpose, isActive])
+  @@map("printer_profile")
+}
+
+// ─── Print Template ──────────────────────────────────────────
+
+/// Configurable layout options for receipt or KOT printing.
+/// locationId=null = business-level default (location overrides take precedence).
+/// Only one default template per (businessId, locationId?, purpose).
+model PrintTemplate {
+  id         String       @id @default(uuid()) @db.Uuid
+  businessId String       @db.Uuid
+  locationId String?      @db.Uuid
+  purpose    PrintPurpose
+  name       String
+  /// Layout config JSON: { showBusinessName, showAddress, showTaxId,
+  ///   showTaxBreakdown, showPaymentDetails, footerText } for RECEIPT;
+  /// { showTableCode, showRoundNumber, showKitchenNotes, showModifiers } for KOT.
+  config     Json         @default("{}")
+  isDefault  Boolean      @default(false)
+  version    Int          @default(1)
+  createdAt  DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime     @updatedAt @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([businessId, purpose])
+  @@map("print_template")
+}
+
+// ─── Print Job ───────────────────────────────────────────────
+
+/// One print attempt. State machine: QUEUED→SENT→PRINTED|FAILED|OFFLINE.
+/// payload is built at enqueue time and is self-contained for the agent.
+/// Reprints create NEW jobs (parentJobId → original); never mutate history.
+model PrintJob {
+  id               String             @id @default(uuid()) @db.Uuid
+  businessId       String             @db.Uuid
+  locationId       String             @db.Uuid
+  /// Nullable: routed printer (SetNull if deleted). Null = no printer configured.
+  printerId        String?            @db.Uuid
+  /// Client-generated UUID; prevents duplicate job on retry.
+  idempotencyKey   String             @db.Uuid
+  purpose          PrintPurpose
+  status           PrintJobStatus     @default(QUEUED)
+  sourceType       PrintJobSourceType
+  /// invoiceId, serviceRequestId, or any identifier for MANUAL.
+  sourceId         String
+  /// Self-contained print payload for the agent (receipt/KOT data).
+  payload          Json
+  retryCount       Int                @default(0)
+  maxRetries       Int                @default(3)
+  /// Set on reprint — links to the original job.
+  parentJobId      String?            @db.Uuid
+  requestedById    String?            @db.Uuid
+  requestedByLabel String?
+  failureReason    String?
+  sentAt           DateTime?          @db.Timestamptz(6)
+  printedAt        DateTime?          @db.Timestamptz(6)
+  failedAt         DateTime?          @db.Timestamptz(6)
+  cancelledAt      DateTime?          @db.Timestamptz(6)
+  version          Int                @default(1)
+  createdAt        DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(6)
+
+  business   Business        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location   Location        @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  printer    PrinterProfile? @relation(fields: [printerId], references: [id], onDelete: SetNull)
+  parentJob  PrintJob?       @relation("PrintJobReprints", fields: [parentJobId], references: [id], onDelete: SetNull)
+  reprints   PrintJob[]      @relation("PrintJobReprints")
+
+  @@unique([businessId, idempotencyKey])
+  @@index([businessId])
+  @@index([locationId, status])
+  @@index([printerId, status])
+  @@index([businessId, sourceType, sourceId])
+  @@map("print_job")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 11 — Reports / Alerts / Audit
+// AlertNotification: per-user in-app delivery of alert-rule events.
+// Append-only: never deleted. isRead flag marks consumption.
+// ═════════════════════════════════════════════════════════════
+
+/// In-app notification delivered to a specific user when an alert rule fires.
+/// alertRuleId is nullable: the original rule may be deleted after delivery.
+model AlertNotification {
+  id          String    @id @default(uuid()) @db.Uuid
+  businessId  String    @db.Uuid
+  userId      String    @db.Uuid
+  alertRuleId String?   @db.Uuid
+  /// The event that triggered this notification.
+  eventKey    String
+  title       String
+  body        String
+  /// Optional deep-link for the UI, e.g. "/admin/checkout/invoices/:id".
+  resourceUrl String?
+  isRead      Boolean   @default(false)
+  readAt      DateTime? @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alertRule AlertRule? @relation(fields: [alertRuleId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, userId, isRead, createdAt])
+  @@index([businessId, userId, createdAt])
+  @@map("alert_notification")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 12 — Commercial / Add-on Management (ADR-026)
+// Platform-level commercial catalog: Offerings, Price Books, Bundles,
+// per-client price overrides, Activation Request workflow,
+// and Deployment Checklists.
+//
+// Key invariants (ADR-026):
+//   - No monetary constants in code; all amounts live in the database.
+//   - Activation workflow is state-machine driven; every transition
+//     appends an immutable ActivationRequestEvent row.
+//   - Entitlement (what the client has) is separate from payment
+//     collection (deferred to a later phase).
+// ═════════════════════════════════════════════════════════════
+
+/// What Manhar sells. Prices live in PriceBook; no amounts here (ADR-026).
+model Offering {
+  id          String       @id @default(uuid()) @db.Uuid
+  /// Stable machine key, kebab-case.
+  key         String       @unique
+  name        String
+  description String?
+  type        OfferingType
+  /// Module keys this offering grants access to (informational; activation is manual).
+  moduleKeys  String[]
+  isActive    Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
+
+  priceBookEntries     PriceBookEntry[]
+  clientPriceOverrides ClientPriceOverride[]
+  bundleItems          BundleItem[]
+
+  @@map("offering")
+}
+
+/// Named, effective-dated, currency-aware collection of prices.
+model PriceBook {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  description  String?
+  currencyCode String    @default("INR")
+  /// Partial unique index (see migration): at most one default per active book.
+  isDefault    Boolean   @default(false)
+  validFrom    DateTime? @db.Timestamptz(6)
+  validTo      DateTime? @db.Timestamptz(6)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+
+  entries PriceBookEntry[]
+
+  @@map("price_book")
+}
+
+/// One price per offering within a price book. amountMinorUnits = paise for INR (ADR-015).
+model PriceBookEntry {
+  id                 String   @id @default(uuid()) @db.Uuid
+  priceBookId        String   @db.Uuid
+  offeringId         String   @db.Uuid
+  amountMinorUnits   Int
+  /// For RECURRING offerings: billing cycle length in days (30=monthly, 365=annual).
+  billingPeriodDays  Int?
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  priceBook PriceBook @relation(fields: [priceBookId], references: [id], onDelete: Cascade)
+  offering  Offering  @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+
+  @@unique([priceBookId, offeringId])
+  @@index([priceBookId])
+  @@map("price_book_entry")
+}
+
+/// Effective-dated per-client price that supersedes the price book for one offering.
+model ClientPriceOverride {
+  id               String    @id @default(uuid()) @db.Uuid
+  businessId       String    @db.Uuid
+  offeringId       String    @db.Uuid
+  amountMinorUnits Int
+  currencyCode     String    @default("INR")
+  effectiveFrom    DateTime  @db.Timestamptz(6)
+  effectiveTo      DateTime? @db.Timestamptz(6)
+  reason           String?
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  offering Offering @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@index([businessId, offeringId])
+  @@map("client_price_override")
+}
+
+/// A named group of offerings sold together (e.g. "Restaurant Starter Pack").
+model Bundle {
+  id          String    @id @default(uuid()) @db.Uuid
+  key         String    @unique
+  name        String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+
+  items              BundleItem[]
+  activationRequests ActivationRequest[]
+
+  @@map("bundle")
+}
+
+/// Each offering may appear at most once per bundle (composite PK).
+model BundleItem {
+  bundleId   String @db.Uuid
+  offeringId String @db.Uuid
+
+  bundle   Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  offering Offering @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+
+  @@id([bundleId, offeringId])
+  @@map("bundle_item")
+}
+
+/// The onboarding workflow for granting a client access to a bundle/module set.
+/// State machine: REQUESTED→QUOTED→APPROVED→PENDING_SETUP→ACTIVE→SUSPENDED|REMOVED.
+/// Every state transition appends an immutable ActivationRequestEvent row (ADR-016).
+model ActivationRequest {
+  id           String           @id @default(uuid()) @db.Uuid
+  businessId   String           @db.Uuid
+  bundleId     String?          @db.Uuid
+  /// Explicit module keys when not using a bundle.
+  moduleKeys   String[]
+  status       ActivationStatus @default(REQUESTED)
+  requestedBy  String?
+  assignedTo   String?
+  notes        String?
+  /// Quoted amount in minor units (null = not yet quoted). No constant in code.
+  quotedAmount Int?
+  currencyCode String           @default("INR")
+  quotedAt     DateTime?        @db.Timestamptz(6)
+  approvedAt   DateTime?        @db.Timestamptz(6)
+  setupAt      DateTime?        @db.Timestamptz(6)
+  goLiveAt     DateTime?        @db.Timestamptz(6)
+  removedAt    DateTime?        @db.Timestamptz(6)
+  version      Int              @default(1)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(6)
+
+  business  Business                 @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  bundle    Bundle?                  @relation(fields: [bundleId], references: [id], onDelete: SetNull)
+  events    ActivationRequestEvent[]
+  checklist DeploymentChecklist?
+
+  @@index([businessId])
+  @@index([status])
+  @@map("activation_request")
+}
+
+/// Immutable log of every state transition on an ActivationRequest (ADR-016).
+model ActivationRequestEvent {
+  id                  String            @id @default(uuid()) @db.Uuid
+  activationRequestId String            @db.Uuid
+  fromStatus          ActivationStatus?
+  toStatus            ActivationStatus
+  note                String?
+  actorId             String?
+  actorLabel          String?
+  createdAt           DateTime          @default(now()) @db.Timestamptz(6)
+
+  activationRequest ActivationRequest @relation(fields: [activationRequestId], references: [id], onDelete: Cascade)
+
+  @@index([activationRequestId, createdAt])
+  @@map("activation_request_event")
+}
+
+/// One deployment checklist per activation request; tracks go-live progress.
+model DeploymentChecklist {
+  id                  String    @id @default(uuid()) @db.Uuid
+  activationRequestId String    @unique @db.Uuid
+  businessId          String    @db.Uuid
+  completedAt         DateTime? @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(6)
+
+  activationRequest ActivationRequest        @relation(fields: [activationRequestId], references: [id], onDelete: Cascade)
+  business          Business                  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  items             DeploymentChecklistItem[]
+
+  @@index([businessId])
+  @@map("deployment_checklist")
+}
+
+/// Individual step in a deployment checklist.
+model DeploymentChecklistItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  checklistId String    @db.Uuid
+  key         String
+  label       String
+  completed   Boolean   @default(false)
+  completedAt DateTime? @db.Timestamptz(6)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+
+  checklist DeploymentChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@unique([checklistId, key])
+  @@index([checklistId])
+  @@map("deployment_checklist_item")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 16 — Operating Costs (ADR-030)
+// Standalone module — any business type can track operating expenses.
+// Expense categories are per-business; expenses are per-location.
+// Approval workflow: categories flag requiresApproval; service layer
+// auto-approves if false, else records stay PENDING_APPROVAL until
+// a user with costs.expense.approve acts on them.
+// ═════════════════════════════════════════════════════════════
+
+enum ExpenseStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+/// Per-business expense classification (rent, utilities, wages, …).
+model ExpenseCategory {
+  id               String   @id @default(uuid()) @db.Uuid
+  businessId       String   @db.Uuid
+  name             String
+  description      String?
+  /// When true, submitted expenses in this category need manager approval.
+  requiresApproval Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  version          Int      @default(1)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  expenses Expense[]
+
+  @@unique([businessId, name])
+  @@index([businessId])
+  @@map("expense_category")
+}
+
+/// A single operating expense record.
+/// Amount is stored in minor currency units (paise for INR, ADR-015).
+/// Idempotency key prevents duplicate submissions from the UI (ADR-017).
+model Expense {
+  id                String        @id @default(uuid()) @db.Uuid
+  businessId        String        @db.Uuid
+  locationId        String        @db.Uuid
+  expenseCategoryId String        @db.Uuid
+  /// Amount in minor currency units (paise for INR).
+  amountMinorUnits  Int
+  paidAt            DateTime      @db.Timestamptz(6)
+  description       String?
+  vendorName        String?
+  status            ExpenseStatus @default(PENDING_APPROVAL)
+  approvedById      String?       @db.Uuid
+  approvedAt        DateTime?     @db.Timestamptz(6)
+  rejectionReason   String?
+  isRecurring       Boolean       @default(false)
+  recurringNote     String?
+  /// Caller-generated UUID; prevents duplicate submissions (ADR-017).
+  idempotencyKey    String        @unique @db.Uuid
+  createdById       String?       @db.Uuid
+  version           Int           @default(1)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(6)
+
+  business   Business        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  location   Location        @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  category   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id], onDelete: Restrict)
+  approvedBy User?           @relation("ApprovedExpenses", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdBy  User?           @relation("CreatedExpenses", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([businessId, locationId])
+  @@index([businessId, paidAt])
+  @@map("expense")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Phase 13 — Onboarding / Deployment (ADR-027)
+// Per-business onboarding milestone tracker. One row per business.
+// Tracks which of the 8 go-live milestones have been completed.
+// Completion of each step is idempotent; steps can be revisited.
+// ═════════════════════════════════════════════════════════════
+
+/// Milestone steps in the client go-live journey.
+/// Stored as TEXT[] in completedSteps (step keys, not enum column)
+/// so new steps can be added without a DB migration.
+model OnboardingProgress {
+  id             String    @id @default(uuid()) @db.Uuid
+  businessId     String    @unique @db.Uuid
+  /// Ordered list of completed step keys (e.g. ["BUSINESS_CREATED","LOCATION_ADDED"]).
+  completedSteps String[]
+  /// Key of the furthest incomplete step (the "active" step in the wizard).
+  currentStep    String    @default("BUSINESS_CREATED")
+  notes          String?
+  startedAt      DateTime  @default(now()) @db.Timestamptz(6)
+  completedAt    DateTime? @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([currentStep])
+  @@map("onboarding_progress")
+}

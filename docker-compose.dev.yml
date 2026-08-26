@@ -1,0 +1,55 @@
+# Manhar Nexus — local development infrastructure
+# Canonical path for machines WITH Docker. Machines without Docker use
+# infra/scripts/dev-postgres.ps1 (portable cluster) — see docs/DEVELOPER_SETUP.md
+name: nexus-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexus-dev-postgres
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+      POSTGRES_DB: nexus
+    ports:
+      - "15432:5432"
+    volumes:
+      - nexus-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-dev-redis
+    ports:
+      - "16379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    container_name: nexus-dev-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: nexus
+      MINIO_ROOT_PASSWORD: nexus-dev-password
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    volumes:
+      - nexus-miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  nexus-pgdata:
+  nexus-miniodata:

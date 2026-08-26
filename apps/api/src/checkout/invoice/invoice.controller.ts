@@ -1,0 +1,64 @@
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { CurrentPrincipal, RequirePermission, scopeFromPrincipal, type Principal } from '../../iam/principal';
+import { RequireModule } from '../../modules/module-gating.guard';
+import { zodBody } from '../../common/zod-validation.pipe';
+import { InvoiceService } from './invoice.service';
+import {
+  createInvoiceSchema,
+  finaliseInvoiceSchema,
+  voidInvoiceSchema,
+  type CreateInvoiceDto,
+  type FinaliseInvoiceDto,
+  type VoidInvoiceDto,
+} from './invoice.dto';
+
+@Controller('admin/checkout')
+@RequireModule('checkout')
+export class InvoiceController {
+  constructor(private readonly invoices: InvoiceService) {}
+
+  @Post('sessions/:sessionId/invoice')
+  @RequirePermission('checkout.invoice.create')
+  getOrCreate(
+    @CurrentPrincipal() p: Principal,
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+    @Body(zodBody(createInvoiceSchema)) dto: CreateInvoiceDto,
+  ) {
+    return this.invoices.getOrCreateDraftInvoice(scopeFromPrincipal(p), sessionId, dto);
+  }
+
+  @Get('sessions/:sessionId/invoice')
+  @RequirePermission('checkout.invoice.view')
+  findBySession(
+    @CurrentPrincipal() p: Principal,
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+  ) {
+    return this.invoices.findSessionInvoice(scopeFromPrincipal(p), sessionId);
+  }
+
+  @Get('invoices/:id')
+  @RequirePermission('checkout.invoice.view')
+  findOne(@CurrentPrincipal() p: Principal, @Param('id', ParseUUIDPipe) id: string) {
+    return this.invoices.findInvoiceOrThrow(scopeFromPrincipal(p), id);
+  }
+
+  @Post('invoices/:id/finalise')
+  @RequirePermission('checkout.invoice.create')
+  finalise(
+    @CurrentPrincipal() p: Principal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(zodBody(finaliseInvoiceSchema)) dto: FinaliseInvoiceDto,
+  ) {
+    return this.invoices.finaliseInvoice(scopeFromPrincipal(p), id, dto);
+  }
+
+  @Post('invoices/:id/void')
+  @RequirePermission('checkout.invoice.create')
+  void_(
+    @CurrentPrincipal() p: Principal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(zodBody(voidInvoiceSchema)) dto: VoidInvoiceDto,
+  ) {
+    return this.invoices.voidInvoice(scopeFromPrincipal(p), id, dto);
+  }
+}
