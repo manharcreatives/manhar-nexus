@@ -19,23 +19,39 @@ docs/
   MASTER_IMPLEMENTATION_ROADMAP.md   Living phase tracker — start here
   DEVELOPER_SETUP.md                 Machine setup + daily workflow
   spec-normalized/                   Canonical glossary, requirement register
-  adr/                               Architecture decision records (001–019)
+  adr/                               Architecture decision records (001–030)
+  PROJECT_SETUP_AND_TRANSFER_GUIDE.md   New-machine setup & transfer guide
 ```
 
 ## Getting started
 
 ```powershell
-npm install && npm run db:init && npm run dev:api
+# Install dependencies (builds @nexus/shared + generates Prisma client)
+npm install
+
+# Initialize local PostgreSQL cluster + apply migrations
+npm run db:init && npm run db:migrate
+
+# Start API (terminal 1) and web (terminal 2)
+npm run dev:api
+npm run dev:web
 ```
 
-See [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) for the full guide.
+API: `http://localhost:3000/health` · Web: `http://localhost:5173`
+
+For a complete new-machine setup (clone → running in minutes), see:
+[docs/PROJECT_SETUP_AND_TRANSFER_GUIDE.md](docs/PROJECT_SETUP_AND_TRANSFER_GUIDE.md)
+
+See [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) for the daily development workflow.
 
 ## Documentation map
 
 - **Roadmap & status** — `docs/MASTER_IMPLEMENTATION_ROADMAP.md` (phases, gates,
   decisions, blockers; updated every phase).
+- **Transfer guide** — `docs/PROJECT_SETUP_AND_TRANSFER_GUIDE.md` (new-machine setup,
+  prerequisites, all commands, troubleshooting; verified against the actual repository).
 - **Terminology** — `docs/spec-normalized/CANONICAL_GLOSSARY.md` (Service Request,
   Checkout, KOS, Sold-Out, Business Workspace…). Use these terms in code, UI and
   docs.
-- **Decisions** — `docs/adr/` (ADR-001…ADR-019). Propose changes by adding a new
+- **Decisions** — `docs/adr/` (ADR-001…ADR-030). Propose changes by adding a new
   ADR, never by editing accepted ones.

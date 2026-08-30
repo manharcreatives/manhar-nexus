@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.16-pilot-hardening |
+| **Version** | 1.17-reconciliation |
 | **Last Updated** | 2026-08-30 |
-| **Current Phase** | Phase 16 PARTIAL — Operating Costs module shipped; pilot hardening pass completed |
-| **Current Status** | 596/596 E2E · 27/27 unit · TypeScript clean · lint clean · web build clean · PILOT READY WITH CONDITIONS (restore drill ✅ COMPLETED; printer + credential rotation still pending) |
+| **Current Phase** | Awaiting pilot — all internal work complete; project transfer documented |
+| **Current Status** | 596/596 E2E · 27/27 unit · TypeScript clean · lint clean · web build clean · PILOT READY WITH CONDITIONS |
 | **Overall Progress** | 86% (P0–P15 complete; P16 Operating Costs complete; other P16 candidates deferred pending pilot demand) |
 | **Project Health** | GREEN |
 
@@ -31,7 +31,34 @@
 
 ## 1. PROJECT STATUS
 
-- **Overall Progress:** 86% (P0–P15 + Operating Costs complete; remaining P16 candidates deferred)
+### CURRENT EXECUTIVE STATUS
+
+> **PILOT READY WITH CONDITIONS.**
+>
+> All internal engineering work is complete. The product is secure, tested, and documented.
+> No material internal blockers exist. The remaining conditions are external:
+>
+> 1. Physical ESC/POS printer validation (no hardware available in dev environment)
+> 2. Production credential rotation (operational task — before first live transaction)
+> 3. Production-equivalent staging restore drill (requires staging infrastructure)
+>
+> **The correct next action is: recruit and onboard a real pilot client.**
+> Do not implement additional modules without validated pilot demand.
+
+### IMMEDIATE NEXT ACTIONS
+
+```
+1. Share repository access with pilot client's technical contact
+2. Follow docs/runbooks/pilot-setup.md to configure their restaurant
+3. Validate ESC/POS printer compatibility with actual hardware
+4. Rotate PLATFORM_BOOTSTRAP_PASSWORD + JWT_ACCESS_SECRET before go-live
+5. Confirm staging restore drill with actual managed DB provider
+6. Collect pilot feedback → then and only then prioritize next Phase 16 modules
+```
+
+### Summary
+
+- **Overall Progress:** 86% (P0–P15 complete; P16 Operating Costs complete; other P16 candidates deferred)
 - **Completed Phases:** Phase 0–15 + Operating Costs (P16 first module)
 - **Active Phase:** None — awaiting pilot feedback to define remaining P16 scope
 - **Upcoming Phase:** Phase 16 remaining candidates (demand-driven, DEFERRED) — see Phase 16 detail
@@ -944,6 +971,46 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 | KI-04 | Initial canonical dev ports (54329) fell inside Windows ephemeral range → WinNAT per-boot exclusions made them unbindable ("Permission denied" on bind) | Dev DB could not start on some boots | Renumbered canonical ports below the dynamic range: PG **15432**, Redis **16379**, MinIO **19000** (rationale in DEVELOPER_SETUP.md); lesson recorded for any future host-port choice | CLOSED (2026-08-23) |
 
 ## 10. CHANGELOG
+
+### 2026-08-30 (Master Reconciliation, Pilot Audit & Project Transfer — v1.17)
+
+**READ-ONLY audit performed across full repository. No material internal blocker found.**
+
+**Security audit result (adversarial pass):**
+- `businessId` always from JWT via `scopeFromPrincipal()` — verified in every controller
+- `TenantScopedRepository.scoped()` + `assertOwned()` on all tenant-scoped Prisma queries — verified
+- JWT ≥ 64 chars enforced at API startup (`configuration.ts` superRefine) AND `deploy.ps1` — consistent
+- Helmet middleware in place (X-Content-Type-Options, X-Frame-Options, HSTS, Referrer-Policy)
+- No `console.log` in production code — confirmed clean
+- No `as any` in production code — confirmed clean
+- Error responses never leak stack traces (DomainExceptionFilter)
+- Password hash never in API responses (no DTO includes passwordHash)
+- One pre-existing TODO: `auth.controller.ts:43` — native client token path routing; not a pilot blocker
+- **VERDICT: NO SECURITY ISSUES FOUND**
+
+**Reconciliation findings:**
+- Repository state accurately matches roadmap — no discrepancies
+- All 596/596 E2E + 27/27 unit tests match documented counts
+- All phases 0–15 correctly marked COMPLETED; Phase 16 correctly IN PROGRESS
+- README stale: said ADRs 001–019 (actual: 001–030) — FIXED
+- README missing: `npm run dev:web` in getting started — FIXED
+
+**New deliverables:**
+- `docs/PROJECT_SETUP_AND_TRANSFER_GUIDE.md`: NEW — comprehensive 31-section operational
+  handoff guide. Every command verified against actual repository scripts, ports, and files.
+  Covers: prerequisites, clone, VS Code, install, env, DB, Redis, migrations, demo seed,
+  startup, health check, login, dev workflow, testing, build, troubleshooting, Windows/PS notes,
+  git workflow, backup/restore, hardware, security rules, dev/staging/production, fresh-PC
+  checklist, zero-to-running quick start.
+- `README.md`: Updated to reference transfer guide; corrected ADR range; improved getting
+  started to include both API and web server commands.
+- `MASTER_IMPLEMENTATION_ROADMAP.md`: Updated to v1.17-reconciliation with CURRENT EXECUTIVE
+  STATUS and IMMEDIATE NEXT ACTIONS sections.
+
+**Tests:** 596/596 E2E · 27/27 unit · TypeScript clean — all verified (no code changes made)
+
+**Product strategy decision:** Development is correctly waiting for real pilot/client validation.
+No new Phase 16 modules should be started without validated demand.
 
 ### 2026-08-30 (Pilot Deployment Readiness & Pre-Live Hardening — Session 3)
 
