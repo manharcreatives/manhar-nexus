@@ -169,6 +169,8 @@ function ExpensesTab() {
     isRecurring: false,
   });
   const [saving, setSaving] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -216,11 +218,14 @@ function ExpensesTab() {
       .catch((err: Error) => setError(err.message));
   };
 
-  const reject = (id: string) => {
-    const reason = window.prompt('Rejection reason:');
-    if (!reason) return;
-    costsApi.rejectExpense(id, reason)
-      .then((updated) => setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e))))
+  const confirmReject = (id: string) => {
+    if (!rejectReason.trim()) return;
+    costsApi.rejectExpense(id, rejectReason.trim())
+      .then((updated) => {
+        setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+        setRejectingId(null);
+        setRejectReason('');
+      })
       .catch((err: Error) => setError(err.message));
   };
 
@@ -353,13 +358,44 @@ function ExpensesTab() {
                 <td className="px-4 py-3 text-slate-600">{exp.vendorName ?? '—'}</td>
                 <td className="px-4 py-3 font-medium text-slate-900">{formatMinorUnits(exp.amountMinorUnits)}</td>
                 <td className="px-4 py-3">{statusBadge(exp.status)}</td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  {exp.status === 'PENDING_APPROVAL' && (
-                    <>
+                <td className="px-4 py-3 text-right">
+                  {exp.status === 'PENDING_APPROVAL' && rejectingId === exp.id ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <input
+                        autoFocus
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        placeholder="Reason (required)"
+                        className="rounded border border-slate-300 px-2 py-1 text-xs w-40 focus:outline-none focus:ring-1 focus:ring-red-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => confirmReject(exp.id)}
+                        disabled={!rejectReason.trim()}
+                        className="text-xs text-red-600 hover:underline disabled:opacity-40"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                        className="text-xs text-slate-500 hover:underline"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : exp.status === 'PENDING_APPROVAL' ? (
+                    <div className="flex items-center justify-end gap-2">
                       <button type="button" onClick={() => approve(exp.id)} className="text-xs text-green-600 hover:underline">Approve</button>
-                      <button type="button" onClick={() => reject(exp.id)} className="text-xs text-red-600 hover:underline">Reject</button>
-                    </>
-                  )}
+                      <button
+                        type="button"
+                        onClick={() => { setRejectingId(exp.id); setRejectReason(''); }}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  ) : null}
                 </td>
               </tr>
             ))}

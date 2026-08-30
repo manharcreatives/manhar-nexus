@@ -6,11 +6,11 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.15-final |
-| **Last Updated** | 2026-08-25 |
-| **Current Phase** | Phase 15 COMPLETED — Restaurant V1 Stabilization |
-| **Current Status** | COMPLETED — 549/549 E2E (35 new restaurant workflow), audit chain bug fixed, security review PASS, PILOT READY WITH CONDITIONS |
-| **Overall Progress** | 84% (16 of 19 complete; Phase 16+ deferred) |
+| **Version** | 1.16-partial |
+| **Last Updated** | 2026-08-30 |
+| **Current Phase** | Phase 16 PARTIAL — Operating Costs module shipped; remaining P16 candidates deferred |
+| **Current Status** | 596/596 E2E · 27/27 unit · TypeScript clean · lint clean · web build clean · PILOT READY WITH CONDITIONS (P14 conditions unchanged) |
+| **Overall Progress** | 86% (P0–P15 complete; P16 Operating Costs complete; other P16 candidates deferred pending pilot demand) |
 | **Project Health** | GREEN |
 
 ---
@@ -31,10 +31,10 @@
 
 ## 1. PROJECT STATUS
 
-- **Overall Progress:** 84% (16 of 19 complete; Phase 16+ deferred)
-- **Completed Phases:** Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, Phase 12, Phase 13, Phase 14, Phase 15
-- **Active Phase:** None — awaiting pilot feedback to define Phase 16 scope
-- **Upcoming Phase:** Phase 16 — Post-Pilot V1 Modules (demand-driven, DEFERRED)
+- **Overall Progress:** 86% (P0–P15 + Operating Costs complete; remaining P16 candidates deferred)
+- **Completed Phases:** Phase 0–15 + Operating Costs (P16 first module)
+- **Active Phase:** None — awaiting pilot feedback to define remaining P16 scope
+- **Upcoming Phase:** Phase 16 remaining candidates (demand-driven, DEFERRED) — see Phase 16 detail
 - **Blocked Work:** see §8/§9 — `BLOCKER-B01` Docker absent (limits live Redis/MinIO verification only; does not block code progress)
 - **Critical Risks (active):** RISK-R03 printer compatibility (matures at Phase 10), rush-hour performance budgets (Phases 8+). Full register §8.
 
@@ -71,7 +71,7 @@
 | 13 | Onboarding / Deployment | COMPLETED | 100% | 2026-08-25 | 2026-08-25 | P12 | OnboardingProgress milestone tracker, go-live wizard, deploy/migrate/health-check scripts, 4 runbooks; 29 E2E green; ADR-027 |
 | 14 | Pilot / Production Hardening | COMPLETED | 100% | 2026-08-25 | 2026-08-25 | P13 | 55 security + 12 concurrency E2E; OWASP A01–A07 pass; JWT secret ≥64 chars enforced; PILOT READY WITH CONDITIONS (hardware + restore drill pending); ADR-028 |
 | 15 | Restaurant V1 Stabilization | COMPLETED | 100% | 2026-08-25 | 2026-08-25 | P14 | Gap analysis + permissions + frontend + workflow E2E (35/35) + audit chain bug fixed + security review + pilot checklist. PILOT READY WITH CONDITIONS |
-| 16 | Post-Pilot V1 Modules | DEFERRED | 0% | — | — | P15 | Build only on validated pilot demand |
+| 16 | Post-Pilot V1 Modules | IN PROGRESS | ~10% | 2026-08-30 | — | P15 | Operating Costs shipped (47 E2E, ADR-030); remaining candidates deferred pending pilot demand |
 | 17 | Growth Modules | DEFERRED | 0% | — | — | P16 | Digital orders, dispatch, multi-location, aggregators |
 | 18 | Future Vertical Readiness | NOT STARTED | 0% | — | — | P14 | Time-boxed manufacturing spike → ADR + gap list only |
 
@@ -831,8 +831,21 @@ RISK-R03 (printer compatibility) matures here. No physical ESC/POS hardware avai
 **ADR-029:** `docs/adr/ADR-029-restaurant-v1-frontend-architecture.md`
 
 #### Phase 16 — Post-Pilot V1 Modules
-- **DEFERRED — build only on validated pilot demand.** Candidates: full Guest CRM(consent) · Attendance/Leave · Operating Costs · Exception Center · Global Search · richer BI · Stock Control · Procurement/Vendors · Scan Menu QR · Offers/Rewards. Prioritize by demand × revenue × complexity × maintenance.
-- **Status:** DEFERRED · **Progress:** 0%
+
+- **Status:** IN PROGRESS · **Progress:** ~10% · **Started:** 2026-08-30
+
+**Shipped — Operating Costs:**
+- Standalone module (key: `costs`, no dependencies, any business type)
+- DB: `expense_category` (per-business) + `expense` (per-location); integer minor-unit amounts; idempotencyKey; approval state machine (PENDING_APPROVAL → APPROVED | REJECTED)
+- Backend: `CostsModule`, `CostsService`, `CostsController`; 5 permissions; module-gated; tenant-scoped; audit-trailed; all security invariants hold (businessId from principal, assertOwned on action routes, cross-reference validated)
+- Frontend: `CostsPage.tsx` (3 tabs: Expenses / Categories / Summary); inline rejection form (replaced `window.prompt()`)
+- Migration: `20260825160000_phase16_operating_costs`
+- ADR-030: `docs/adr/ADR-030-operating-costs-module.md`
+- Tests: 47 E2E (costs.e2e-spec.ts) — module gating, auth, category CRUD, expense CRUD, auto-approve, approval workflow, rejection workflow, inactive category, summary, cross-business isolation, validation
+- Known tech debt: `expense.idempotencyKey` unique constraint is global rather than `UNIQUE(businessId, idempotencyKey)` — service-layer isolation is correct; collision probability is 1 in 2^122; migration deferred
+
+**Remaining candidates (DEFERRED — build only on validated pilot demand):**
+Full Guest CRM (consent) · Attendance/Leave · Exception Center · Global Search · richer BI · Stock Control · Procurement/Vendors · Scan Menu QR · Offers/Rewards. Prioritize by demand × revenue × complexity × maintenance.
 
 #### Phase 17 — Growth Modules
 - **DEFERRED.** Direct Digital Service Requests (intake abstraction) · Pickup · Dispatch · Multi-Location controls/comparison · Advanced BI · Aggregator integrations via adapters (never contaminating core domain) · extra messaging channels.
@@ -857,7 +870,7 @@ Active phases carry actionable `- [ ]` checklists inside their DoD/Testing secti
 | Typecheck | PASS | 2026-08-25 | strict tsc across shared/api/web (clean after Phase 10) |
 | Unit Tests (API) | PASS | 2026-08-25 | 27/27 (health; audit hash; settings registry; permission registry; refresh-hash) |
 | E2E Smoke (API, HTTP-level failure simulation) | PASS | 2026-08-24 | 5/5 (ok/degraded/error matrix, request-id echo+propagation, offline-boot truthfulness) |
-| E2E Core + Auth + P4–P15 (API, live PostgreSQL) | PASS | 2026-08-25 | 549/549 across 19 suites — core + auth + business-locations + module-engine + config-center + restaurant-mvp (69) + restaurant-operations (49) + checkout (31) + printing (56) + reports (16) + notifications (9) + audit-viewer (5) + commercial (56) + onboarding (29) + security (55) + concurrency (12) + health + auth-ratelimit + **restaurant-workflow (35 — Phase 15)** |
+| E2E Core + Auth + P4–P16 (API, live PostgreSQL) | PASS | 2026-08-30 | 596/596 across 20 suites — core + auth + business-locations + module-engine + config-center + restaurant-mvp (69) + restaurant-operations (49) + checkout (31) + printing (56) + reports (16) + notifications (9) + audit-viewer (5) + commercial (56) + onboarding (29) + security (55) + concurrency (12) + health + auth-ratelimit + restaurant-workflow (35) + **costs (47 — Phase 16)** |
 | Web Tests | PASS | 2026-08-24 | 2/2 (auth gate → sign-in screen; brand render) |
 | Frontend auth flow (real browser) | PASS | 2026-08-24 | login → cookie + token → /auth/me → authenticated shell with user + sign-out (claude-in-chrome) |
 | Live infra verification | PASS | 2026-08-24 | portable PG: migrations applied + seed (roles + platform admin); live login + `/internal` + `/admin` |
@@ -903,6 +916,7 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 | 027 | Onboarding: TEXT[] milestone tracker, PLATFORM-only routes, prisma migrate deploy (not dev), secret-safety guards in deploy.ps1 | TEXT[] avoids ALTER TYPE migrations for new steps; PLATFORM-only prevents business user exposure; forward-only migrations for production safety | 2026-08-25 | ACCEPTED |
 | 028 | Pilot hardening: all OWASP A01–A07 invariants pass; JWT ≥64 chars enforced; PILOT READY WITH CONDITIONS (hardware + restore drill pending) | Evidence-based pilot readiness posture; conditions documented before first client transaction | 2026-08-25 | ACCEPTED |
 | 029 | Restaurant V1 frontend: single-file pages (TablesPage, KitchenPage), inline view state over router, polling over push (15/30s), permission keys from module-manifest (no CORE_PERMISSIONS extension) | Pilot-speed implementation; avoid premature abstractions; maintain existing patterns | 2026-08-25 | ACCEPTED |
+| 030 | Operating Costs: standalone module (no deps), integer minor-unit money, auto-approve/approval-workflow per category, businessId-scoped tenant isolation, global idempotencyKey unique (known tech debt, astronomical collision probability); rejection via inline form (no window.prompt) | Any-business-type module; simple approval without queue service | 2026-08-30 | ACCEPTED |
 
 ## 8. RISKS & BLOCKERS
 
@@ -930,6 +944,29 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 | KI-04 | Initial canonical dev ports (54329) fell inside Windows ephemeral range → WinNAT per-boot exclusions made them unbindable ("Permission denied" on bind) | Dev DB could not start on some boots | Renumbered canonical ports below the dynamic range: PG **15432**, Redis **16379**, MinIO **19000** (rationale in DEVELOPER_SETUP.md); lesson recorded for any future host-port choice | CLOSED (2026-08-23) |
 
 ## 10. CHANGELOG
+
+### 2026-08-30 (Phase 16 — Operating Costs, E2E tests + roadmap sync)
+
+**Audit findings (pre-existing, discovered this session):**
+- Operating Costs module was fully implemented (migration, schema, service, controller, module manifest, system roles, frontend) but the roadmap incorrectly showed Phase 16 as DEFERRED 0%. No E2E tests existed. `CostsPage.tsx` used `window.prompt()` for rejection reason. No ADR-030.
+
+**Work performed:**
+- **E2E test suite:** `apps/api/test/costs.e2e-spec.ts` — 47 tests covering module gating (403 MODULE_DISABLED), authentication (401), category CRUD (list/create/get/patch; duplicate 409), expense CRUD (create/idempotency/list/get; auto-approve for no-approval categories; validation: negative amount/zero/missing fields/cross-business location 403/cross-business category 404/inactive category 404), approval workflow (PENDING_APPROVAL → APPROVED; double-approve 400), rejection workflow (PENDING_APPROVAL → REJECTED with reason; double-reject 400; empty reason 400), summary endpoint (shape + totals + locationId filter + bad date 400 + 401), cross-business isolation (6 vectors: list/get/patch categories + list/get/approve expenses all properly denied). **47/47 PASS.**
+- **UX fix:** `CostsPage.tsx` `window.prompt()` for rejection reason replaced with inline form (`rejectingId` / `rejectReason` state; input + Confirm/Cancel inline in the table row). No blocking browser dialog.
+- **ADR-030:** `docs/adr/ADR-030-operating-costs-module.md` — module identity, data model, approval workflow, permissions, security invariants, frontend decisions, known tech debt (idempotencyKey global uniqueness), deferred items.
+- **Roadmap corrected:** Phase 16 status updated from DEFERRED 0% → IN PROGRESS ~10%; test count updated 549→596; ADR-030 added to §7; Phase 16 detail section updated.
+
+**Gate results:**
+- TypeScript: ✅ strict clean (shared + api + web)
+- Lint: ✅ clean (0 errors)
+- Unit tests: ✅ 27/27
+- E2E: ✅ **596/596** across 20 suites (47 new costs tests; no regressions from 549)
+- Web build: ✅ 323 kB JS / 28 kB CSS
+
+**Pilot conditions (unchanged from Phase 14/15):**
+- 🔴 BLOCKED: Physical printer validation (no hardware)
+- ⏳ PENDING: Staging restore drill
+- ⏳ PENDING: Production credential rotation
 
 ### 2026-08-23
 - Initialized git repository; committed read-only specification baseline (`chore: initialize repository…`)
