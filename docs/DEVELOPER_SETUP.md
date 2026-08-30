@@ -84,6 +84,27 @@ behavior, not a bug. Install Docker Desktop later and run:
 docker compose -f docker-compose.dev.yml up -d
 ```
 
+## Your First Test Restaurant
+
+After the API and web are running, populate a full synthetic restaurant in one command:
+
+```powershell
+$env:NEXUS_DEMO_SEED = "true"
+npm run demo:seed
+```
+
+This creates **"The Pilot Kitchen"** with:
+- 4 users: owner / cashier / kitchen-team / waiter (credentials printed at end of script)
+- Restaurant, Catalog, Checkout, and Operating Costs modules activated
+- Tax categories, 12 menu items across 4 categories, 6 tables across 2 dining areas
+- 4 expense categories
+
+Log in at http://localhost:5173 with `demo.owner@pilot.nexus` / `PilotOwner@2024`.
+
+> The seed is fully idempotent — safe to re-run. It is **blocked in production** (`NODE_ENV=production` check in the script).
+
+For a real pilot restaurant, see `docs/runbooks/pilot-setup.md` (Path B — Manual API Setup).
+
 ## Environment
 
 Copy `.env.example` to `.env` (API workspace) if you need non-defaults.

@@ -20,6 +20,7 @@
     "db:start": "powershell -ExecutionPolicy Bypass -File infra/scripts/dev-postgres.ps1 -Action start",
     "db:stop": "powershell -ExecutionPolicy Bypass -File infra/scripts/dev-postgres.ps1 -Action stop",
     "db:migrate": "npm run prisma:migrate -w @nexus/api",
+    "demo:seed": "npm run demo:seed -w @nexus/api",
     "lint": "eslint .",
     "typecheck": "npm run typecheck -w @nexus/shared && npm run typecheck -w @nexus/api && npm run typecheck -w @nexus/web",
     "test": "npm run test -w @nexus/api && npm run test -w @nexus/web",

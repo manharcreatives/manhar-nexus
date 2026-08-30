@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { costsApi, formatMinorUnits, type ExpenseCategory, type Expense, type ExpenseStatus } from './api';
+import { costsApi, listLocations, formatMinorUnits, type ExpenseCategory, type Expense, type ExpenseStatus, type Location } from './api';
 
 type Tab = 'expenses' | 'categories' | 'summary';
 
@@ -154,6 +154,7 @@ function CategoriesTab() {
 function ExpensesTab() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | ''>('');
@@ -178,10 +179,16 @@ function ExpensesTab() {
     Promise.all([
       costsApi.listExpenses(filterStatus ? { status: filterStatus } : {}),
       costsApi.listCategories(),
+      listLocations(),
     ])
-      .then(([exp, cats]) => {
+      .then(([exp, cats, locs]) => {
         setExpenses(exp);
         setCategories(cats.filter((c) => c.isActive));
+        setLocations(locs.filter((l) => l.isActive));
+        // Auto-select first location if form is empty and one location available
+        if (locs.length === 1) {
+          setForm((f) => (f.locationId ? f : { ...f, locationId: locs[0].id }));
+        }
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -235,14 +242,18 @@ function ExpensesTab() {
 
       <form onSubmit={submitExpense} className="flex flex-wrap gap-3 items-end rounded-lg border border-slate-200 bg-white p-4">
         <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Location ID *</label>
-          <input
+          <label className="block text-xs font-medium text-slate-700 mb-1">Location *</label>
+          <select
             value={form.locationId}
             onChange={(e) => setForm((f) => ({ ...f, locationId: e.target.value }))}
-            placeholder="UUID"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
-          />
+          >
+            <option value="">Select location…</option>
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-700 mb-1">Category *</label>

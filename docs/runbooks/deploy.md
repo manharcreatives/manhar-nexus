@@ -9,6 +9,9 @@
 
 - [ ] All migrations are committed to `master` (or the target branch)
 - [ ] `.env` (or equivalent secrets manager export) is configured for the target environment
+- [ ] `CORS_ORIGIN` is set to the **exact** frontend domain (e.g. `https://app.yourrestaurant.com`). Missing or wrong value → browser blocks all API calls from the web app.
+- [ ] `PLATFORM_BOOTSTRAP_PASSWORD` has been rotated from any placeholder/default value (ADR-028).
+- [ ] `JWT_ACCESS_SECRET` is at least 64 characters and is NOT a dev placeholder — `deploy.ps1` enforces this, but verify manually before the first deploy.
 - [ ] Database is reachable from the deploy host
 - [ ] A backup/snapshot of the database has been taken (see `backup-restore.md`)
 - [ ] Phase 13 deployment checklist for the relevant client is complete (if a client go-live)

@@ -2,6 +2,13 @@ import { api } from '../auth/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface Location {
+  id: string;
+  name: string;
+  timezone: string;
+  isActive: boolean;
+}
+
 export interface ExpenseCategory {
   id: string;
   businessId: string;
@@ -66,6 +73,10 @@ const patch = (body: unknown) => ({
   method: 'PATCH',
   body: JSON.stringify(body),
 });
+
+// ── Location endpoints ────────────────────────────────────────────────────────
+
+export const listLocations = () => api<Location[]>('/admin/locations');
 
 // ── Category endpoints ────────────────────────────────────────────────────────
 

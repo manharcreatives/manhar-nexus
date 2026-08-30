@@ -6,9 +6,9 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.16-pilot-audit |
+| **Version** | 1.16-pilot-hardening |
 | **Last Updated** | 2026-08-30 |
-| **Current Phase** | Phase 16 PARTIAL — Operating Costs module shipped; pilot readiness audit completed |
+| **Current Phase** | Phase 16 PARTIAL — Operating Costs module shipped; pilot hardening pass completed |
 | **Current Status** | 596/596 E2E · 27/27 unit · TypeScript clean · lint clean · web build clean · PILOT READY WITH CONDITIONS (restore drill ✅ COMPLETED; printer + credential rotation still pending) |
 | **Overall Progress** | 86% (P0–P15 complete; P16 Operating Costs complete; other P16 candidates deferred pending pilot demand) |
 | **Project Health** | GREEN |
@@ -944,6 +944,29 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 | KI-04 | Initial canonical dev ports (54329) fell inside Windows ephemeral range → WinNAT per-boot exclusions made them unbindable ("Permission denied" on bind) | Dev DB could not start on some boots | Renumbered canonical ports below the dynamic range: PG **15432**, Redis **16379**, MinIO **19000** (rationale in DEVELOPER_SETUP.md); lesson recorded for any future host-port choice | CLOSED (2026-08-23) |
 
 ## 10. CHANGELOG
+
+### 2026-08-30 (Pilot Deployment Readiness & Pre-Live Hardening — Session 3)
+
+**Security hardening:**
+- `apps/api/src/config/configuration.ts`: Added `TRUST_PROXY` to envSchema (was silently ignored). Added production superRefine check: `JWT_ACCESS_SECRET.length < 64` → startup rejection with ADR-028 message. Previously only `deploy.ps1` enforced this; now the API itself enforces it at startup.
+- `apps/api/src/app.factory.ts`: Added `helmet()` middleware. HTTP security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, HSTS) were entirely absent. `crossOriginResourcePolicy: 'cross-origin'` set to allow the web app to fetch from the API in dev/staging.
+
+**Demo seed (developer / staging environments):**
+- `apps/api/prisma/demo-seed.ts`: NEW — Creates "The Pilot Kitchen" synthetic restaurant. Guard: exits if `NEXUS_DEMO_SEED !== 'true'` OR `NODE_ENV === 'production'`. Creates: business, location, 4 users (owner/cashier/kitchen-team/waiter) with argon2id-hashed passwords, all 4 modules (ACTIVE), 4 expense categories, 3 tax categories, 4 menu categories, 12 menu items, 1 production area, 2 dining areas, 6 tables. Fully idempotent (skip-if-exists). Prints credentials at completion.
+- `apps/api/package.json` + root `package.json`: `demo:seed` scripts added.
+
+**UX improvements:**
+- `apps/web/src/costs/api.ts`: Added `Location` interface and `listLocations()` calling `GET /admin/locations`. CostsPage had an unusable raw UUID input for locationId.
+- `apps/web/src/costs/CostsPage.tsx`: Replaced UUID text input with a location select dropdown populated from `listLocations()`. Auto-selects first location if only one exists.
+- `apps/web/src/shell/AppShell.tsx`: Role-based nav filtering using `user.roles` from `/auth/me`. Kitchen/service staff no longer see Tables & Sessions or management items they can't access. Business/Location selector buttons hidden for BUSINESS-realm users (previously showed confusing "Business: No business selected" for users already logged into a business).
+
+**Documentation:**
+- `docs/runbooks/pilot-setup.md`: NEW — Step-by-step operator guide. Path A (demo seed) + Path B (11-step manual API setup via curl). Post-setup checklist (13 items). Troubleshooting table.
+- `docs/pilot-acceptance-checklist.md`: NEW — 121-item acceptance checklist across 17 categories. 116 PASS / 0 FAIL / 3 BLOCKED / 2 DEFERRED. External blockers: physical ESC/POS printer (no hardware), staging restore drill (no staging environment), credential rotation (pre-go-live operational task).
+- `docs/runbooks/deploy.md`: Added pre-condition checks for CORS_ORIGIN, PLATFORM_BOOTSTRAP_PASSWORD rotation, and JWT_ACCESS_SECRET ≥64 chars to the pre-deployment checklist.
+- `docs/DEVELOPER_SETUP.md`: Added "Your First Test Restaurant" section referencing the demo seed with full quickstart and important warnings.
+
+**TypeScript:** ✅ clean across all workspaces (post all changes).
 
 ### 2026-08-30 (Phase 16 — Operating Costs, E2E tests + roadmap sync)
 

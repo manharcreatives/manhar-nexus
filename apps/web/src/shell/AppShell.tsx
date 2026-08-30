@@ -39,10 +39,27 @@ function NavItem({
   );
 }
 
+// Role-based nav visibility helpers (uses role keys from /auth/me response).
+// Owner and location-manager get the full management set; specialised roles
+// only see the sections relevant to their workflow so they don't land on 403s.
+const FULL_ACCESS_ROLES = new Set(['owner', 'location-manager', 'platform-admin']);
+const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 'service-team', 'host']);
+const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
+
+function hasAnyRole(userRoles: { key: string }[], allowed: Set<string>): boolean {
+  return userRoles.some((r) => allowed.has(r.key));
+}
+
 export function AppShell() {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const [view, setView] = useState<View>('home');
+
+  const roles = user?.roles ?? [];
+  const isFullAccess = hasAnyRole(roles, FULL_ACCESS_ROLES);
+  const canSeeTables = user?.realm === 'PLATFORM' || hasAnyRole(roles, TABLE_ROLES);
+  const canSeeKitchen = user?.realm === 'PLATFORM' || hasAnyRole(roles, KITCHEN_ROLES);
+  const canSeeCosts = user?.realm === 'PLATFORM' || isFullAccess;
 
   return (
     <div className="flex h-screen w-full flex-col bg-slate-50 text-slate-900">
@@ -54,22 +71,26 @@ export function AppShell() {
         <span className="hidden text-xs text-slate-500 sm:inline">{t('app.tagline')}</span>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            title={t('shell.comingSoon')}
-            disabled
-            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-500"
-          >
-            {t('shell.businessSelector')}: {t('shell.businessSelectorEmpty')}
-          </button>
-          <button
-            type="button"
-            title={t('shell.comingSoon')}
-            disabled
-            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-500"
-          >
-            {t('shell.locationSelector')}: {t('shell.locationSelectorEmpty')}
-          </button>
+          {user?.realm === 'PLATFORM' && (
+            <>
+              <button
+                type="button"
+                title={t('shell.comingSoon')}
+                disabled
+                className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-500"
+              >
+                {t('shell.businessSelector')}: {t('shell.businessSelectorEmpty')}
+              </button>
+              <button
+                type="button"
+                title={t('shell.comingSoon')}
+                disabled
+                className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-500"
+              >
+                {t('shell.locationSelector')}: {t('shell.locationSelectorEmpty')}
+              </button>
+            </>
+          )}
           <NotificationsPanel />
           <div className="flex items-center gap-2 pl-1">
             <span className="text-sm text-slate-700" title={user?.email}>
@@ -91,23 +112,37 @@ export function AppShell() {
         <aside className="w-60 shrink-0 border-r border-slate-200 bg-white p-4">
           <nav className="space-y-1">
             <NavItem label={t('shell.nav.home')} active={view === 'home'} onClick={() => setView('home')} />
-            <NavItem label={t('shell.nav.modules')} active={view === 'modules'} onClick={() => setView('modules')} />
-            <NavItem label={t('shell.nav.config')} active={view === 'config'} onClick={() => setView('config')} />
-            <NavItem label={t('shell.nav.reports')} active={view === 'reports'} onClick={() => setView('reports')} />
-            <NavItem label={t('shell.nav.activity')} active={view === 'activity'} onClick={() => setView('activity')} />
-            <div className="pt-2 pb-1">
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                {t('shell.nav.restaurant')}
-              </p>
-            </div>
-            <NavItem label={t('shell.nav.tables')} active={view === 'tables'} onClick={() => setView('tables')} />
-            <NavItem label={t('shell.nav.kitchen')} active={view === 'kitchen'} onClick={() => setView('kitchen')} />
-            <div className="pt-2 pb-1">
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                {t('shell.nav.operations')}
-              </p>
-            </div>
-            <NavItem label={t('shell.nav.costs')} active={view === 'costs'} onClick={() => setView('costs')} />
+            {isFullAccess && (
+              <>
+                <NavItem label={t('shell.nav.modules')} active={view === 'modules'} onClick={() => setView('modules')} />
+                <NavItem label={t('shell.nav.config')} active={view === 'config'} onClick={() => setView('config')} />
+                <NavItem label={t('shell.nav.reports')} active={view === 'reports'} onClick={() => setView('reports')} />
+                <NavItem label={t('shell.nav.activity')} active={view === 'activity'} onClick={() => setView('activity')} />
+              </>
+            )}
+            {(canSeeTables || canSeeKitchen) && (
+              <div className="pt-2 pb-1">
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  {t('shell.nav.restaurant')}
+                </p>
+              </div>
+            )}
+            {canSeeTables && (
+              <NavItem label={t('shell.nav.tables')} active={view === 'tables'} onClick={() => setView('tables')} />
+            )}
+            {canSeeKitchen && (
+              <NavItem label={t('shell.nav.kitchen')} active={view === 'kitchen'} onClick={() => setView('kitchen')} />
+            )}
+            {canSeeCosts && (
+              <>
+                <div className="pt-2 pb-1">
+                  <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    {t('shell.nav.operations')}
+                  </p>
+                </div>
+                <NavItem label={t('shell.nav.costs')} active={view === 'costs'} onClick={() => setView('costs')} />
+              </>
+            )}
             {user?.realm === 'PLATFORM' && (
               <>
                 <div className="pt-2 pb-1">

@@ -50,6 +50,8 @@ export const envSchema = z
     // First platform admin, created idempotently by the seed (ADR-022).
     PLATFORM_BOOTSTRAP_EMAIL: z.string().email().default(DEV_BOOTSTRAP_EMAIL),
     PLATFORM_BOOTSTRAP_PASSWORD: z.string().min(12).default(DEV_BOOTSTRAP_PASSWORD),
+    // Number of proxy hops to trust for real client IP (0 = don't trust XFF).
+    TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
@@ -59,6 +61,14 @@ export const envSchema = z
       ['PLATFORM_BOOTSTRAP_PASSWORD', env.PLATFORM_BOOTSTRAP_PASSWORD, DEV_BOOTSTRAP_PASSWORD],
       ['PLATFORM_BOOTSTRAP_EMAIL', env.PLATFORM_BOOTSTRAP_EMAIL, DEV_BOOTSTRAP_EMAIL],
     ];
+    // Production JWT secret must be at least 64 characters (ADR-028).
+    if (env.JWT_ACCESS_SECRET.length < 64) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_ACCESS_SECRET'],
+        message: 'JWT_ACCESS_SECRET must be at least 64 characters in production (ADR-028)',
+      });
+    }
     for (const [key, value, devValue] of weak) {
       if (value === devValue) {
         ctx.addIssue({
