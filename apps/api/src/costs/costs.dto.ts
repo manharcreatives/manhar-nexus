@@ -25,7 +25,7 @@ export type UpdateCategoryDto = z.infer<typeof updateCategorySchema>;
 export const createExpenseSchema = z.object({
   locationId: z.string().uuid(),
   expenseCategoryId: z.string().uuid(),
-  amountMinorUnits: z.number().int().min(1),
+  amountMinorUnits: z.number().int().min(1).max(2_147_483_647),
   paidAt: z.string().datetime(),
   description: z.string().max(500).optional(),
   vendorName: z.string().max(200).optional(),

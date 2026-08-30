@@ -1,7 +1,7 @@
 # Runbook: Backup and Restore
 
 **Audience:** Manhar Creatives engineering team  
-**Updated:** 2026-08-25
+**Updated:** 2026-08-30
 
 ---
 
@@ -70,7 +70,25 @@ A restore drill should be performed:
 - Once per quarter in production
 - After any major schema change (destructive migration)
 
-**Drill procedure:**
+### Local drill — COMPLETED 2026-08-30
+
+Executed against the portable dev cluster (PostgreSQL 18, port 15432):
+
+| Step | Result |
+|---|---|
+| `pg_dump -Fc nexus` | ✅ 2025.9 KB dump in 1s |
+| `CREATE DATABASE nexus_drill` | ✅ |
+| `pg_restore --no-owner nexus_drill` | ✅ exit 0 in 3s |
+| Business count match | ✅ 1207 = 1207 |
+| User count match | ✅ 927 = 927 |
+| Audit event count match | ✅ 9327 = 9327 |
+| Migration count match | ✅ 17 = 17 — latest: `20260825160000_phase16_operating_costs` |
+| Audit chain hashes | ✅ last 5 events all hash IS NOT NULL |
+| Cleanup | ✅ `DROP DATABASE nexus_drill` |
+
+Local restore drill is complete. A **staging** restore drill (restoring to the production DB provider's staging environment) should be run before the first live pilot transaction.
+
+**Drill procedure (staging):**
 1. Restore the latest daily snapshot to a **staging database**
 2. Run health check against the staging database
 3. Verify critical records exist (business count, user count, recent audit events)

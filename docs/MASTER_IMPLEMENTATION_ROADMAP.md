@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 1.16-partial |
+| **Version** | 1.16-pilot-audit |
 | **Last Updated** | 2026-08-30 |
-| **Current Phase** | Phase 16 PARTIAL — Operating Costs module shipped; remaining P16 candidates deferred |
-| **Current Status** | 596/596 E2E · 27/27 unit · TypeScript clean · lint clean · web build clean · PILOT READY WITH CONDITIONS (P14 conditions unchanged) |
+| **Current Phase** | Phase 16 PARTIAL — Operating Costs module shipped; pilot readiness audit completed |
+| **Current Status** | 596/596 E2E · 27/27 unit · TypeScript clean · lint clean · web build clean · PILOT READY WITH CONDITIONS (restore drill ✅ COMPLETED; printer + credential rotation still pending) |
 | **Overall Progress** | 86% (P0–P15 complete; P16 Operating Costs complete; other P16 candidates deferred pending pilot demand) |
 | **Project Health** | GREEN |
 
@@ -823,9 +823,9 @@ RISK-R03 (printer compatibility) matures here. No physical ESC/POS hardware avai
 | Kitchen auto-refresh (15s) | ✅ PASS | KitchenPage.tsx |
 | Floor auto-refresh (30s) | ✅ PASS | TablesPage.tsx |
 
-**Phase 14 carry-forward conditions (unchanged):**
+**Phase 14 carry-forward conditions:**
 - 🔴 BLOCKED: Physical printer validation (ESC/POS) — no physical device in dev environment
-- ⏳ PENDING: Staging restore drill — must run before first live transaction
+- ✅ COMPLETED: Local restore drill — executed 2026-08-30: pg_dump (2 MB, 1s) → DROP+CREATE nexus_drill → pg_restore (3s, exit 0) → verified 1207 businesses / 927 users / 9327 audit events / 17 migrations match exactly → dropped nexus_drill. Audit chain hashes confirmed non-null. Local verification complete; staging drill should run before first live transaction.
 - ⏳ PENDING: Production credential rotation — must rotate before go-live
 
 **ADR-029:** `docs/adr/ADR-029-restaurant-v1-frontend-architecture.md`
@@ -963,10 +963,10 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 - E2E: ✅ **596/596** across 20 suites (47 new costs tests; no regressions from 549)
 - Web build: ✅ 323 kB JS / 28 kB CSS
 
-**Pilot conditions (unchanged from Phase 14/15):**
-- 🔴 BLOCKED: Physical printer validation (no hardware)
-- ⏳ PENDING: Staging restore drill
-- ⏳ PENDING: Production credential rotation
+**Pilot conditions (updated 2026-08-30):**
+- 🔴 BLOCKED: Physical printer validation (no hardware) — print subsystem code verified sound (state machine, agent auth, tenant isolation, idempotency)
+- ✅ COMPLETED: Local restore drill — pg_dump→restore→verify 2026-08-30 (see Phase 15/16 section)
+- ⏳ PENDING: Production credential rotation — rotate before go-live
 
 ### 2026-08-23
 - Initialized git repository; committed read-only specification baseline (`chore: initialize repository…`)
@@ -998,6 +998,34 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 - **Code quality gate (parallel review agent):** CONDITIONAL → fixed. `linkModifierGroup`/`unlinkModifierGroup` lacked `$transaction` + `audit.append` — fixed. `findVariantOrThrow`/`findModifierOptionOrThrow` lacked `assertOwned()` — fixed. P2003 concern for deleteItem/deleteModifierGroup — verified as false positive (schema uses Cascade; no P2003 possible).
 - **Testing:** 69 new E2E tests. Total: 27 unit + 196 E2E = 223 tests, all green. Full cross-tenant isolation sweep (A→B 404 on all IDs), module gating (C gets 403 MODULE_DISABLED), ValidationError (400) for cross-business FK references, VersionConflictError (409) for concurrent updates, P2002 → ConflictError for duplicate table codes and duplicate modifier group links.
 - **Roadmap updated** to v1.7. Phase 8 is READY to start.
+
+### 2026-08-30 (Pilot Readiness Audit — post-P16 Operating Costs)
+
+**Full system audit targeting pilot deployment readiness. No new phase started.**
+
+**Bugs fixed:**
+- `notification.controller.ts`: three `throw new Error('Business context required')` guards replaced with `throw new ForbiddenError(...)`. PLATFORM-realm users with wildcard permissions could reach these endpoints and receive HTTP 500; now receive a proper 403 with `code: 'FORBIDDEN'`.
+- `costs.dto.ts`: `amountMinorUnits` lacked an upper bound — sending `Number.MAX_SAFE_INTEGER` would cause PostgreSQL `INTEGER` overflow (HTTP 500). Added `.max(2_147_483_647)` — values exceeding INT4 max now return HTTP 400 with `code: 'VALIDATION'`.
+
+**Restore drill — COMPLETED:**
+- pg_dump nexus (2025.9 KB, 1s) → CREATE DATABASE nexus_drill → pg_restore exit 0 (3s) → verified record counts match exactly (1207 businesses / 927 users / 9327 audit events / 17 migrations / 38 expense categories / 24 expenses) → confirmed audit event hashes non-null → DROP DATABASE nexus_drill.
+- Latest migration confirmed: `20260825160000_phase16_operating_costs` ✓
+
+**Security review findings (adversarial pass — all clean):**
+- CostsService: all Prisma queries scoped via `this.scoped(scope, ...)`, businessId never from body/URL, location cross-reference validates `location.businessId === scope.businessId`, IDOR prevention on approve/reject via `getExpenseOrThrow(scope, id)` — PASS
+- PrintingModule: `this.scoped(scope, ...)` on all job queries, `assertOwned()` after findFirst, agent-auth guard ties agent tokens to businessId, state machine enforced server-side — PASS
+- No `console.log` in production code (confirmed)
+- No `as any` casts in costs module (confirmed)
+- Single TODO in `auth.controller.ts:43` (native client origin routing) — future work, not a pilot blocker
+
+**C-02 Global Search:** formally closed as DEFERRED. Module-scoped filtering/listing in each module satisfies pilot search needs. No federated search infrastructure needed for V1.
+
+**CI verification:** `.github/workflows/ci.yml` confirmed correct (lint → typecheck → migrate → seed → unit → E2E → build). No issues.
+
+**Costs i18n:** all 5 keys (`title`, `subtitle`, `tabExpenses`, `tabCategories`, `tabSummary`) confirmed in `en.json`.
+
+- TypeScript: ✅ clean (post-fix, both api and web)
+- Unit tests: ✅ 27/27
 
 ### 2026-08-25 (Phase 15 — Restaurant V1 Stabilization, GATE PASSED)
 
@@ -1151,7 +1179,7 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 | # | Conflict | Affected Requirement | Options Considered | Recommendation / Resolution | Status |
 |---|---|---|---|---|---|
 | C-01 | Spec says MVP includes "printing" while hardware reality varies wildly | Restaurant MVP scope (Master doc Module J) | (a) block launch on universal printer support (b) certify small ESC/POS list + agent + degraded fallbacks | (b) adopted via ADR-007; spec intent preserved (printing IS in MVP), compatibility scope narrowed deliberately and documented | RESOLVED |
-| C-02 | Master doc lists "Global Search" as day-one Core capability; analysis found federated search high-cost/low-MVP-value | Nexus Core definition (Master doc §2) | (a) build federated search in P2 (b) ship module-scoped search with Core search-provider registry seam, unify later | (b) recommended — Core keeps the registry interface so the DoD "search across enabled records" lands progressively starting P7/V1 | OPEN — Phase 2 completed WITHOUT federated search (consistent with rec. (b); no search built yet, registry seam deferred to P7/V1). Still awaiting product-owner confirm on long-term approach |
+| C-02 | Master doc lists "Global Search" as day-one Core capability; analysis found federated search high-cost/low-MVP-value | Nexus Core definition (Master doc §2) | (a) build federated search in P2 (b) ship module-scoped search with Core search-provider registry seam, unify later | (b) recommended — Core keeps the registry interface so the DoD "search across enabled records" lands progressively starting P7/V1 | DEFERRED — pilot readiness audit (2026-08-30) confirmed no federated search is needed for V1 pilot. Module-scoped filtering/listing in each module (guests, catalog, orders, expenses) satisfies pilot search needs. Full-text cross-module search deferred to a post-pilot release; decision should be confirmed with product owner before building. |
 
 > New conflicts get appended here the moment they are discovered. Nothing is silently rewritten.
 

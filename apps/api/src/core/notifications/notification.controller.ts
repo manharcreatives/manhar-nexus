@@ -2,6 +2,7 @@ import { Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } f
 import { CurrentPrincipal, RequirePermission } from '../../iam/principal';
 import type { Principal } from '../../iam/principal';
 import { zodBody } from '../../common/zod-validation.pipe';
+import { ForbiddenError } from '../../common/errors';
 import { NotificationService } from './notification.service';
 import { listNotificationsSchema, type ListNotificationsQuery } from './notification.dto';
 
@@ -22,7 +23,7 @@ export class NotificationController {
     @CurrentPrincipal() principal: Principal,
     @Query(zodBody(listNotificationsSchema)) q: ListNotificationsQuery,
   ) {
-    if (!principal.businessId) throw new Error('Business context required');
+    if (!principal.businessId) throw new ForbiddenError('Business context required');
     return this.notifications.list(principal.businessId, principal.userId, q);
   }
 
@@ -32,7 +33,7 @@ export class NotificationController {
     @CurrentPrincipal() principal: Principal,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    if (!principal.businessId) throw new Error('Business context required');
+    if (!principal.businessId) throw new ForbiddenError('Business context required');
     return this.notifications.markRead(principal.businessId, principal.userId, id);
   }
 
@@ -40,7 +41,7 @@ export class NotificationController {
   @Post('read-all')
   @HttpCode(200)
   markAllRead(@CurrentPrincipal() principal: Principal) {
-    if (!principal.businessId) throw new Error('Business context required');
+    if (!principal.businessId) throw new ForbiddenError('Business context required');
     return this.notifications.markAllRead(principal.businessId, principal.userId);
   }
 }
