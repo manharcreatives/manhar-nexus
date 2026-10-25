@@ -17,6 +17,7 @@ import { CostsPage } from '../costs/CostsPage';
 import { HomePage } from '../home/HomePage';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/states';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 import * as Icons from '../ui/icons';
 
 // Role gating helpers (role keys from /auth/me). UI gating is convenience; the API is the boundary.
@@ -174,6 +175,7 @@ export function AppShell() {
         )}
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 overflow-auto p-4 sm:p-8">
+          <ErrorBoundary key={location.pathname} title={t('shell.crashTitle')} body={t('shell.crashBody')} retry={t('modules.retry')}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/modules" element={<ModuleCenter />} />
@@ -188,6 +190,7 @@ export function AppShell() {
             <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="*" element={<EmptyState title={t('shell.notFoundTitle')} body={t('shell.notFoundBody')} />} />
           </Routes>
+          </ErrorBoundary>
         </main>
       </div>
     </div>

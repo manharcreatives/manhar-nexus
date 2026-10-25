@@ -36,7 +36,9 @@
     "openNav": "Toggle navigation",
     "closeNav": "Close navigation",
     "notFoundTitle": "This page doesn't exist",
-    "notFoundBody": "Use the navigation to get back on track."
+    "notFoundBody": "Use the navigation to get back on track.",
+    "crashTitle": "Something went wrong on this page",
+    "crashBody": "Your data is safe. Try again, or pick another page."
   },
   "auth": {
     "signInTitle": "Sign in to Manhar Nexus",
