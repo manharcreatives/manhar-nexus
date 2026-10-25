@@ -1,0 +1,90 @@
+# syntax=docker/dockerfile:1.7
+# ─────────────────────────────────────────────────────────────────────────────
+# Manhar Nexus API image (NestJS + Prisma), workspace-aware.
+#
+#   docker build -f Dockerfile.api -t nexus-api:<tag> .                 # runtime
+#   docker build -f Dockerfile.api --target migrate -t nexus-migrate:<tag> .
+#
+# Targets
+#   runtime (default)  slim image: prod node_modules + compiled dist, non-root,
+#                      HEALTHCHECK on /health. Does NOT run migrations.
+#   migrate            one-shot release job: `prisma migrate deploy` then the
+#                      idempotent reference seed (`prisma db seed`). Run it
+#                      explicitly before rolling out a new runtime image
+#                      (docker compose ... run --rm migrate). See
+#                      docs/runbooks/deploy.md.
+#
+# Debian (glibc) base on purpose: the Prisma query engine and the
+# @node-rs/argon2 native binding are generated/installed for this platform in
+# the build stage and copied to the runtime stage unchanged.
+# ─────────────────────────────────────────────────────────────────────────────
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-bookworm-slim AS base
+# openssl: required by the Prisma engines to detect/link libssl.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false NPM_CONFIG_FUND=false NPM_CONFIG_AUDIT=false
+
+# ── build: full install (runs the root postinstall: builds @nexus/shared and
+#    generates the Prisma client), then compiles the API. ─────────────────────
+FROM base AS build
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/tsconfig.json packages/shared/
+COPY packages/shared/src packages/shared/src
+COPY apps/api/package.json apps/api/
+COPY apps/api/prisma/schema.prisma apps/api/prisma/schema.prisma
+COPY apps/web/package.json apps/web/
+RUN npm ci
+COPY apps/api apps/api
+RUN npm run build -w @nexus/shared \
+ && npm run prisma:generate -w @nexus/api \
+ && npm run build -w @nexus/api
+
+# ── migrate: release job (prisma CLI + ts-node live in devDependencies). ─────
+FROM build AS migrate
+ENV NODE_ENV=production
+WORKDIR /app/apps/api
+USER node
+# Applies committed migrations (forward-only, never resets), then the
+# idempotent reference/bootstrap seed. Reads DATABASE_URL and
+# PLATFORM_BOOTSTRAP_* from the environment.
+CMD ["sh", "-c", "npx --no-install prisma migrate deploy && npx --no-install prisma db seed"]
+
+# ── prod-deps: production dependencies of @nexus/api only. Scripts are skipped
+#    (no compilers in this layer); the generated Prisma client is copied from
+#    the build stage instead. ─────────────────────────────────────────────────
+FROM base AS prod-deps
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN npm ci --omit=dev --ignore-scripts --workspace @nexus/api \
+ && mkdir -p apps/api/node_modules \
+ && npm cache clean --force
+
+# ── runtime ──────────────────────────────────────────────────────────────────
+FROM base AS runtime
+ENV NODE_ENV=production \
+    PORT=3000
+WORKDIR /app
+COPY --from=prod-deps /app/package.json ./package.json
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
+WORKDIR /app/apps/api
+# `node` (uid 1000) ships with the official image; app files stay root-owned
+# and read-only to the process.
+USER node
+EXPOSE 3000
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+# exec form: node is PID 1 and receives SIGTERM (Nest shutdown hooks enabled).
+CMD ["node", "dist/main.js"]

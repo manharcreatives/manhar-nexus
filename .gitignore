@@ -7,8 +7,14 @@ build/
 *.tsbuildinfo
 
 # Environment & secrets
+.env
 .env.*
 !.env.example
+# Production env files used by docker-compose.prod.yml (templates are *.example)
+deploy/*.env
+# Database dumps written by scripts/backup.* (default ./backups)
+backups/
+*.dump
 
 # Logs
 logs/

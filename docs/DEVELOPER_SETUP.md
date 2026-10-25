@@ -43,7 +43,7 @@ HTTP semantics — `200` when `ok` or `degraded`, `503` when `error`
 
 | Service        | Port  | Source                     |
 | -------------- | ----- | -------------------------- |
-| API            | 3000  | `.env.example` / defaults  |
+| API            | 3000  | `apps/api/.env.example` / defaults  |
 | Web            | 5173  | Vite default               |
 | PostgreSQL     | 15432 | docker-compose + pg script |
 | Redis          | 16379 | docker-compose             |
@@ -107,7 +107,7 @@ For a real pilot restaurant, see `docs/runbooks/pilot-setup.md` (Path B — Manu
 
 ## Environment
 
-Copy `.env.example` to `.env` (API workspace) if you need non-defaults.
+Copy `apps/api/.env.example` to `apps/api/.env` if you need non-defaults.
 Every variable has a working development default; invalid values fail fast at
 boot via zod validation.
 

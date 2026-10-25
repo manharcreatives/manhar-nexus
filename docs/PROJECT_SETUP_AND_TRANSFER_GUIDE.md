@@ -104,7 +104,7 @@ manhar-nexus/
 │   ├── adr/                               Architecture Decision Records (001–030)
 │   ├── runbooks/                          Operational runbooks
 │   └── spec-normalized/                   Canonical glossary, requirement register
-├── .env.example            Environment variable template (copy to apps/api/.env)
+├── .env.example            Pointer: templates live in apps/api/, apps/web/, deploy/
 ├── .github/workflows/ci.yml  GitHub Actions CI pipeline
 ├── docker-compose.dev.yml    Optional Docker services (PostgreSQL, Redis, MinIO)
 ├── package.json              Root workspace manifest + scripts
@@ -216,10 +216,10 @@ The environment template is at the repository root:
 
 ```powershell
 # Windows PowerShell
-Copy-Item .env.example apps\api\.env
+Copy-Item apps\api\.env.example apps\api\.env
 
 # Bash / macOS / Linux
-cp .env.example apps/api/.env
+cp apps/api/.env.example apps/api/.env
 ```
 
 > The API reads `.env` from `apps/api/` (its working directory when started via npm workspaces).
@@ -712,7 +712,7 @@ npm run db:init
 
 **Symptom:** NestJS exits at startup with Zod validation error  
 **Cause:** Missing or invalid environment variables in `apps/api/.env`  
-**Fix:** Ensure `apps/api/.env` exists (copy from `.env.example`). Check the error message for which variable is invalid.
+**Fix:** Ensure `apps/api/.env` exists (copy from `apps/api/.env.example`). Check the error message for which variable is invalid.
 
 ---
 
@@ -1034,7 +1034,7 @@ See `docs/runbooks/deploy.md` for the complete pre-deployment checklist.
 [ ] Clone repository: git clone https://github.com/YOUR_ORG/manhar-nexus.git
 [ ] Open repository in VS Code: code .
 [ ] Install dependencies: npm install
-[ ] Create env file: Copy-Item .env.example apps\api\.env
+[ ] Create env file: Copy-Item apps\api\.env.example apps\api\.env
 [ ] Initialize database: npm run db:init
 [ ] Apply migrations: npm run db:migrate
 [ ] Start API (terminal 1): npm run dev:api
@@ -1066,7 +1066,7 @@ cd manhar-nexus
 npm install
 
 # 2. Configure environment
-Copy-Item .env.example apps\api\.env
+Copy-Item apps\api\.env.example apps\api\.env
 # (Edit apps/api/.env if you need non-default settings)
 
 # 3. Database

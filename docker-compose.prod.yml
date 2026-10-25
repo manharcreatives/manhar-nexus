@@ -1,0 +1,118 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Manhar Nexus — single-host production stack.
+#
+#   cp deploy/.env.example deploy/.env           # domain, image tag, PG creds
+#   cp apps/api/.env.example deploy/api.env      # API secrets (edit every [PROD])
+#   COMPOSE="docker compose -f docker-compose.prod.yml --env-file deploy/.env"
+#   $COMPOSE build                               # or pull pre-built images
+#   $COMPOSE up -d postgres
+#   $COMPOSE run --rm migrate                    # release step: migrate + seed
+#   $COMPOSE up -d api web
+#
+# Migrations never run implicitly: `migrate` sits in the "release" profile, so
+# `up` does not start it. Full procedure: docs/runbooks/deploy.md.
+# No secret is written in this file; they live in the gitignored env files.
+# ─────────────────────────────────────────────────────────────────────────────
+name: nexus
+
+x-api-image: &api-image ${NEXUS_REGISTRY:-nexus}/nexus-api:${IMAGE_TAG:?set IMAGE_TAG in deploy/.env}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
+    env_file: deploy/.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [backend]
+    # Not published. For host-side backups use `docker compose exec postgres
+    # pg_dump ...` or temporarily publish 127.0.0.1:5432 (see backup runbook).
+
+  # One-shot release job: `prisma migrate deploy` + idempotent reference seed.
+  migrate:
+    profiles: ["release"]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      target: migrate
+    image: ${NEXUS_REGISTRY:-nexus}/nexus-migrate:${IMAGE_TAG:?set IMAGE_TAG in deploy/.env}
+    env_file: deploy/api.env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [backend]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      target: runtime
+    image: *api-image
+    restart: unless-stopped
+    env_file: deploy/api.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # Exactly one proxy (Caddy) in front of the API.
+      TRUST_PROXY: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # HEALTHCHECK is defined in Dockerfile.api (GET /health).
+    networks: [backend, edge]
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: /api
+        VITE_BRAND_NAME: ${VITE_BRAND_NAME:-}
+        VITE_BRAND_ACCENT: ${VITE_BRAND_ACCENT:-}
+    image: ${NEXUS_REGISTRY:-nexus}/nexus-web:${IMAGE_TAG:?set IMAGE_TAG in deploy/.env}
+    restart: unless-stopped
+    environment:
+      NEXUS_DOMAIN: ${NEXUS_DOMAIN:?set NEXUS_DOMAIN in deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+      # acme (public certs) | internal (Caddy local CA, CI/staging only)
+      NEXUS_TLS: ${NEXUS_TLS:-acme}
+      API_UPSTREAM: api:3000
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # Certificates + ACME account. Losing this volume forces re-issuance
+      # (rate limits!) — keep it.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [edge]
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+networks:
+  backend:
+    internal: true
+  edge: {}
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

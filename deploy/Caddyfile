@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Manhar Nexus public edge (baked into the nexus-web image by Dockerfile.web).
+#
+# Topology: SAME ORIGIN. One hostname serves the SPA and proxies /api/* to the
+# NestJS API (which has no /api prefix — Caddy strips it). The web app is
+# built with VITE_API_URL=/api.
+#
+# Environment (set in deploy/.env, passed by docker-compose.prod.yml):
+#   NEXUS_DOMAIN   public hostname, e.g. app.example.com. Caddy obtains and
+#                  renews the TLS certificate automatically (Let's Encrypt /
+#                  ZeroSSL) and redirects HTTP → HTTPS. DNS must point at the
+#                  host and ports 80 + 443 must be reachable.
+#                  Use "localhost" for a local smoke run (Caddy internal CA).
+#   ACME_EMAIL     contact address for the ACME account (expiry notices).
+#   API_UPSTREAM   API address on the internal network (default api:3000).
+#   SITE_ROOT      directory of the built SPA (default /srv).
+#   NEXUS_TLS      "acme" (default): public certificates, automatic renewal.
+#                  "internal": Caddy's local CA — CI / staging without public
+#                  DNS. Clients must trust /data/caddy/pki/authorities/local/root.crt.
+# ─────────────────────────────────────────────────────────────────────────────
+{
+	email {$ACME_EMAIL:admin@invalid.example}
+	# No runtime admin API: config changes ship as a new image / restart.
+	admin off
+}
+
+(tls_acme) {
+	# Automatic HTTPS: certificate from Let's Encrypt/ZeroSSL, HTTP→HTTPS redirect.
+}
+
+(tls_internal) {
+	tls internal
+}
+
+# Container-internal health endpoint for the Docker HEALTHCHECK (not published).
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	respond /healthz "ok" 200
+}
+
+{$NEXUS_DOMAIN:localhost} {
+	import tls_{$NEXUS_TLS:acme}
+	encode zstd gzip
+
+	# Security headers for every response (SPA and proxied API).
+	# CSP: the production bundle loads only same-origin JS/CSS/fonts (fonts are
+	# self-hosted via @fontsource) and calls the API on the same origin.
+	#   style-src 'unsafe-inline' is required by the inline <style> the Reports
+	#   page renders for print CSS; script-src stays strict 'self'.
+	#   img-src data:/blob: cover inline SVG data URIs and CSV/object URLs.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	# API: strip the /api prefix (Nest routes are /health, /auth/*, /admin/* …).
+	handle_path /api/* {
+		reverse_proxy {$API_UPSTREAM:api:3000} {
+			# The API scopes the httpOnly refresh cookie to Path=/auth. Seen
+			# through this proxy the browser path is /api/auth, so rewrite the
+			# attribute or the browser would never send the cookie back.
+			header_down Set-Cookie "Path=/auth" "Path=/api/auth"
+			# API responses are per-user; never cache them in shared caches.
+			header_down Cache-Control "no-store"
+		}
+	}
+
+	# Hashed build assets: cache forever; a missing file is a real 404 (no SPA
+	# fallback, so a stale chunk can never be answered with index.html).
+	handle /assets/* {
+		root * {$SITE_ROOT:/srv}
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Everything else: static file if it exists, else the SPA shell. index.html
+	# and other unhashed files must always be revalidated.
+	handle {
+		root * {$SITE_ROOT:/srv}
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

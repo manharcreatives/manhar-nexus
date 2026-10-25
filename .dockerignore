@@ -1,0 +1,23 @@
+# Keep the build context small and secret-free.
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+.git
+.github
+.kombai
+infra/.local
+backups
+*.dump
+*.log
+
+# Secrets / local env — NEVER bake into an image (apps/api/.env is a dev file).
+**/.env
+**/.env.*
+!**/.env.example
+deploy/*.env
+
+# Not needed to build either image
+docs
+*.md
+!THIRD_PARTY_NOTICES.md

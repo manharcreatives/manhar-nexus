@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { envSchema } from './config/configuration';
+import { validateEnv } from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { CoreModule } from './core/core.module';
@@ -19,13 +19,8 @@ import { CostsModule } from './costs/costs.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      validate: (raw: Record<string, unknown>) => {
-        const parsed = envSchema.safeParse(raw);
-        if (!parsed.success) {
-          throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
-        }
-        return parsed.data;
-      },
+      // Fail fast on missing/invalid config; refuses dev defaults in production.
+      validate: validateEnv,
     }),
     PrismaModule,
     HealthModule,

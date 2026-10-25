@@ -12,6 +12,11 @@ import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import { Algorithm, hash } from '@node-rs/argon2';
 import { SYSTEM_ROLES } from '../src/iam/system-roles.catalog';
+import {
+  DEV_BOOTSTRAP_EMAIL,
+  DEV_BOOTSTRAP_PASSWORD,
+  PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH,
+} from '../src/config/configuration';
 
 const prisma = new PrismaClient();
 
@@ -61,13 +66,28 @@ async function seedSystemRoles(): Promise<void> {
 }
 
 async function seedPlatformAdmin(): Promise<void> {
-  const email = (process.env.PLATFORM_BOOTSTRAP_EMAIL ?? 'platform@manhar.local').toLowerCase();
-  const password = process.env.PLATFORM_BOOTSTRAP_PASSWORD ?? 'ChangeMe!Dev12345';
+  const email = (process.env.PLATFORM_BOOTSTRAP_EMAIL ?? DEV_BOOTSTRAP_EMAIL).toLowerCase();
+  const password = process.env.PLATFORM_BOOTSTRAP_PASSWORD ?? DEV_BOOTSTRAP_PASSWORD;
 
   const existing = await prisma.user.findFirst({ where: { email } });
   if (existing) {
     console.log(`Platform admin already exists (${email}); leaving password untouched.`);
     return;
+  }
+
+  // Never create a production platform admin with development credentials.
+  if (process.env.NODE_ENV === 'production') {
+    if (email === DEV_BOOTSTRAP_EMAIL || password === DEV_BOOTSTRAP_PASSWORD) {
+      throw new Error(
+        'Refusing to create the platform admin with development bootstrap credentials in production. ' +
+          'Set PLATFORM_BOOTSTRAP_EMAIL and PLATFORM_BOOTSTRAP_PASSWORD.',
+      );
+    }
+    if (password.length < PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH) {
+      throw new Error(
+        `PLATFORM_BOOTSTRAP_PASSWORD must be at least ${PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH} characters in production.`,
+      );
+    }
   }
 
   const passwordHash = await hash(password, {

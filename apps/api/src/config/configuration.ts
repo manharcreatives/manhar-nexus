@@ -1,35 +1,68 @@
 import { z } from 'zod';
 
-/** Dev-only defaults; production MUST override (enforced by superRefine below). */
-const DEV_JWT_SECRET = 'dev-only-jwt-access-secret-change-in-production-0001';
-const DEV_BOOTSTRAP_EMAIL = 'platform@manhar.local';
-const DEV_BOOTSTRAP_PASSWORD = 'ChangeMe!Dev12345';
+/**
+ * Dev-only defaults. They make `npm run dev:api` work with zero config, and
+ * production REFUSES every one of them (see `productionRules` below).
+ */
+export const DEV_JWT_SECRET = 'dev-only-jwt-access-secret-change-in-production-0001';
+export const DEV_BOOTSTRAP_EMAIL = 'platform@manhar.local';
+export const DEV_BOOTSTRAP_PASSWORD = 'ChangeMe!Dev12345';
+export const DEV_DATABASE_URL = 'postgresql://nexus:nexus@localhost:15432/nexus?schema=public';
+export const DEV_CORS_ORIGIN = 'http://localhost:5173';
+
+/** Production minimums (ADR-028). */
+export const PROD_MIN_JWT_SECRET_LENGTH = 64;
+export const PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH = 16;
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1']);
+
+const boolFlag = z
+  .string()
+  .default('false')
+  .refine((v) => v === 'true' || v === 'false', { message: 'must be "true" or "false"' })
+  .transform((v) => v === 'true');
+
+/** A bare browser origin: scheme + host (+ port), no path/query/trailing slash. */
+function parseOrigin(value: string): URL | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    if (url.origin !== value) return null; // rejects paths, trailing slashes, credentials
+    return url;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Environment contract for the API. Invalid env = fail fast at boot.
- * Defaults target the canonical dev topology (see .env.example / docker-compose.dev.yml).
+ * Defaults target the canonical dev topology (see apps/api/.env.example).
  */
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-    PORT: z.coerce.number().int().positive().default(3000),
+    PORT: z.coerce.number().int().positive().max(65535).default(3000),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-    CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
+    /** Exact browser origin allowed by CORS (credentials:true), e.g. https://app.example.com */
+    CORS_ORIGIN: z
+      .string()
+      .min(1)
+      .default(DEV_CORS_ORIGIN)
+      .refine((v) => parseOrigin(v) !== null, {
+        message: 'must be a bare origin like https://app.example.com (no path, no trailing slash)',
+      }),
     DATABASE_URL: z
       .string()
       .min(1)
-      .default('postgresql://nexus:nexus@localhost:15432/nexus?schema=public'),
+      .default(DEV_DATABASE_URL)
+      .refine((v) => /^postgres(ql)?:\/\//.test(v), {
+        message: 'must be a postgresql:// connection string',
+      }),
     REDIS_URL: z.string().min(1).default('redis://localhost:16379'),
     // Optional until realtime consumers exist (Phase 8); flip to true then.
-    REDIS_REQUIRED: z
-      .string()
-      .default('false')
-      .transform((v) => v === 'true'),
+    REDIS_REQUIRED: boolFlag,
     STORAGE_HEALTH_URL: z.string().min(1).default('http://localhost:19000/minio/health/live'),
-    STORAGE_REQUIRED: z
-      .string()
-      .default('false')
-      .transform((v) => v === 'true'),
+    STORAGE_REQUIRED: boolFlag,
 
     // ── Authentication (ADR-004/022/023) ──
     /** HS256 access-token signing secret. Must be strong + overridden in prod. */
@@ -55,29 +88,73 @@ export const envSchema = z
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
-    // Production must not run on dev placeholder secrets/credentials.
-    const weak: [keyof typeof env, unknown, unknown][] = [
+    const fail = (key: string, message: string): void => {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key], message });
+    };
+
+    // 1. No development placeholder may survive into production.
+    const placeholders: [string, string, string][] = [
       ['JWT_ACCESS_SECRET', env.JWT_ACCESS_SECRET, DEV_JWT_SECRET],
       ['PLATFORM_BOOTSTRAP_PASSWORD', env.PLATFORM_BOOTSTRAP_PASSWORD, DEV_BOOTSTRAP_PASSWORD],
       ['PLATFORM_BOOTSTRAP_EMAIL', env.PLATFORM_BOOTSTRAP_EMAIL, DEV_BOOTSTRAP_EMAIL],
+      ['DATABASE_URL', env.DATABASE_URL, DEV_DATABASE_URL],
     ];
-    // Production JWT secret must be at least 64 characters (ADR-028).
-    if (env.JWT_ACCESS_SECRET.length < 64) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['JWT_ACCESS_SECRET'],
-        message: 'JWT_ACCESS_SECRET must be at least 64 characters in production (ADR-028)',
-      });
-    }
-    for (const [key, value, devValue] of weak) {
+    for (const [key, value, devValue] of placeholders) {
       if (value === devValue) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [key],
-          message: `${String(key)} must be overridden in production (dev placeholder detected)`,
-        });
+        fail(key, `${key} must be overridden in production (development default detected)`);
+      }
+    }
+
+    // 2. Secret strength (ADR-028: 64+ chars for the signing secret).
+    if (env.JWT_ACCESS_SECRET.length < PROD_MIN_JWT_SECRET_LENGTH) {
+      fail(
+        'JWT_ACCESS_SECRET',
+        `JWT_ACCESS_SECRET must be at least ${PROD_MIN_JWT_SECRET_LENGTH} characters in production (ADR-028)`,
+      );
+    }
+    if (env.PLATFORM_BOOTSTRAP_PASSWORD.length < PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH) {
+      fail(
+        'PLATFORM_BOOTSTRAP_PASSWORD',
+        `PLATFORM_BOOTSTRAP_PASSWORD must be at least ${PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH} characters in production`,
+      );
+    }
+
+    // 3. CORS must name the real public HTTPS origin of the web app.
+    const origin = parseOrigin(env.CORS_ORIGIN);
+    if (origin) {
+      if (LOOPBACK_HOSTS.has(origin.hostname)) {
+        fail('CORS_ORIGIN', 'CORS_ORIGIN must not be a localhost/loopback origin in production');
+      } else if (origin.protocol !== 'https:') {
+        fail('CORS_ORIGIN', 'CORS_ORIGIN must use https:// in production (the refresh cookie is Secure)');
       }
     }
   });
 
 export type AppEnv = z.infer<typeof envSchema>;
+
+/** Thrown when the environment is invalid. The message never contains values. */
+export class EnvValidationError extends Error {
+  constructor(readonly issues: string[], nodeEnv: string) {
+    super(
+      `Invalid environment configuration (NODE_ENV=${nodeEnv}). Fix the following and restart:\n` +
+        issues.map((i) => `  - ${i}`).join('\n'),
+    );
+    this.name = 'EnvValidationError';
+  }
+}
+
+/**
+ * Parses + validates the raw environment. Returns typed config or throws an
+ * `EnvValidationError` listing every problem by variable name (never by value,
+ * so secrets cannot leak into logs).
+ */
+export function validateEnv(raw: Record<string, unknown>): AppEnv {
+  const parsed = envSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
+  const issues = parsed.error.issues.map((issue) => {
+    const key = issue.path.join('.') || '(root)';
+    return issue.message.startsWith(key) ? issue.message : `${key}: ${issue.message}`;
+  });
+  const nodeEnv = typeof raw.NODE_ENV === 'string' && raw.NODE_ENV ? raw.NODE_ENV : 'development';
+  throw new EnvValidationError(issues, nodeEnv);
+}

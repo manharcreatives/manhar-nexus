@@ -15,6 +15,9 @@ packages/
   shared/   Cross-cutting contracts (ports, health semantics, request ids)
 infra/
   scripts/  Portable local infrastructure (PostgreSQL without Docker)
+deploy/     Caddyfile (public edge) + compose env template
+scripts/    backup / restore / smoke (PowerShell + bash)
+Dockerfile.api, Dockerfile.web, docker-compose.prod.yml   Production images + stack
 docs/
   MASTER_IMPLEMENTATION_ROADMAP.md   Living phase tracker — start here
   DEVELOPER_SETUP.md                 Machine setup + daily workflow
@@ -53,5 +56,7 @@ See [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) for the daily development
 - **Terminology** — `docs/spec-normalized/CANONICAL_GLOSSARY.md` (Service Request,
   Checkout, KOS, Sold-Out, Business Workspace…). Use these terms in code, UI and
   docs.
+- **Deploying** — `docs/ui/DEPLOYMENT_READINESS.md` (operator checklist) and
+  `docs/runbooks/` (deploy, backup-restore, rollback, incident-response).
 - **Decisions** — `docs/adr/` (ADR-001…ADR-030). Propose changes by adding a new
   ADR, never by editing accepted ones.

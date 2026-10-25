@@ -16,4 +16,14 @@ Font licenses: SIL Open Font License 1.1 permits embedding and redistribution, i
 
 Backend and tooling licenses (NestJS, Prisma, etc.) are recorded by `npm ls --long` and should be re-audited before each release (`npx license-checker --production --summary`).
 
+## Container base images (production images, `Dockerfile.api` / `Dockerfile.web` / `docker-compose.prod.yml`)
+
+No npm dependency was added for deployment. The images redistribute these upstream components:
+
+| Image | Used by | License |
+|---|---|---|
+| `node:22-bookworm-slim` | API build and runtime | Node.js: MIT; Debian packages: various (DFSG-free); `openssl` package: Apache-2.0 |
+| `caddy:2.10-alpine` | Web edge / static server | Caddy: Apache-2.0; Alpine packages (incl. `libcap`): various (MIT/BSD/GPL tooling, unmodified) |
+| `postgres:16-alpine` | Database service (pulled, not rebuilt) | PostgreSQL License |
+
 Update this file whenever a dependency is added to a distributed package.
