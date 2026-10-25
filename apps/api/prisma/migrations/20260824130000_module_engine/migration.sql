@@ -44,7 +44,7 @@ CREATE UNIQUE INDEX "module_activation_businessId_moduleKey_key"
 CREATE INDEX "module_activation_businessId_idx"
   ON "module_activation"("businessId");
 
-CREATE INDEX "module_activation_businessId_status_idx"
+CREATE INDEX "module_activation_status_idx"
   ON "module_activation"("businessId", "status");
 
 ALTER TABLE "module_activation"
