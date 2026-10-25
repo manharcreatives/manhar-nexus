@@ -12,12 +12,12 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "demo:seed": "ts-node --compiler-options {\"module\":\"commonjs\"} prisma/demo-seed.ts"
+    "demo:seed": "ts-node prisma/demo-seed.ts"
   },
   "postinstall": "prisma generate",
   "prisma": {
     "schema": "prisma/schema.prisma",
-    "seed": "ts-node --compiler-options {\"module\":\"commonjs\"} prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

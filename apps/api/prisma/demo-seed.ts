@@ -142,7 +142,7 @@ async function main(): Promise<void> {
         businessId,
         name: DEMO_LOCATION_NAME,
         timezone: 'Asia/Kolkata',
-        isActive: true,
+        status: 'ACTIVE',
       },
     });
     console.log(`[2] Location created: "${DEMO_LOCATION_NAME}" (${location.id})`);
@@ -220,7 +220,7 @@ async function main(): Promise<void> {
   for (const tc of TAX_CATEGORIES) {
     const existing = await prisma.taxCategory.findFirst({ where: { businessId, name: tc.name } });
     const row = existing ?? await prisma.taxCategory.create({
-      data: { businessId, name: tc.name, description: tc.description, rateMinorUnits: tc.rateMinorUnits, isActive: true },
+      data: { businessId, name: tc.name, rate: (tc.rateMinorUnits / 10000).toFixed(4), isActive: true },
     });
     taxCategoryMap[tc.name] = row.id;
   }
@@ -291,21 +291,21 @@ async function main(): Promise<void> {
 
     const tables = TABLES_BY_AREA[areaDef.name] ?? [];
     for (const tableDef of tables) {
-      const existing = await prisma.diningTable.findFirst({ where: { businessId, code: tableDef.code } });
+      const existing = await prisma.diningTable.findFirst({ where: { diningAreaId: area.id, code: tableDef.code } });
       if (!existing) {
         await prisma.diningTable.create({
           data: {
             businessId,
             locationId,
-            areaId: area.id,
+            diningAreaId: area.id,
             code: tableDef.code,
-            seatingCapacity: tableDef.seatingCapacity,
+            capacity: tableDef.seatingCapacity,
             status: 'AVAILABLE',
           },
         });
       }
     }
-    const tableCount = (await prisma.diningTable.count({ where: { businessId, areaId: area.id } }));
+    const tableCount = (await prisma.diningTable.count({ where: { businessId, diningAreaId: area.id } }));
     console.log(`[9] Area "${areaDef.name}": ${tableCount} tables`);
   }
 

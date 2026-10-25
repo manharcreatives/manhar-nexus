@@ -65,16 +65,17 @@ export function AppShell() {
   const roles = user?.roles ?? [];
   const isPlatform = user?.realm === 'PLATFORM';
   const isFullAccess = hasAnyRole(roles, FULL_ACCESS_ROLES);
-  const canSeeTables = isPlatform || hasAnyRole(roles, TABLE_ROLES);
-  const canSeeKitchen = isPlatform || hasAnyRole(roles, KITCHEN_ROLES);
-  const canSeeCosts = isPlatform || isFullAccess;
+  // The platform realm has no tenant context, so tenant pages would only 403 for it.
+  const canSeeTables = !isPlatform && hasAnyRole(roles, TABLE_ROLES);
+  const canSeeKitchen = !isPlatform && hasAnyRole(roles, KITCHEN_ROLES);
+  const canSeeCosts = !isPlatform && isFullAccess;
 
   const entries: NavEntry[] = [
     { to: '/', label: t('shell.nav.home'), icon: Icons.Home, show: true, group: 'main' },
-    { to: '/modules', label: t('shell.nav.modules'), icon: Icons.LayoutGrid, show: isFullAccess, group: 'main' },
-    { to: '/config', label: t('shell.nav.config'), icon: Icons.Settings, show: isFullAccess, group: 'main' },
-    { to: '/reports', label: t('shell.nav.reports'), icon: Icons.BarChart3, show: isFullAccess, group: 'main' },
-    { to: '/activity', label: t('shell.nav.activity'), icon: Icons.History, show: isFullAccess, group: 'main' },
+    { to: '/modules', label: t('shell.nav.modules'), icon: Icons.LayoutGrid, show: isFullAccess && !isPlatform, group: 'main' },
+    { to: '/config', label: t('shell.nav.config'), icon: Icons.Settings, show: isFullAccess && !isPlatform, group: 'main' },
+    { to: '/reports', label: t('shell.nav.reports'), icon: Icons.BarChart3, show: isFullAccess && !isPlatform, group: 'main' },
+    { to: '/activity', label: t('shell.nav.activity'), icon: Icons.History, show: isFullAccess && !isPlatform, group: 'main' },
     { to: '/tables', label: t('shell.nav.tables'), icon: Icons.Armchair, show: canSeeTables, group: 'restaurant' },
     { to: '/kitchen', label: t('shell.nav.kitchen'), icon: Icons.ChefHat, show: canSeeKitchen, group: 'restaurant' },
     { to: '/costs', label: t('shell.nav.costs'), icon: Icons.Wallet, show: canSeeCosts, group: 'operations' },

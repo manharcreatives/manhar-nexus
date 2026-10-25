@@ -29,11 +29,11 @@ export function HomePage() {
   const has = (allowed: Set<string>) => roles.some((r) => allowed.has(r.key));
   const isFullAccess = has(FULL_ACCESS_ROLES);
   const links = [
-    { to: '/tables', label: t('shell.nav.tables'), show: isPlatform || has(TABLE_ROLES) },
-    { to: '/kitchen', label: t('shell.nav.kitchen'), show: isPlatform || has(KITCHEN_ROLES) },
-    { to: '/reports', label: t('shell.nav.reports'), show: isFullAccess },
-    { to: '/costs', label: t('shell.nav.costs'), show: isPlatform || isFullAccess },
-    { to: '/activity', label: t('shell.nav.activity'), show: isFullAccess },
+    { to: '/tables', label: t('shell.nav.tables'), show: !isPlatform && has(TABLE_ROLES) },
+    { to: '/kitchen', label: t('shell.nav.kitchen'), show: !isPlatform && has(KITCHEN_ROLES) },
+    { to: '/reports', label: t('shell.nav.reports'), show: !isPlatform && isFullAccess },
+    { to: '/costs', label: t('shell.nav.costs'), show: !isPlatform && isFullAccess },
+    { to: '/activity', label: t('shell.nav.activity'), show: !isPlatform && isFullAccess },
   ].filter((l) => l.show);
   const [report, setReport] = useState<DailyClosingReport | null>(null);
   const [failed, setFailed] = useState(false);
