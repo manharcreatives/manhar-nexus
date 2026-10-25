@@ -345,6 +345,27 @@ describe('Order line configuration + refund idempotency (e2e)', () => {
   });
 
   // ───────────────────────────────────────────────────────────────────────────
+  describe('Invoice pricing of configured lines', () => {
+    it('charges variant and modifier adjustments exactly once', async () => {
+      const areaId = await created('/admin/dining/areas', { locationId: locId, name: `Pricing Hall ${RUN}` });
+      const tableId = await created('/admin/dining/tables', { diningAreaId: areaId, locationId: locId, code: `PX-${RUN}`, capacity: 2 });
+      const s = await created('/admin/sessions', { locationId: locId, diningTableId: tableId, partySize: 1 });
+      const o = await created('/admin/orders', {
+        sessionId: s,
+        idempotencyKey: freshKey(),
+        lines: [{ catalogItemId: pizzaId, variantId: largeId, quantity: 2, modifiers: mods(thickId, oliveId, cornId) }],
+      });
+      expect((await aPost(`/admin/orders/${o}/send`, {})).status).toBe(201);
+      const inv = await aPost(`/admin/checkout/sessions/${s}/invoice`, {});
+      expect(inv.status).toBe(201);
+      const unit = 10000 + 3000 + 500 + 200 + 300;
+      expect(inv.body.subtotalMinorUnits).toBe(unit * 2);
+      expect(inv.body.lines[0].lineSubtotalMinorUnits).toBe(unit * 2);
+      expect(inv.body.lines[0].modifiersMinorUnits).toBe(500 + 200 + 300);
+    });
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
   describe('Refund idempotency', () => {
     let paymentId: string;
     let otherPaymentId: string;

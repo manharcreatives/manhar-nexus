@@ -363,7 +363,10 @@ export class InvoiceService extends TenantScopedRepository {
 
     for (const line of lines) {
       const modifiersSum = line.modifiers.reduce((s, m) => s + m.priceAdjMinorUnits, 0);
-      const lineSubtotal = (line.unitPriceMinorUnits + modifiersSum) * line.quantity;
+      // The order line's unit price already includes variant and modifier
+      // adjustments (OrderService.resolveLineSnapshots); modifiersSum is kept
+      // on the invoice line for display only and must not be added again.
+      const lineSubtotal = line.unitPriceMinorUnits * line.quantity;
       const taxRate = line.taxRateSnapshot.toNumber();
       const lineTax = Math.round(lineSubtotal * taxRate);
       const lineTotal = lineSubtotal + lineTax;
