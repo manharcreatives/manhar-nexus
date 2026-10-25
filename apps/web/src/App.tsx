@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import { LoginScreen } from './auth/LoginScreen';
 import { ToastProvider } from './ui/Toast';
 import { AppShell } from './shell/AppShell';
+import { WorkLocationProvider } from './context/LocationContext';
 
 function Gate() {
   const { t } = useTranslation();
@@ -16,7 +17,13 @@ function Gate() {
       </div>
     );
   }
-  return status === 'authenticated' ? <AppShell /> : <LoginScreen notice={notice} />;
+  return status === 'authenticated' ? (
+    <WorkLocationProvider>
+      <AppShell />
+    </WorkLocationProvider>
+  ) : (
+    <LoginScreen notice={notice} />
+  );
 }
 
 export default function App() {

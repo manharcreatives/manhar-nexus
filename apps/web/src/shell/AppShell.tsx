@@ -1,123 +1,149 @@
-import { useEffect, useState, type ComponentType, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useWorkLocation } from '../context/LocationContext';
 import { brand } from '../lib/brand';
 import { cn } from '../lib/cn';
-import { ModuleCenter } from '../modules/ModuleCenter';
-import { ConfigCenter } from '../config/ConfigCenter';
-import { ReportsPage } from '../reports/ReportsPage';
-import { ActivityPage } from '../activity/ActivityPage';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
-import { CommercialPage } from '../commercial/CommercialPage';
-import { OnboardingPage } from '../onboarding/OnboardingPage';
-import { TablesPage } from '../restaurant/TablesPage';
-import { KitchenPage } from '../restaurant/KitchenPage';
-import { CostsPage } from '../costs/CostsPage';
-import { HomePage } from '../home/HomePage';
-import { BillsPage } from '../bills/BillsPage';
-import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
 import { EmptyState } from '../ui/states';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { KeyCombo, Kbd } from '../ui/Kbd';
 import * as Icons from '../ui/icons';
-
-// Role gating helpers (role keys from /auth/me). UI gating is convenience; the API is the boundary.
-const FULL_ACCESS_ROLES = new Set(['owner', 'location-manager', 'platform-admin']);
-const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 'service-team', 'host']);
-const BILLS_ROLES = new Set(['owner', 'location-manager', 'checkout-associate']);
-const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
-
-function hasAnyRole(userRoles: { key: string }[], allowed: Set<string>): boolean {
-  return userRoles.some((r) => allowed.has(r.key));
-}
-
-type Group = 'main' | 'restaurant' | 'operations' | 'platform';
-
-interface NavEntry {
-  to: string;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-  show: boolean;
-  group: Group;
-}
+import { computeAccess } from './access';
+import { CommandPalette, type Command } from './CommandPalette';
+import { ContextSwitcher } from './ContextSwitcher';
+import { EnvBadge } from './EnvBadge';
+import { PAGES, PAGE_GROUPS } from './pages';
+import { ShortcutHelp } from './ShortcutHelp';
+import { modKeyLabel, type ShortcutBinding } from './shortcuts';
+import { UserMenu } from './UserMenu';
+import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 function BrandMark() {
   return (
-    <div className="flex items-center gap-2.5">
+    <NavLink to="/" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-control pr-1" aria-label={brand.name}>
       <span
         aria-hidden
         className="grid size-8 place-items-center rounded-control bg-accent font-display text-lg font-semibold text-surface"
       >
         {brand.name.charAt(0)}
       </span>
-      <span className="font-display text-lg font-semibold tracking-tight">{brand.name}</span>
-    </div>
+      <span aria-hidden className="hidden font-display text-lg font-semibold tracking-tight md:inline">
+        {brand.name}
+      </span>
+    </NavLink>
   );
 }
 
 export function AppShell() {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
+  const work = useWorkLocation();
   const location = useLocation();
+  const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setNavOpen(false), [location.pathname]);
 
-  const roles = user?.roles ?? [];
-  const isPlatform = user?.realm === 'PLATFORM';
-  const isFullAccess = hasAnyRole(roles, FULL_ACCESS_ROLES);
-  // The platform realm has no tenant context, so tenant pages would only 403 for it.
-  const canSeeTables = !isPlatform && hasAnyRole(roles, TABLE_ROLES);
-  const canSeeKitchen = !isPlatform && hasAnyRole(roles, KITCHEN_ROLES);
-  const canSeeBills = !isPlatform && hasAnyRole(roles, BILLS_ROLES);
-  const canSeeCosts = !isPlatform && isFullAccess;
+  const access = useMemo(() => computeAccess(user), [user]);
+  const visiblePages = useMemo(() => PAGES.filter((p) => p.can(access)), [access]);
 
-  const entries: NavEntry[] = [
-    { to: '/', label: t('shell.nav.home'), icon: Icons.Home, show: true, group: 'main' },
-    { to: '/modules', label: t('shell.nav.modules'), icon: Icons.LayoutGrid, show: isFullAccess && !isPlatform, group: 'main' },
-    { to: '/config', label: t('shell.nav.config'), icon: Icons.Settings, show: isFullAccess && !isPlatform, group: 'main' },
-    { to: '/reports', label: t('shell.nav.reports'), icon: Icons.BarChart3, show: isFullAccess && !isPlatform, group: 'main' },
-    { to: '/activity', label: t('shell.nav.activity'), icon: Icons.History, show: isFullAccess && !isPlatform, group: 'main' },
-    { to: '/tables', label: t('shell.nav.tables'), icon: Icons.Armchair, show: canSeeTables, group: 'restaurant' },
-    { to: '/kitchen', label: t('shell.nav.kitchen'), icon: Icons.ChefHat, show: canSeeKitchen, group: 'restaurant' },
-    { to: '/bills', label: t('shell.nav.bills'), icon: Icons.Receipt, show: canSeeBills, group: 'restaurant' },
-    { to: '/costs', label: t('shell.nav.costs'), icon: Icons.Wallet, show: canSeeCosts, group: 'operations' },
-    { to: '/commercial', label: t('shell.nav.commercial'), icon: Icons.Receipt, show: isPlatform, group: 'platform' },
-    { to: '/onboarding', label: t('shell.nav.onboarding'), icon: Icons.Rocket, show: isPlatform, group: 'platform' },
-  ];
-  const groups: Array<[Group, string | null]> = [
-    ['main', null],
-    ['restaurant', t('shell.nav.restaurant')],
-    ['operations', t('shell.nav.operations')],
-    ['platform', t('shell.nav.platform')],
-  ];
+  const openPalette = useCallback(() => {
+    setNavOpen(false);
+    setPaletteOpen(true);
+  }, []);
+  const doSignOut = useCallback(() => void signOut(), [signOut]);
 
-  // UI gating is a convenience (the API is the real boundary); this explains a denied deep link.
-  const guarded = (path: string, allowed: boolean, page: ReactElement) => (
-    <Route
-      path={path}
-      element={allowed ? page : <EmptyState title={t('shell.noAccessTitle')} body={t('shell.noAccessBody')} />}
-    />
+  // ── Shortcuts (derived from the same page list) ──
+  const bindings = useMemo<ShortcutBinding[]>(
+    () => [
+      { id: 'palette', sequence: ['mod+k'], allowWhileTyping: true },
+      { id: 'palette', sequence: ['/'] },
+      { id: 'help', sequence: ['?'] },
+      ...visiblePages.filter((p) => p.goKey).map((p) => ({ id: `go:${p.path}`, sequence: ['g', p.goKey as string] })),
+    ],
+    [visiblePages],
   );
+  useGlobalShortcuts(bindings, (id) => {
+    if (id === 'palette') openPalette();
+    else if (id === 'help') setHelpOpen(true);
+    else if (id.startsWith('go:')) navigate(id.slice(3));
+  });
+
+  // ── Command palette entries: every visible page, locations, actions ──
+  const commands = useMemo<Command[]>(() => {
+    const pageCommands: Command[] = visiblePages.map((p) => {
+      const Icon = p.icon;
+      return {
+        id: `page:${p.path}`,
+        label: t(p.labelKey),
+        keywords: p.keywordsKey ? t(p.keywordsKey) : undefined,
+        group: 'pages',
+        icon: <Icon className="size-4" />,
+        current: p.path === '/' ? location.pathname === '/' : location.pathname.startsWith(p.path),
+        hint: p.goKey ? <KeyCombo keys={['G', p.goKey.toUpperCase()]} /> : undefined,
+        run: () => navigate(p.path),
+      };
+    });
+    const locationCommands: Command[] = work.canChoose
+      ? [
+          { id: null, name: t('shell.allLocations') },
+          ...work.locations.map((l) => ({ id: l.id as string | null, name: l.name })),
+        ].map((l) => ({
+          id: `location:${l.id ?? 'all'}`,
+          label: t('shell.palette.switchTo', { name: l.name }),
+          keywords: `${t('shell.keywords.location')} ${l.name}`,
+          group: 'locations' as const,
+          icon: <Icons.MapPin className="size-4" />,
+          current: work.locationId === l.id,
+          run: () => work.setLocationId(l.id),
+        }))
+      : [];
+    const actionCommands: Command[] = [
+      {
+        id: 'action:shortcuts',
+        label: t('shell.help.title'),
+        keywords: t('shell.keywords.shortcuts'),
+        group: 'actions',
+        icon: <Icons.Keyboard className="size-4" />,
+        hint: <Kbd>?</Kbd>,
+        run: () => setHelpOpen(true),
+      },
+      {
+        id: 'action:signout',
+        label: t('shell.signOut'),
+        keywords: t('shell.keywords.signOut'),
+        group: 'actions',
+        icon: <Icons.LogOut className="size-4" />,
+        run: doSignOut,
+      },
+    ];
+    return [...pageCommands, ...locationCommands, ...actionCommands];
+  }, [visiblePages, work, location.pathname, navigate, doSignOut, t]);
+
+  const goShortcuts = visiblePages.filter((p) => p.goKey).map((p) => ({ key: p.goKey as string, label: t(p.labelKey) }));
 
   const nav = (
     <nav aria-label={t('shell.primaryNav')} className="space-y-5">
-      {groups.map(([group, heading]) => {
-        const items = entries.filter((e) => e.group === group && e.show);
+      {PAGE_GROUPS.map(({ id, headingKey }) => {
+        const items = visiblePages.filter((p) => p.group === id);
         if (items.length === 0) return null;
         return (
-          <div key={group}>
-            {heading && (
-              <p className="mb-1.5 px-3 text-xs font-medium uppercase tracking-wider text-muted">{heading}</p>
+          <div key={id}>
+            {headingKey && (
+              <p className="mb-1.5 px-3 text-xs font-medium tracking-wider text-muted uppercase">{t(headingKey)}</p>
             )}
             <ul className="space-y-0.5">
-              {items.map(({ to, label, icon: Icon }) => (
-                <li key={to}>
+              {items.map(({ path, labelKey, icon: Icon }) => (
+                <li key={path}>
                   <NavLink
-                    to={to}
-                    end={to === '/'}
+                    to={path}
+                    end={path === '/'}
                     className={({ isActive }) =>
                       cn(
                         'flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-(--duration-micro)',
@@ -126,7 +152,7 @@ export function AppShell() {
                     }
                   >
                     <Icon className="size-[1.125rem]" />
-                    {label}
+                    {t(labelKey)}
                   </NavLink>
                 </li>
               ))}
@@ -137,6 +163,8 @@ export function AppShell() {
     </nav>
   );
 
+  const mod = modKeyLabel();
+
   return (
     <div className="flex h-screen w-full flex-col bg-paper">
       <a
@@ -145,10 +173,10 @@ export function AppShell() {
       >
         {t('shell.skipToContent')}
       </a>
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-4">
+      <header className="relative z-40 flex h-14 shrink-0 items-center gap-1 border-b border-line bg-surface px-2 sm:gap-2 sm:px-4">
         <button
           type="button"
-          className="grid size-11 place-items-center rounded-control hover:bg-sunken lg:hidden"
+          className="grid size-11 shrink-0 place-items-center rounded-control hover:bg-sunken lg:hidden"
           aria-label={t('shell.openNav')}
           aria-expanded={navOpen}
           onClick={() => setNavOpen((o) => !o)}
@@ -156,16 +184,36 @@ export function AppShell() {
           {navOpen ? <Icons.X className="size-5" /> : <Icons.Menu className="size-5" />}
         </button>
         <BrandMark />
-        <div className="ml-auto flex items-center gap-2">
-          {!isPlatform && <NotificationsPanel />}
-          <span className="hidden text-sm text-muted sm:inline" title={user?.email}>
-            {isPlatform ? `${t('shell.platformRealm')} · ` : ''}
-            {user?.displayName ?? user?.email}
-          </span>
-          <Button variant="secondary" onClick={() => void signOut()} aria-label={t('shell.signOut')}>
-            <Icons.LogOut className="size-4" />
-            <span className="hidden sm:inline">{t('shell.signOut')}</span>
-          </Button>
+        <span aria-hidden className="mx-1 hidden h-6 w-px shrink-0 bg-line sm:block" />
+        <div className="min-w-0 flex-1">
+          <ContextSwitcher isPlatform={access.isPlatform} />
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            onClick={openPalette}
+            aria-label={t('shell.openPalette')}
+            aria-keyshortcuts="Control+K Meta+K /"
+            className={cn(
+              'grid size-11 place-items-center rounded-control text-muted transition-colors duration-(--duration-micro) hover:bg-sunken hover:text-ink',
+              'md:flex md:h-10 md:w-60 md:items-center md:justify-between md:gap-2 md:border md:border-line md:bg-paper md:px-3 md:text-sm',
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <Icons.Search className="size-[1.125rem] md:size-4" aria-hidden />
+              <span className="hidden md:inline">{t('shell.search')}</span>
+            </span>
+            <span className="hidden items-center gap-1 md:inline-flex" aria-hidden>
+              <Kbd>{mod}</Kbd>
+              <Kbd>K</Kbd>
+            </span>
+          </button>
+          <EnvBadge className="hidden sm:inline-flex" />
+          {!access.isPlatform && <NotificationsPanel />}
+          {user && (
+            <UserMenu user={user} onOpenPalette={openPalette} onOpenShortcuts={() => setHelpOpen(true)} onSignOut={doSignOut} />
+          )}
         </div>
       </header>
 
@@ -173,11 +221,15 @@ export function AppShell() {
         <aside
           className={cn(
             'z-30 w-64 shrink-0 overflow-y-auto border-r border-line bg-surface p-4',
-            'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:transition-transform max-lg:duration-(--duration-surface)',
-            navOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full',
+            'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:transition-[transform,visibility] max-lg:duration-(--duration-surface)',
+            navOpen ? 'max-lg:translate-x-0' : 'max-lg:invisible max-lg:-translate-x-full',
           )}
         >
           {nav}
+          <p className="mt-6 hidden items-center gap-1.5 px-3 text-xs text-muted lg:flex">
+            <Kbd>?</Kbd>
+            {t('shell.help.title')}
+          </p>
         </aside>
         {navOpen && (
           <button
@@ -190,24 +242,24 @@ export function AppShell() {
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 overflow-auto p-4 sm:p-8">
           <ErrorBoundary key={location.pathname} title={t('shell.crashTitle')} body={t('shell.crashBody')} retry={t('modules.retry')}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            {guarded('/modules', isFullAccess && !isPlatform, <ModuleCenter />)}
-            {guarded('/config', isFullAccess && !isPlatform, <ConfigCenter />)}
-            {guarded('/reports', isFullAccess && !isPlatform, <ReportsPage />)}
-            {guarded('/activity', isFullAccess && !isPlatform, <ActivityPage />)}
-            {guarded('/commercial', isPlatform, <CommercialPage />)}
-            {guarded('/onboarding', isPlatform, <OnboardingPage />)}
-            {guarded('/tables', canSeeTables, <TablesPage />)}
-            {guarded('/kitchen', canSeeKitchen, <KitchenPage />)}
-            {guarded('/bills', canSeeBills, <BillsPage />)}
-            {guarded('/costs', canSeeCosts, <CostsPage />)}
-            <Route path="/home" element={<Navigate to="/" replace />} />
-            <Route path="*" element={<PageHeader title={t('shell.notFoundTitle')} description={t('shell.notFoundBody')} />} />
-          </Routes>
+            <Routes>
+              {PAGES.map(({ path, can, Component }) => (
+                <Route
+                  key={path}
+                  path={path}
+                  // UI gating is a convenience (the API is the real boundary); this explains a denied deep link.
+                  element={can(access) ? <Component /> : <EmptyState title={t('shell.noAccessTitle')} body={t('shell.noAccessBody')} />}
+                />
+              ))}
+              <Route path="/home" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<PageHeader title={t('shell.notFoundTitle')} description={t('shell.notFoundBody')} />} />
+            </Routes>
           </ErrorBoundary>
         </main>
       </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
+      <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} goShortcuts={goShortcuts} />
     </div>
   );
 }

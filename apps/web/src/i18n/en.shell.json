@@ -1,0 +1,71 @@
+{
+  "shell": {
+    "locationSelector": "Working location",
+    "allLocations": "All locations",
+    "allLocationsDetail_one": "{{count}} location",
+    "allLocationsDetail_other": "Combined view of {{count}} locations",
+    "switchLocation": "Switch location",
+    "userMenuFor": "Account menu for {{name}}",
+    "noRoles": "No roles assigned",
+    "version": "Version {{version}}",
+    "search": "Search or jump to…",
+    "openPalette": "Open command palette",
+    "palette": {
+      "label": "Command palette",
+      "placeholder": "Search pages, locations and actions…",
+      "results": "Results",
+      "groups": {
+        "pages": "Go to",
+        "locations": "Switch location",
+        "actions": "Actions"
+      },
+      "switchTo": "Switch to {{name}}",
+      "current": "Current",
+      "emptyTitle": "Nothing matches “{{query}}”",
+      "emptyBody": "Try a page name such as Tables, Kitchen or Reports.",
+      "count_one": "{{count}} result",
+      "count_other": "{{count}} results",
+      "hintMove": "to move",
+      "hintRun": "to open",
+      "hintClose": "to close"
+    },
+    "help": {
+      "title": "Keyboard shortcuts",
+      "note": "Shortcuts pause while you are typing in a field or while a dialog is open.",
+      "general": "General",
+      "navigation": "Go to a page",
+      "palette": "Search or jump to anything",
+      "paletteSlash": "Search or jump to anything (when not typing)",
+      "help": "Show this list",
+      "escape": "Close a menu or dialog",
+      "goTo": "Go to {{page}}",
+      "then": "then",
+      "close": "Close"
+    },
+    "env": {
+      "prefix": "Environment:",
+      "label": "Environment: {{env}}",
+      "development": "Development",
+      "staging": "Staging",
+      "test": "Test",
+      "preview": "Preview",
+      "demo": "Demo"
+    },
+    "keywords": {
+      "home": "dashboard today overview start",
+      "modules": "apps features activate enable",
+      "config": "settings preferences alerts setup",
+      "reports": "sales revenue analytics daily numbers",
+      "activity": "audit log history changes",
+      "tables": "floor sessions dine seating orders pos",
+      "kitchen": "kds tickets queue orders cooking",
+      "bills": "invoices receipts refund void payments",
+      "costs": "expenses spending purchases",
+      "commercial": "pricing offerings bundles clients",
+      "onboarding": "new business provision setup",
+      "location": "location branch outlet store",
+      "shortcuts": "keyboard keys hotkeys help",
+      "signOut": "log out logout exit"
+    }
+  }
+}
