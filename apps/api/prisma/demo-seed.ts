@@ -15,6 +15,30 @@
  *   Catalog:   3 tax categories, 4 menu categories, 12 menu items
  *   Dining:    2 areas (Main Hall, Outdoor), 6 tables (T1–T6)
  *   Expenses:  4 expense categories (Rent, Utilities, Wages, Supplies)
+ *   Location 2: "Riverside" (Asia/Kolkata) - areas River View (R1-R4) and
+ *              Garden (G1-G3); invoice series "RV-0001...", tickets "RV-K001..."
+ *   History:   14 days (today included, up to "now") of closed table visits per
+ *              location - lunch/dinner peaks, variants & modifiers, CASH (with
+ *              change) and UPI (with reference), 3 partial cash refunds, 1
+ *              voided-and-reissued bill - see prisma/demo/history.ts
+ *   Expenses:  2 weeks per location: approved, pending, and 1 rejected
+ *   Live:      2 Riverside tables occupied with kitchen tickets at SENT /
+ *              PREPARING / READY (real services, audited) - prisma/demo/live.ts
+ *
+ * Location access: all four demo users hold allLocations=true role grants, so
+ * every demo user (owner, cashier, kitchen, waiter) can switch between
+ * "Main Location" and "Riverside". Restricting a user to one location is done
+ * per role grant (UserRole.allLocations=false + UserRoleLocation rows).
+ *
+ * Idempotency of history: every history row id is a UUID derived from a stable
+ * key (location/date/bill index), so re-runs insert only what is missing.
+ * Audit: history writes NO audit rows (services always stamp "now"); actions
+ * performed at seed time go through the real services and are chain-appended.
+ * The audit chain is re-verified at the end of every run.
+ *
+ * --reset-demo-history is deliberately NOT supported: history consists of
+ * finalised, numbered invoices; deleting them would leave permanent gaps in
+ * the gapless invoice series (ADR-016) that cannot be rewound.
  *
  * Usage:
  *   NEXUS_DEMO_SEED=true npx ts-node -P tsconfig.json -r tsconfig-paths/register prisma/demo-seed.ts
@@ -24,8 +48,11 @@
  */
 /* eslint-disable no-console -- CLI script; console output is intended */
 import 'reflect-metadata';
-import { PrismaClient } from '@prisma/client';
 import { Algorithm, hash } from '@node-rs/argon2';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { loadCatalog, seedHistory, type DemoLocation } from './demo/history';
+import { seedExpenses } from './demo/expenses';
+import { buildServices, closePaidOpenSessions, ensureSeries, openLiveTables, userScope } from './demo/live';
 
 if (process.env.NEXUS_DEMO_SEED !== 'true') {
   console.error('[demo-seed] Aborted: NEXUS_DEMO_SEED must be "true" to run this script.');
@@ -38,7 +65,16 @@ if (process.env.NODE_ENV === 'production') {
   process.exit(1);
 }
 
-const prisma = new PrismaClient();
+if (process.argv.includes('--reset-demo-history')) {
+  console.error('[demo-seed] --reset-demo-history is not supported: demo history contains finalised,');
+  console.error('[demo-seed] numbered invoices and deleting them would leave gaps in the gapless invoice');
+  console.error('[demo-seed] series (ADR-016). History is idempotent - re-running only adds missing bills.');
+  process.exit(1);
+}
+
+// PrismaService is a plain PrismaClient subclass; using it lets the real
+// services (AuditService, SessionService, ...) share this connection.
+const prisma = new PrismaService();
 
 // ── Argon2id params (same as main seed) ───────────────────────────────────────
 async function hashPassword(password: string): Promise<string> {
@@ -94,6 +130,13 @@ const TABLES_BY_AREA: Record<string, { code: string; seatingCapacity: number }[]
     { code: 'T6', seatingCapacity: 4 },
   ],
 };
+
+// ── Second location ───────────────────────────────────────────────────────────
+const RIVERSIDE_NAME = 'Riverside';
+const RIVERSIDE_AREAS = [
+  { name: 'River View', sortOrder: 10, tables: [{ code: 'R1', capacity: 2 }, { code: 'R2', capacity: 4 }, { code: 'R3', capacity: 4 }, { code: 'R4', capacity: 6 }] },
+  { name: 'Garden', sortOrder: 20, tables: [{ code: 'G1', capacity: 2 }, { code: 'G2', capacity: 4 }, { code: 'G3', capacity: 8 }] },
+];
 
 // ── Expense categories ────────────────────────────────────────────────────────
 const EXPENSE_CATEGORIES = [
@@ -433,6 +476,81 @@ async function main(): Promise<void> {
   }
   console.log(`[10] Expense categories: ${EXPENSE_CATEGORIES.map((e) => e.name).join(', ')}`);
 
+  // ── 11. Second location "Riverside" with its own areas and tables ────────────
+  let riverside = await prisma.location.findFirst({ where: { businessId, name: RIVERSIDE_NAME } });
+  if (!riverside) {
+    riverside = await prisma.location.create({
+      data: { businessId, name: RIVERSIDE_NAME, timezone: 'Asia/Kolkata', status: 'ACTIVE' },
+    });
+    console.log(`[11] Location created: "${RIVERSIDE_NAME}" (${riverside.id})`);
+  } else {
+    console.log(`[11] Location exists: "${RIVERSIDE_NAME}" (${riverside.id})`);
+  }
+  for (const areaDef of RIVERSIDE_AREAS) {
+    let area = await prisma.diningArea.findFirst({ where: { businessId, locationId: riverside.id, name: areaDef.name } });
+    if (!area) {
+      area = await prisma.diningArea.create({
+        data: { businessId, locationId: riverside.id, name: areaDef.name, sortOrder: areaDef.sortOrder, isActive: true },
+      });
+    }
+    for (const t of areaDef.tables) {
+      const ex = await prisma.diningTable.findFirst({ where: { diningAreaId: area.id, code: t.code } });
+      if (!ex) {
+        await prisma.diningTable.create({
+          data: { businessId, locationId: riverside.id, diningAreaId: area.id, code: t.code, capacity: t.capacity, status: 'AVAILABLE' },
+        });
+      }
+    }
+  }
+  console.log(`[11] Riverside areas: ${RIVERSIDE_AREAS.map((a) => `${a.name} (${a.tables.map((t) => t.code).join(',')})`).join('; ')}`);
+
+  // ── 12. Real services + actor scopes ──────────────────────────────────────────
+  const svc = buildServices(prisma);
+  const ownerScope = await userScope(prisma, businessId, 'demo.owner@pilot.nexus');
+  const waiterScope = await userScope(prisma, businessId, 'demo.waiter@pilot.nexus');
+  const kitchenScope = await userScope(prisma, businessId, 'demo.kitchen@pilot.nexus');
+  const cashierScope = await userScope(prisma, businessId, 'demo.cashier@pilot.nexus');
+
+  // Riverside numbering gets a distinct prefix (configured via NumberingService,
+  // audited) before its first allocation. Main keeps its existing series.
+  const invSeries = await ensureSeries(prisma, svc, ownerScope, riverside.id, 'invoice', 'RV-', 4);
+  const kotSeries = await ensureSeries(prisma, svc, ownerScope, riverside.id, 'service_request', 'RV-K', 3);
+  console.log(`[12] Riverside numbering: invoice ${invSeries}, service_request ${kotSeries}`);
+
+  // ── 13. Tidy hand-made test sessions whose bill is already PAID ───────────────
+  const tidied = await closePaidOpenSessions(prisma, svc, ownerScope, locationId);
+  console.log(`[13] Closed paid-but-open test sessions at Main: ${tidied.length ? tidied.join(', ') : 'none'}`);
+
+  // ── 14. Trading history (14 days, both locations) ─────────────────────────────
+  const catalog = await loadCatalog(prisma, businessId);
+  const demoLocations: DemoLocation[] = [];
+  for (const [key, loc] of [['main', location], ['riverside', riverside]] as const) {
+    const tables = await prisma.diningTable.findMany({
+      where: { businessId, locationId: loc.id, isActive: true },
+      select: { id: true, code: true, capacity: true },
+    });
+    demoLocations.push({ key, id: loc.id, name: loc.name, tables });
+  }
+  for (const dl of demoLocations) {
+    const r = await seedHistory(prisma, businessId, dl, catalog, NOW);
+    console.log(`[14] History "${r.location}": ${r.inserted} bills inserted, ${r.existing} already present (${r.days} days)`);
+  }
+
+  // ── 15. Expenses (2 weeks, both locations) ────────────────────────────────────
+  for (const dl of demoLocations) {
+    const r = await seedExpenses(prisma, svc, ownerScope, cashierScope.actor.id!, dl, NOW);
+    console.log(`[15] Expenses "${dl.name}": ${r.inserted} inserted, ${r.existing} already present, ${r.rejected} rejected now`);
+  }
+
+  // ── 16. Live tables at Riverside (real services) ──────────────────────────────
+  const live = await openLiveTables(prisma, svc, waiterScope, kitchenScope, demoLocations[1]);
+  console.log(`[16] Live Riverside tables: ${live.length ? live.join('; ') : 'skipped (location already has open tables)'}`);
+
+  // ── 17. Integrity check ───────────────────────────────────────────────────────
+  const chain = await svc.audit.verifyChain(ownerScope);
+  console.log(`[17] Audit chain: ${chain.valid ? 'VALID' : `BROKEN at ${chain.brokenAtSequence} (${chain.reason})`} - ${chain.count} events`);
+  if (!chain.valid) process.exitCode = 1;
+
   // ── Summary ───────────────────────────────────────────────────────────────────
   console.log('');
   console.log('╔══════════════════════════════════════════╗');
@@ -445,7 +563,8 @@ async function main(): Promise<void> {
   }
   console.log('');
   console.log(`Business ID : ${businessId}`);
-  console.log(`Location ID : ${locationId}`);
+  console.log(`Location ID : ${locationId}  (Main Location)`);
+  console.log(`Location ID : ${riverside.id}  (Riverside)`);
   console.log('');
   console.log('API: http://localhost:3000');
   console.log('Web: http://localhost:5173');
