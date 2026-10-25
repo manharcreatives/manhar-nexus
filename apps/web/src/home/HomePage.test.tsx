@@ -1,0 +1,69 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import '../i18n';
+import { RevenueHero } from './RevenueHero';
+import { OpsWidgets } from './OpsWidgets';
+import { addDaysIso, todayIso } from '../reports/dates';
+
+function json(body: unknown, status = 200) {
+  return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }));
+}
+
+const point = (date: string, net: number, count: number) => ({
+  date,
+  paidInvoiceCount: count,
+  grossSalesMinorUnits: net,
+  totalRevenueMinorUnits: net,
+  totalRefundedMinorUnits: 0,
+  netRevenueMinorUnits: net,
+});
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('RevenueHero', () => {
+  it('shows today, the comparison with the same weekday last week, and the 7-day strip', async () => {
+    const today = todayIso();
+    const days = Array.from({ length: 8 }, (_, i) => point(addDaysIso(today, i - 7), i === 0 ? 100000 : i === 7 ? 150000 : 50000, 3));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => json({ from: days[0].date, to: today, businessId: 'b', timezone: 'UTC', days })),
+    );
+    render(<RevenueHero withSeries locationId={null} />);
+    // Hero figure plus the strip's table cell for today.
+    expect((await screen.findAllByText('₹1,500.00')).length).toBe(2);
+    expect(screen.getByText(/Up ₹500\.00 \(\+50%\)/)).toBeTruthy();
+    expect(screen.getAllByRole('img')).toHaveLength(7);
+  });
+});
+
+describe('OpsWidgets', () => {
+  it('keeps the other widgets when one source fails, and hides a forbidden one', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('/admin/dining/tables'))
+          return json([
+            { id: '1', status: 'OCCUPIED', isActive: true, locationId: 'l' },
+            { id: '2', status: 'AVAILABLE', isActive: true, locationId: 'l' },
+          ]);
+        if (url.includes('/admin/kitchen')) return json({ error: { message: 'boom' } }, 500);
+        if (url.includes('/admin/costs')) return json({ error: { code: 'MODULE_DISABLED' } }, 403);
+        if (url.includes('/admin/notifications')) return json({ notifications: [], totalUnread: 0 });
+        return json({}, 404);
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <OpsWidgets
+          locationId={null}
+          access={{ tables: true, kitchen: true, expenses: true, alerts: true, links: { tables: true, kitchen: true, costs: true } }}
+        />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('1 table occupied')).toBeTruthy();
+    expect(await screen.findByText("You're all caught up")).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain("This didn't load"));
+    expect(screen.queryByText('Expense approvals')).toBeNull();
+  });
+});

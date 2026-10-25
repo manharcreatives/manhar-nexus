@@ -19,6 +19,21 @@ export function formatMoney(minorUnits: number, currency: string = DEFAULT_CURRE
   return formatterFor(currency).format(minorUnits / 100);
 }
 
+const compactFormatters = new Map<string, Intl.NumberFormat>();
+
+/**
+ * Short currency text for chart axes and tight labels ("₹12K", "₹1.2L").
+ * Never use it where the exact amount matters; pair it with formatMoney.
+ */
+export function formatMoneyCompact(minorUnits: number, currency: string = DEFAULT_CURRENCY): string {
+  let f = compactFormatters.get(currency);
+  if (!f) {
+    f = new Intl.NumberFormat('en-IN', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 });
+    compactFormatters.set(currency, f);
+  }
+  return f.format(minorUnits / 100);
+}
+
 /** Parses typed major-unit text ("12", "12.5", "1,200.00") to minor units; null if invalid. */
 export function parseMoney(text: string): number | null {
   const clean = text.replace(/,/g, '').trim();

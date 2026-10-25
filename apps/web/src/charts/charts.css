@@ -1,0 +1,45 @@
+/* Chart motion: a subtle grow-in from the baseline, only when motion is welcome. */
+@keyframes nx-chart-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes nx-chart-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes nx-chart-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nx-grow-y {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: nx-chart-grow 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .nx-grow-x {
+    transform-box: fill-box;
+    transform-origin: 0 50%;
+    animation: nx-chart-grow-x 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .nx-fade {
+    animation: nx-chart-fade 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+.nx-chart-focus:focus {
+  outline: none;
+}

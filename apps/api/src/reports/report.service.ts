@@ -5,6 +5,8 @@ import { TenantScopedRepository } from '../common/tenant-scoped.repository';
 import type { TenantScope } from '../common/tenant-scope';
 import type {
   DailyClosingReport,
+  DailySeriesPoint,
+  DailySeriesReport,
   ItemReport,
   PaymentMethodSummary,
   SalesSummaryReport,
@@ -250,6 +252,82 @@ export class ReportService extends TenantScopedRepository {
       netRevenueMinorUnits: totalRevenue - totalRefunded,
       averageInvoiceMinorUnits: count > 0 ? Math.round(totalRevenue / count) : 0,
       paymentBreakdown: [...pmMap.values()],
+    };
+  }
+
+  /**
+   * Per-day revenue across [from, to] (UTC calendar days, same as the other
+   * reports). Two queries regardless of range length: paid invoices, and the
+   * PROCESSED refunds on them (joined through payment → invoice, no IN list).
+   * Refunds are attributed to the day the invoice was paid, so the days sum
+   * to the Sales Summary for the same range.
+   */
+  async dailySeriesReport(
+    scope: TenantScope,
+    from: string,
+    to: string,
+    locationId?: string,
+  ): Promise<DailySeriesReport> {
+    const { start, end } = rangeBounds(from, to);
+    const invoiceWhere = {
+      businessId: scope.businessId,
+      ...(locationId ? { locationId } : {}),
+      status: InvoiceStatus.PAID,
+      paidAt: { gte: start, lte: end },
+    };
+
+    const [invoices, refunds] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where: invoiceWhere,
+        select: { id: true, paidAt: true, subtotalMinorUnits: true, grandTotalMinorUnits: true },
+      }),
+      this.prisma.refund.findMany({
+        where: {
+          businessId: scope.businessId,
+          status: RefundStatus.PROCESSED,
+          payment: { businessId: scope.businessId, invoice: invoiceWhere },
+        },
+        select: { amountMinorUnits: true, payment: { select: { invoice: { select: { paidAt: true } } } } },
+      }),
+    ]);
+
+    const days = new Map<string, DailySeriesPoint>();
+    const DAY_MS = 86_400_000;
+    for (let t = Date.parse(`${from}T00:00:00Z`); t <= Date.parse(`${to}T00:00:00Z`); t += DAY_MS) {
+      const date = new Date(t).toISOString().slice(0, 10);
+      days.set(date, {
+        date,
+        paidInvoiceCount: 0,
+        grossSalesMinorUnits: 0,
+        totalRevenueMinorUnits: 0,
+        totalRefundedMinorUnits: 0,
+        netRevenueMinorUnits: 0,
+      });
+    }
+    const bucket = (d: Date | null | undefined) => (d ? days.get(d.toISOString().slice(0, 10)) : undefined);
+
+    for (const inv of invoices) {
+      const day = bucket(inv.paidAt);
+      if (!day) continue;
+      day.paidInvoiceCount += 1;
+      day.grossSalesMinorUnits += inv.subtotalMinorUnits;
+      day.totalRevenueMinorUnits += inv.grandTotalMinorUnits;
+    }
+    for (const r of refunds) {
+      const day = bucket(r.payment.invoice.paidAt);
+      if (day) day.totalRefundedMinorUnits += r.amountMinorUnits;
+    }
+    for (const day of days.values()) {
+      day.netRevenueMinorUnits = day.totalRevenueMinorUnits - day.totalRefundedMinorUnits;
+    }
+
+    return {
+      from,
+      to,
+      businessId: scope.businessId,
+      ...(locationId && { locationId }),
+      timezone: 'UTC',
+      days: [...days.values()],
     };
   }
 

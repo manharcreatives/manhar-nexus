@@ -32,6 +32,45 @@ export function presetRange(key: PresetKey, now: Date = new Date()): { from: str
   }
 }
 
+function parseIsoDate(iso: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
+/** Shifts a YYYY-MM-DD string by whole calendar days. */
+export function addDaysIso(iso: string, n: number): string {
+  const d = parseIsoDate(iso);
+  return d ? toIsoDate(addDays(d, n)) : iso;
+}
+
+/** Inclusive number of calendar days between two YYYY-MM-DD strings. */
+export function daysBetweenInclusive(from: string, to: string): number {
+  const a = parseIsoDate(from);
+  const b = parseIsoDate(to);
+  if (!a || !b) return 0;
+  return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 86_400_000) + 1;
+}
+
+/** Short axis label: weekday for a week ("Mon"), day of month for longer ranges ("20"). */
+export function axisDayLabel(iso: string, style: 'weekday' | 'day'): string {
+  const d = parseIsoDate(iso);
+  if (!d) return iso;
+  return style === 'weekday' ? d.toLocaleDateString(undefined, { weekday: 'short' }) : String(d.getDate());
+}
+
+/** "Mon, 20 Oct 2026" — the full label for tooltips and tables. */
+export function formatDayLong(iso: string): string {
+  const d = parseIsoDate(iso);
+  if (!d) return iso;
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** Localized weekday name ("Saturday"). */
+export function weekdayName(iso: string): string {
+  const d = parseIsoDate(iso);
+  return d ? d.toLocaleDateString(undefined, { weekday: 'long' }) : iso;
+}
+
 /** Localized display of a YYYY-MM-DD string or ISO timestamp. */
 export function formatDate(value: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);

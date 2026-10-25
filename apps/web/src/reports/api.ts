@@ -54,7 +54,34 @@ export interface ItemReport {
   items: { itemName: string; quantity: number; revenueMinorUnits: number }[];
 }
 
+export interface DailySeriesPoint {
+  date: string;
+  paidInvoiceCount: number;
+  grossSalesMinorUnits: number;
+  totalRevenueMinorUnits: number;
+  totalRefundedMinorUnits: number;
+  netRevenueMinorUnits: number;
+}
+
+export interface DailySeriesReport {
+  from: string;
+  to: string;
+  businessId: string;
+  locationId?: string;
+  /** Day boundaries used by the API; all report endpoints share them. */
+  timezone: string;
+  days: DailySeriesPoint[];
+}
+
+/** Server-side cap on a daily-series window. */
+export const DAILY_SERIES_MAX_DAYS = 92;
+
 export const reportsApi = {
+  dailySeries: (from: string, to: string, locationId?: string) => {
+    const qs = new URLSearchParams({ from, to });
+    if (locationId) qs.set('locationId', locationId);
+    return api<DailySeriesReport>(`/admin/reports/daily-series?${qs.toString()}`);
+  },
   daily: (date: string, locationId?: string) => {
     const qs = new URLSearchParams({ date });
     if (locationId) qs.set('locationId', locationId);

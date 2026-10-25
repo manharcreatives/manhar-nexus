@@ -1,106 +1,90 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { reportsApi, formatMinorUnits, type DailyClosingReport } from '../reports/api';
+import { computeAccess } from '../shell/access';
 import { PageHeader } from '../ui/PageHeader';
-import { StatCard } from '../ui/StatCard';
-import { Panel } from '../ui/Panel';
-import { ErrorState, Skeleton } from '../ui/states';
+import { cn } from '../lib/cn';
+import { useWorkLocation } from '../context/LocationContext';
+import { Skeleton } from '../ui/states';
+import { homeAccess } from './access';
+import { RevenueHero } from './RevenueHero';
+import { OpsWidgets } from './OpsWidgets';
 
-function todayIso(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function todayHeading(): string {
+  return new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-const REPORT_ROLES = new Set(['owner', 'location-manager']);
-// Mirror the AppShell nav gating so a role never sees a link it cannot open.
-const FULL_ACCESS_ROLES = new Set(['owner', 'location-manager', 'platform-admin']);
-const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 'service-team', 'host']);
-const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
-
+/**
+ * Owner dashboard. Editorial composition: one dominant figure (today's net
+ * revenue) with its comparison and 7-day strip, and a ledger column of live
+ * operations. Every block loads on its own and only for roles whose API
+ * permissions allow it; a failure stays inside that block.
+ */
 export function HomePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const canSeeSales = user?.realm !== 'PLATFORM' && (user?.roles ?? []).some((r) => REPORT_ROLES.has(r.key));
-  const roles = user?.roles ?? [];
-  const isPlatform = user?.realm === 'PLATFORM';
-  const has = (allowed: Set<string>) => roles.some((r) => allowed.has(r.key));
-  const isFullAccess = has(FULL_ACCESS_ROLES);
-  const links = [
-    { to: '/tables', label: t('shell.nav.tables'), show: !isPlatform && has(TABLE_ROLES) },
-    { to: '/kitchen', label: t('shell.nav.kitchen'), show: !isPlatform && has(KITCHEN_ROLES) },
-    { to: '/reports', label: t('shell.nav.reports'), show: !isPlatform && isFullAccess },
-    { to: '/costs', label: t('shell.nav.costs'), show: !isPlatform && isFullAccess },
-    { to: '/activity', label: t('shell.nav.activity'), show: !isPlatform && isFullAccess },
-  ].filter((l) => l.show);
-  const [report, setReport] = useState<DailyClosingReport | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [loading, setLoading] = useState(canSeeSales);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    setFailed(false);
-    reportsApi
-      .daily(todayIso())
-      .then(setReport)
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    if (canSeeSales) load();
-  }, [canSeeSales, load]);
-
+  const nav = computeAccess(user);
+  const home = homeAccess(user);
+  const { locationId, location, status: locStatus } = useWorkLocation();
   const name = user?.displayName ?? user?.email ?? '';
-  const linkClass = 'inline-flex min-h-11 items-center rounded-control bg-sunken px-4 hover:bg-line';
+
+  const actions = [
+    { to: '/tables', label: t('home.action.tables'), show: nav.canSeeTables, primary: true },
+    { to: '/bills', label: t('home.action.bills'), show: nav.canSeeBills },
+    { to: '/kitchen', label: t('home.action.kitchen'), show: nav.canSeeKitchen },
+    { to: '/costs', label: t('home.action.costs'), show: nav.canSeeCosts },
+    { to: '/reports', label: t('home.action.reports'), show: nav.isTenantAdmin },
+  ].filter((a) => a.show);
+
+  const opsAccess = {
+    tables: home.tables,
+    kitchen: home.kitchen,
+    expenses: home.expenses,
+    alerts: home.alerts,
+    links: { tables: nav.canSeeTables, kitchen: nav.canSeeKitchen, costs: nav.canSeeCosts },
+  };
+  const hasOps = home.tables || home.kitchen || home.expenses || home.alerts;
 
   return (
     <>
-      <PageHeader title={t('home.greeting', { name })} description={t('home.subtitle')} />
-      {canSeeSales && (
-        <section aria-labelledby="today-h" className="mb-8">
-          <h2 id="today-h" className="mb-3 text-lg font-semibold">
-            {t('home.today')}
-          </h2>
-          <div role="status" aria-live="polite" className="sr-only">
-            {loading ? t('home.loading') : ''}
-          </div>
-          {loading && (
-            <div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-28" />
-              ))}
-            </div>
-          )}
-          {failed && <ErrorState title={t('home.loadError')} onRetry={load} retryLabel={t('modules.retry')} />}
-          {report && !loading && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label={t('home.netRevenue')} value={formatMinorUnits(report.netRevenueMinorUnits)} />
-              <StatCard label={t('home.paidInvoices')} value={report.paidInvoiceCount} />
-              <StatCard label={t('home.served')} value={report.servedOrderCount} />
-              <StatCard
-                label={t('home.refunds')}
-                value={formatMinorUnits(report.totalRefundedMinorUnits)}
-                note={t('home.refundCount', { count: report.refundCount })}
-              />
-            </div>
-          )}
-        </section>
+      <PageHeader
+        title={t('home.greeting', { name })}
+        description={location ? t('home.subtitleAt', { date: todayHeading(), location: location.name }) : todayHeading()}
+      />
+
+      {actions.length > 0 && (
+        <nav aria-label={t('home.quickActions')} className="-mt-2 mb-8 flex flex-wrap gap-2 text-sm font-medium">
+          {actions.map((a) => (
+            <Link
+              key={a.to}
+              to={a.to}
+              className={cn(
+                'inline-flex min-h-11 items-center rounded-control px-4 transition-colors duration-(--duration-micro)',
+                a.primary ? 'bg-accent text-surface hover:bg-accent-strong' : 'border border-line bg-surface hover:bg-sunken',
+              )}
+            >
+              {a.label}
+            </Link>
+          ))}
+        </nav>
       )}
-      {links.length > 0 && (
-        <Panel>
-          <h2 className="text-lg font-semibold">{t('home.quickLinks')}</h2>
-          <p className="mt-1 text-sm text-muted">{t('home.quickLinksBody')}</p>
-          <nav aria-label={t('home.quickLinks')} className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
-            {links.map((l) => (
-              <Link key={l.to} className={linkClass} to={l.to}>
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        </Panel>
+
+      {locStatus === 'loading' ? (
+        <div aria-hidden className="space-y-4">
+          <Skeleton className="h-16 w-3/4 max-w-sm" />
+          <Skeleton className="h-40" />
+        </div>
+      ) : home.revenue ? (
+        <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
+          <div className="min-w-0 lg:col-span-8">
+            <RevenueHero withSeries={home.series} locationId={locationId} />
+          </div>
+          {hasOps && <OpsWidgets access={opsAccess} locationId={locationId} className="min-w-0 lg:col-span-4 lg:border-l lg:border-line lg:pl-8" />}
+        </div>
+      ) : hasOps ? (
+        <OpsWidgets access={opsAccess} locationId={locationId} className="max-w-xl" />
+      ) : (
+        <p className="max-w-prose text-sm text-muted">{t('home.nothingYet')}</p>
       )}
     </>
   );

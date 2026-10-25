@@ -6,7 +6,9 @@ import type { Principal } from '../iam/principal';
 import { ReportService } from './report.service';
 import {
   dailyReportQuerySchema,
+  dailySeriesQuerySchema,
   itemReportQuerySchema,
+  type DailySeriesQuery,
   salesReportQuerySchema,
   type DailyReportQuery,
   type ItemReportQuery,
@@ -42,6 +44,16 @@ export class ReportController {
     @Query(zodBody(salesReportQuerySchema)) q: SalesReportQuery,
   ) {
     return this.reports.salesSummaryReport(scopeFromPrincipal(principal), q.from, q.to, q.locationId);
+  }
+
+  /** Daily revenue series — one zero-filled point per UTC day, at most 92 days. */
+  @Get('daily-series')
+  @RequirePermission('reports.sales.view')
+  dailySeries(
+    @CurrentPrincipal() principal: Principal,
+    @Query(zodBody(dailySeriesQuerySchema)) q: DailySeriesQuery,
+  ) {
+    return this.reports.dailySeriesReport(scopeFromPrincipal(principal), q.from, q.to, q.locationId);
   }
 
   /** Top selling items — ranked by quantity sold in the date range. */

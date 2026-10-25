@@ -1,8 +1,23 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { reportsApi, formatMinorUnits, type DailyClosingReport, type SalesSummaryReport, type ItemReport } from './api';
+import type { TFunction } from 'i18next';
+import {
+  reportsApi,
+  formatMinorUnits,
+  DAILY_SERIES_MAX_DAYS,
+  type DailyClosingReport,
+  type DailySeriesReport,
+  type SalesSummaryReport,
+  type ItemReport,
+} from './api';
 import { downloadCsv, minorToMajor, type CsvCell } from './csv';
-import { formatDate, presetRange, todayIso, type PresetKey } from './dates';
+import { daysBetweenInclusive, formatDate, presetRange, todayIso, type PresetKey } from './dates';
+import { seriesToBars } from './series';
+import { formatMoneyCompact } from '../lib/money';
+import { BarTrend } from '../charts/BarTrend';
+import { ShareBar } from '../charts/ShareBar';
+import { InlineBar } from '../charts/InlineBar';
+import { useWorkLocation } from '../context/LocationContext';
 import { useAsync } from './useAsync';
 import { PageHeader } from '../ui/PageHeader';
 import { Tabs } from '../ui/Tabs';
@@ -74,6 +89,10 @@ function Status({ loading, error, onRetry }: { loading: boolean; error: string |
   );
 }
 
+function methodLabel(t: TFunction, method: string): string {
+  return t(`reports.method.${method}`, { defaultValue: method });
+}
+
 function PaymentTable({ rows }: { rows: { method: string; capturedCount: number; amountMinorUnits: number }[] }) {
   const { t } = useTranslation();
   return (
@@ -92,7 +111,7 @@ function PaymentTable({ rows }: { rows: { method: string; capturedCount: number;
         <tbody>
           {rows.map((p) => (
             <tr key={p.method}>
-              <Td>{p.method}</Td>
+              <Td>{methodLabel(t, p.method)}</Td>
               <Td numeric>{p.capturedCount}</Td>
               <Td numeric>{formatMinorUnits(p.amountMinorUnits)}</Td>
             </tr>
@@ -108,7 +127,8 @@ function PaymentTable({ rows }: { rows: { method: string; capturedCount: number;
 function DailyReport() {
   const { t } = useTranslation();
   const [date, setDate] = useState(todayIso());
-  const fn = useCallback(() => reportsApi.daily(date), [date]);
+  const { locationId } = useWorkLocation();
+  const fn = useCallback(() => reportsApi.daily(date, locationId ?? undefined), [date, locationId]);
   const { data: r, loading, error, reload } = useAsync<DailyClosingReport>(date ? fn : null);
 
   const exportCsv = () => {
@@ -129,7 +149,7 @@ function DailyReport() {
       [],
       [t('reports.paymentBreakdown')],
       [t('reports.colMethod'), t('reports.colCount'), t('reports.colAmount')],
-      ...r.paymentBreakdown.map((p) => [p.method, p.capturedCount, minorToMajor(p.amountMinorUnits)]),
+      ...r.paymentBreakdown.map((p) => [methodLabel(t, p.method), p.capturedCount, minorToMajor(p.amountMinorUnits)]),
       [],
       [t('reports.taxBreakdown')],
       [t('reports.colTax'), t('reports.colRatePct'), t('reports.colTaxable'), t('reports.colTaxAmount')],
@@ -266,15 +286,76 @@ function RangeBar({
   );
 }
 
+function SalesTrend({
+  series,
+  loading,
+  error,
+  onRetry,
+  tooLong,
+}: {
+  series: DailySeriesReport | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  tooLong: boolean;
+}) {
+  const { t } = useTranslation();
+  const bars = useMemo(() => (series ? seriesToBars(series.days, t) : []), [series, t]);
+  const today = todayIso();
+  if (tooLong) return <p className="text-sm text-muted">{t('reports.trendTooLong', { max: DAILY_SERIES_MAX_DAYS })}</p>;
+  if (error) return <ErrorState title={t('reports.trendError')} body={error} onRetry={onRetry} retryLabel={t('reports.retry')} />;
+  if (loading && !series) return <Skeleton className="h-56" />;
+  if (!series) return null;
+  return (
+    <>
+      <BarTrend
+        data={bars}
+        title={t('reports.trendTitle')}
+        valueLabel={t('reports.netRevenue')}
+        unit="INR"
+        categoryLabel={t('reports.colDay')}
+        detailLabel={t('reports.paidInvoices')}
+        formatValue={(v) => formatMinorUnits(v)}
+        formatTick={(v) => formatMoneyCompact(v)}
+        highlightKey={today}
+        height={220}
+      />
+      <p className="mt-2 text-xs text-muted">{t('reports.utcNote')}</p>
+    </>
+  );
+}
+
 function SalesReport() {
   const { t } = useTranslation();
   const { from, to, setRange, rangeError } = useRange();
-  const fn = useCallback(() => reportsApi.sales(from, to), [from, to]);
+  const { locationId } = useWorkLocation();
+  const fn = useCallback(() => reportsApi.sales(from, to, locationId ?? undefined), [from, to, locationId]);
   const { data: r, loading, error, reload } = useAsync<SalesSummaryReport>(rangeError ? null : fn);
+  const tooLong = !rangeError && daysBetweenInclusive(from, to) > DAILY_SERIES_MAX_DAYS;
+  const seriesFn = useCallback(() => reportsApi.dailySeries(from, to, locationId ?? undefined), [from, to, locationId]);
+  const series = useAsync<DailySeriesReport>(rangeError || tooLong ? null : seriesFn);
   const period = `${formatDate(from)} - ${formatDate(to)}`;
+  const refreshAll = () => {
+    reload();
+    series.reload();
+  };
 
   const exportCsv = () => {
     if (!r) return;
+    const seriesRows: CsvCell[][] = series.data
+      ? [
+          [],
+          [t('reports.trendTitle')],
+          [t('reports.colDay'), t('reports.paidInvoices'), t('reports.totalRevenue'), t('reports.refunded'), t('reports.netRevenue')],
+          ...series.data.days.map((d) => [
+            d.date,
+            d.paidInvoiceCount,
+            minorToMajor(d.totalRevenueMinorUnits),
+            minorToMajor(d.totalRefundedMinorUnits),
+            minorToMajor(d.netRevenueMinorUnits),
+          ]),
+        ]
+      : [];
     downloadCsv(`sales-summary-${from}_${to}.csv`, [
       [t('reports.tabSales'), from, to],
       [],
@@ -289,13 +370,23 @@ function SalesReport() {
       [],
       [t('reports.paymentBreakdown')],
       [t('reports.colMethod'), t('reports.colCount'), t('reports.colAmount')],
-      ...r.paymentBreakdown.map((p) => [p.method, p.capturedCount, minorToMajor(p.amountMinorUnits)]),
+      ...r.paymentBreakdown.map((p) => [methodLabel(t, p.method), p.capturedCount, minorToMajor(p.amountMinorUnits)]),
+      ...seriesRows,
     ]);
   };
 
   return (
     <div className="space-y-6">
-      <RangeBar from={from} to={to} setRange={setRange} rangeError={rangeError} onRefresh={reload} loading={loading} onCsv={exportCsv} hasData={!!r && !rangeError} />
+      <RangeBar
+        from={from}
+        to={to}
+        setRange={setRange}
+        rangeError={rangeError}
+        onRefresh={refreshAll}
+        loading={loading || series.loading}
+        onCsv={exportCsv}
+        hasData={!!r && !rangeError}
+      />
       <p className="print-only text-lg font-semibold">
         {t('reports.tabSales')} - {period}
       </p>
@@ -308,16 +399,56 @@ function SalesReport() {
           <EmptyState title={t('reports.noDataTitle')} body={t('reports.noDataBody', { period })} />
         ) : (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label={t('reports.netRevenue')} value={formatMinorUnits(r.netRevenueMinorUnits)} />
-              <StatCard label={t('reports.paidInvoices')} value={r.paidInvoiceCount} />
-              <StatCard label={t('reports.avgInvoice')} value={formatMinorUnits(r.averageInvoiceMinorUnits)} />
+            <Panel className="p-5 sm:p-7">
+              <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted">{t('reports.netRevenue')}</p>
+                  <p className="tabular mt-1 font-display text-4xl font-semibold sm:text-5xl">{formatMinorUnits(r.netRevenueMinorUnits)}</p>
+                  <p className="mt-1 text-sm text-muted">{period}</p>
+                </div>
+                <dl className="flex flex-wrap gap-x-8 gap-y-3">
+                  <div>
+                    <dt className="text-xs text-muted">{t('reports.paidInvoices')}</dt>
+                    <dd className="tabular font-display text-2xl font-semibold">{r.paidInvoiceCount}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted">{t('reports.avgInvoice')}</dt>
+                    <dd className="tabular font-display text-2xl font-semibold">{formatMinorUnits(r.averageInvoiceMinorUnits)}</dd>
+                  </div>
+                </dl>
+              </div>
+              <section aria-labelledby="trend-h" className="mt-6">
+                <h2 id="trend-h" className="sr-only">
+                  {t('reports.trendTitle')}
+                </h2>
+                <SalesTrend series={series.data} loading={series.loading} error={series.error} onRetry={series.reload} tooLong={tooLong} />
+              </section>
+            </Panel>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <StatCard label={t('reports.grossSales')} value={formatMinorUnits(r.grossSalesMinorUnits)} />
               <StatCard label={t('reports.totalTax')} value={formatMinorUnits(r.totalTaxMinorUnits)} />
               <StatCard label={t('reports.totalRevenue')} value={formatMinorUnits(r.totalRevenueMinorUnits)} />
               <StatCard label={t('reports.refunded')} value={formatMinorUnits(r.totalRefundedMinorUnits)} />
             </div>
-            {r.paymentBreakdown.length > 0 && <PaymentTable rows={r.paymentBreakdown} />}
+            {r.paymentBreakdown.length > 0 && (
+              <Panel>
+                <section aria-labelledby="pay-share-h">
+                  <h2 id="pay-share-h" className="mb-3 text-lg font-semibold">
+                    {t('reports.paymentBreakdown')}
+                  </h2>
+                  <ShareBar
+                    title={t('reports.paymentBreakdown')}
+                    formatValue={(v) => formatMinorUnits(v)}
+                    segments={r.paymentBreakdown.map((p) => ({
+                      key: p.method,
+                      label: methodLabel(t, p.method),
+                      value: p.amountMinorUnits,
+                      detail: t('reports.paymentsCount', { count: p.capturedCount }),
+                    }))}
+                  />
+                </section>
+              </Panel>
+            )}
           </div>
         ))}
     </div>
@@ -327,9 +458,11 @@ function SalesReport() {
 function ItemsReport() {
   const { t } = useTranslation();
   const { from, to, setRange, rangeError } = useRange();
-  const fn = useCallback(() => reportsApi.items(from, to), [from, to]);
+  const { locationId } = useWorkLocation();
+  const fn = useCallback(() => reportsApi.items(from, to, locationId ?? undefined), [from, to, locationId]);
   const { data: r, loading, error, reload } = useAsync<ItemReport>(rangeError ? null : fn);
   const items = useMemo(() => r?.items ?? [], [r]);
+  const maxQty = useMemo(() => Math.max(0, ...items.map((i) => i.quantity)), [items]);
   const period = `${formatDate(from)} - ${formatDate(to)}`;
 
   const exportCsv = () => {
@@ -363,9 +496,12 @@ function ItemsReport() {
               </tr>
             </thead>
             <tbody>
-              {items.map((i) => (
+              {items.map((i, idx) => (
                 <tr key={i.itemName}>
-                  <Td>{i.itemName}</Td>
+                  <Td className="min-w-40">
+                    <span className="block">{i.itemName}</span>
+                    <InlineBar value={i.quantity} max={maxQty} highlight={idx === 0} className="mt-1.5 max-w-64" />
+                  </Td>
                   <Td numeric>{i.quantity}</Td>
                   <Td numeric>{formatMinorUnits(i.revenueMinorUnits)}</Td>
                 </tr>
