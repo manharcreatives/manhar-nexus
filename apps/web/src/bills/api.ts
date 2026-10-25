@@ -43,6 +43,7 @@ export interface BillQuery {
   to?: string;
   skip?: number;
   take?: number;
+  locationId?: string;
 }
 
 export interface InvoiceLine {
@@ -97,6 +98,7 @@ export const billsApi = {
     if (q.status) qs.set('status', q.status);
     if (q.from) qs.set('from', q.from);
     if (q.to) qs.set('to', q.to);
+    if (q.locationId) qs.set('locationId', q.locationId);
     qs.set('skip', String(q.skip ?? 0));
     qs.set('take', String(q.take ?? 25));
     return api<BillList>(`/admin/checkout/invoices?${qs.toString()}`);

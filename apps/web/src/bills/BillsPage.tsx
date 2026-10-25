@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { billsApi, type BillList, type InvoiceStatus } from './api';
 import { BillDetailDialog } from './BillDetailDialog';
 import { StatusBadge } from './StatusBadge';
 import { dayEndIso, dayStartIso } from './helpers';
 import { useAsync } from '../reports/useAsync';
+import { useWorkLocation } from '../context/LocationContext';
 import { presetRange, todayIso } from '../reports/dates';
 import { formatMoney } from '../lib/money';
 import { PageHeader } from '../ui/PageHeader';
@@ -25,6 +26,9 @@ export function BillsPage() {
   const [to, setTo] = useState('');
   const [skip, setSkip] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
+  const { locationId } = useWorkLocation();
+  // A new working location starts again from the first page.
+  useEffect(() => setSkip(0), [locationId]);
 
   const fn = useCallback(
     () =>
@@ -34,8 +38,9 @@ export function BillsPage() {
         to: to ? dayEndIso(to) : undefined,
         skip,
         take: PAGE_SIZE,
+        locationId: locationId ?? undefined,
       }),
-    [status, from, to, skip],
+    [status, from, to, skip, locationId],
   );
   const { data, loading, error, reload } = useAsync<BillList>(fn);
 

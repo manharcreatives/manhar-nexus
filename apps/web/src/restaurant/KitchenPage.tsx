@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useWorkLocation } from '../context/LocationContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/cn';
 import { Button } from '../ui/Button';
@@ -149,12 +150,14 @@ export function KitchenPage() {
     }
   }, []);
 
+  const { locationId } = useWorkLocation();
+
   const load = useCallback(async () => {
     if (loadInFlight.current) return;
     loadInFlight.current = true;
     setRefreshing(true);
     try {
-      const data = await kitchenApi.queue();
+      const data = await kitchenApi.queue(locationId ?? undefined);
       setQueue(data);
       setLastRefresh(new Date());
       setError('');
@@ -166,7 +169,7 @@ export function KitchenPage() {
       loadInFlight.current = false;
       setRefreshing(false);
     }
-  }, [t, loadTableNames]);
+  }, [t, loadTableNames, locationId]);
 
   useEffect(() => {
     void load();

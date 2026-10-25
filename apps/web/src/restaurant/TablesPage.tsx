@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWorkLocation } from '../context/LocationContext';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
@@ -40,6 +41,7 @@ export function TablesPage() {
   const [resetting, setResetting] = useState<ReadonlySet<string>>(new Set());
   const resetInFlight = useRef(new Set<string>());
   const loadInFlight = useRef(false);
+  const { locationId } = useWorkLocation();
 
   const load = useCallback(async () => {
     if (loadInFlight.current) return;
@@ -47,14 +49,15 @@ export function TablesPage() {
     setRefreshing(true);
     try {
       const [areasData, tablesData, sessionsData, catsData, itemsData] = await Promise.all([
-        diningApi.listAreas(),
+        diningApi.listAreas(locationId ?? undefined),
         diningApi.listTables(),
-        sessionApi.list({ status: 'OPEN' }),
+        sessionApi.list({ status: 'OPEN', locationId: locationId ?? undefined }),
         catalogApi.listCategories(),
         catalogApi.listItems(),
       ]);
       setAreas(areasData);
-      setTables(tablesData);
+      // The tables endpoint filters by area only, so scope to the working location here.
+      setTables(locationId ? tablesData.filter((tb) => tb.locationId === locationId) : tablesData);
       setSessions(sessionsData);
       setCategories(catsData);
       setCatalogItems(itemsData);
@@ -66,7 +69,7 @@ export function TablesPage() {
       loadInFlight.current = false;
       setRefreshing(false);
     }
-  }, [t]);
+  }, [t, locationId]);
 
   useEffect(() => {
     void load();
