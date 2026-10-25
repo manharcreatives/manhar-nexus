@@ -108,10 +108,10 @@ export function TablesPage() {
 
   const activeAreas = useMemo(() => areas.filter((a) => a.isActive), [areas]);
   const knownAreaIds = useMemo(() => new Set(activeAreas.map((a) => a.id)), [activeAreas]);
-  const orphanTables = useMemo(() => tables.filter((tb) => !knownAreaIds.has(tb.areaId)), [tables, knownAreaIds]);
+  const orphanTables = useMemo(() => tables.filter((tb) => !knownAreaIds.has(tb.diningAreaId)), [tables, knownAreaIds]);
 
   const groups = useMemo(() => {
-    const g = activeAreas.map((area) => ({ key: area.id, name: area.name, tables: tables.filter((tb) => tb.areaId === area.id) }));
+    const g = activeAreas.map((area) => ({ key: area.id, name: area.name, tables: tables.filter((tb) => tb.diningAreaId === area.id) }));
     if (orphanTables.length > 0) g.push({ key: OTHER_AREA, name: t('restaurant.tables.otherArea'), tables: orphanTables });
     return g.filter((x) => x.tables.length > 0);
   }, [activeAreas, tables, orphanTables, t]);

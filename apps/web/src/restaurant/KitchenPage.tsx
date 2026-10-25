@@ -57,12 +57,12 @@ function KitchenTicket({
       aria-label={`${heading} - ${t(`restaurant.kitchen.columns.${status}`)}`}
       className={cn('flex flex-col gap-4 rounded-panel border border-line border-l-8 bg-surface p-5', EDGE[status])}
     >
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-col gap-2">
         <div className="min-w-0">
           <h3 className="font-display text-3xl font-semibold leading-tight">{heading}</h3>
           {tableCode && <p className="text-base text-muted">{ticket}</p>}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <StatusPill tone={PILL_TONE[status]}>{t(`restaurant.kitchen.columns.${status}`)}</StatusPill>
           <p className={cn('tabular text-xl font-semibold', late && 'text-bad')}>
             {formatElapsed(mins, t)}

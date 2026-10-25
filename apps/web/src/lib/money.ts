@@ -18,3 +18,11 @@ function formatterFor(currency: string): Intl.NumberFormat {
 export function formatMoney(minorUnits: number, currency: string = DEFAULT_CURRENCY): string {
   return formatterFor(currency).format(minorUnits / 100);
 }
+
+/** Parses typed major-unit text ("12", "12.5", "1,200.00") to minor units; null if invalid. */
+export function parseMoney(text: string): number | null {
+  const clean = text.replace(/,/g, '').trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
+  const [whole, frac = ''] = clean.split('.');
+  return Number(whole) * 100 + Number(frac.padEnd(2, '0'));
+}

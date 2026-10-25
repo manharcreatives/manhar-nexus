@@ -123,8 +123,7 @@
       "method": "Payment method",
       "methods": {
         "CASH": "Cash",
-        "UPI": "UPI",
-        "CARD": "Card"
+        "UPI": "UPI"
       },
       "collect": "Collect {{amount}}",
       "processing": "Processing",
@@ -135,7 +134,17 @@
       "loadErrorTitle": "Could not prepare the bill",
       "invoiceVoid": "This bill was voided and cannot be paid.",
       "paidToast": "Payment of {{amount}} recorded.",
-      "finaliseNote": "Opening checkout locks the bill. Add further orders only before checking out."
+      "finaliseNote": "Opening checkout locks the bill. Add further orders only before checking out.",
+      "cashReceived": "Cash received",
+      "cashShort": "Enter at least the amount due.",
+      "changeDue": "Change to give: {{amount}}",
+      "startUpi": "Start UPI payment",
+      "upiPendingTitle": "Waiting for the UPI transfer",
+      "upiPendingBody": "Ask the guest to pay {{amount}}, then enter the UTR shown in their app.",
+      "utr": "UTR / reference number",
+      "utrRequired": "Enter the reference number to confirm.",
+      "confirmUpi": "Confirm payment",
+      "changeGiven": "Change given: {{amount}}"
     },
     "orderStatus": {
       "DRAFT": "Draft",

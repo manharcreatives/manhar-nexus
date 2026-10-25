@@ -8,11 +8,13 @@ import { useToast } from '../ui/Toast';
 import { cn } from '../lib/cn';
 import { describeError } from './errors';
 import { useSingleFlight } from './hooks';
-import { type GuestSession, type Invoice, checkoutApi, formatMinorUnits } from './api';
+import { Field } from '../ui/Field';
+import { parseMoney } from '../lib/money';
+import { type GuestSession, type Invoice, type Payment, checkoutApi, formatMinorUnits } from './api';
 
-type Method = 'CASH' | 'UPI' | 'CARD';
+type Method = 'CASH' | 'UPI';
 type Phase = 'loading' | 'review' | 'paid' | 'error';
-const METHODS: Method[] = ['CASH', 'UPI', 'CARD'];
+const METHODS: Method[] = ['CASH', 'UPI'];
 
 export function CheckoutDialog({
   session,
@@ -33,6 +35,10 @@ export function CheckoutDialog({
   const [phase, setPhase] = useState<Phase>('loading');
   const [loadError, setLoadError] = useState('');
   const [payError, setPayError] = useState('');
+  const [cashText, setCashText] = useState('');
+  const [utr, setUtr] = useState('');
+  const [pending, setPending] = useState<Payment | null>(null);
+  const [changeDue, setChangeDue] = useState(0);
   const loader = useSingleFlight();
   const payer = useSingleFlight();
   // One idempotency key per payment attempt (reset when the method changes),
@@ -70,10 +76,39 @@ export function CheckoutDialog({
   async function pay() {
     if (!invoice) return;
     setPayError('');
+    const total = invoice.grandTotalMinorUnits;
+    let cashReceived: number | undefined;
+    if (method === 'CASH') {
+      const tendered = cashText.trim() === '' ? total : parseMoney(cashText);
+      if (tendered === null || tendered < total) {
+        setPayError(t('restaurant.checkout.cashShort'));
+        return;
+      }
+      cashReceived = tendered;
+    }
+    if (method === 'UPI' && pending && utr.trim() === '') {
+      setPayError(t('restaurant.checkout.utrRequired'));
+      return;
+    }
     await payer.run(async () => {
       try {
-        await checkoutApi.pay(invoice.id, method, invoice.grandTotalMinorUnits, payKey.current);
-        toast.show(t('restaurant.checkout.paidToast', { amount: formatMinorUnits(invoice.grandTotalMinorUnits) }));
+        if (method === 'UPI' && pending) {
+          await checkoutApi.capture(pending.id, utr.trim());
+        } else {
+          const created = await checkoutApi.pay(
+            invoice.id,
+            method,
+            total,
+            payKey.current,
+            cashReceived ? { cashReceivedMinorUnits: cashReceived } : {},
+          );
+          if (method === 'UPI' && created.status !== 'CAPTURED') {
+            setPending(created);
+            return;
+          }
+          if (cashReceived) setChangeDue(cashReceived - total);
+        }
+        toast.show(t('restaurant.checkout.paidToast', { amount: formatMinorUnits(total) }));
         setPhase('paid');
       } catch (err) {
         setPayError(describeError(err, t, 'restaurant.errors.payment'));
@@ -84,19 +119,24 @@ export function CheckoutDialog({
   function chooseMethod(m: Method) {
     if (m === method) return;
     setMethod(m);
+    setPayError('');
     payKey.current = crypto.randomUUID();
   }
 
   const footer =
     phase === 'review' && invoice ? (
       <>
-        <Button variant="secondary" size="lg" onClick={onCancel} disabled={payer.busy}>
+        <Button variant="secondary" size="lg" onClick={onCancel} disabled={payer.busy || pending !== null}>
           {t('restaurant.common.cancel')}
         </Button>
         <Button size="lg" loading={payer.busy} onClick={() => void pay()}>
           {payer.busy
             ? t('restaurant.checkout.processing')
-            : t('restaurant.checkout.collect', { amount: formatMinorUnits(invoice.grandTotalMinorUnits) })}
+            : method === 'UPI'
+              ? pending
+                ? t('restaurant.checkout.confirmUpi')
+                : t('restaurant.checkout.startUpi')
+              : t('restaurant.checkout.collect', { amount: formatMinorUnits(invoice.grandTotalMinorUnits) })}
         </Button>
       </>
     ) : phase === 'paid' ? (
@@ -145,6 +185,9 @@ export function CheckoutDialog({
             <p className="font-display text-2xl font-semibold text-ok">{t('restaurant.checkout.paidTitle')}</p>
             <p className="tabular mt-2 font-display text-3xl font-semibold">{formatMinorUnits(invoice.grandTotalMinorUnits)}</p>
             <p className="mt-2 text-sm text-ink">{t('restaurant.checkout.paidBody')}</p>
+            {changeDue > 0 && (
+              <p className="tabular mt-2 text-lg font-semibold">{t('restaurant.checkout.changeGiven', { amount: formatMinorUnits(changeDue) })}</p>
+            )}
           </div>
         )}
 
@@ -167,7 +210,7 @@ export function CheckoutDialog({
                         {line.variantNameSnapshot && <span className="block text-xs text-muted">{line.variantNameSnapshot}</span>}
                       </Td>
                       <Td numeric>{line.quantity}</Td>
-                      <Td numeric>{formatMinorUnits(line.totalMinorUnits)}</Td>
+                      <Td numeric>{formatMinorUnits(line.lineTotalMinorUnits)}</Td>
                     </tr>
                   ))}
                 </tbody>
@@ -181,7 +224,7 @@ export function CheckoutDialog({
               </div>
               <div className="flex justify-between text-muted">
                 <dt>{t('restaurant.checkout.tax')}</dt>
-                <dd>{formatMinorUnits(invoice.taxMinorUnits)}</dd>
+                <dd>{formatMinorUnits(invoice.totalTaxMinorUnits)}</dd>
               </div>
               <div className="flex items-baseline justify-between border-t border-line pt-2">
                 <dt className="font-medium">{t('restaurant.checkout.grandTotal')}</dt>
@@ -189,9 +232,9 @@ export function CheckoutDialog({
               </div>
             </dl>
 
-            <fieldset disabled={payer.busy}>
+            <fieldset disabled={payer.busy || pending !== null}>
               <legend className="mb-2 text-sm font-medium">{t('restaurant.checkout.method')}</legend>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {METHODS.map((m) => (
                   <button
                     key={m}
@@ -208,6 +251,39 @@ export function CheckoutDialog({
                 ))}
               </div>
             </fieldset>
+
+            {method === 'CASH' && (
+              <div>
+                <Field
+                  label={t('restaurant.checkout.cashReceived')}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={cashText}
+                  placeholder={(invoice.grandTotalMinorUnits / 100).toFixed(2)}
+                  onChange={(e) => setCashText(e.target.value)}
+                  disabled={payer.busy}
+                />
+                {parseMoney(cashText) !== null && (parseMoney(cashText) ?? 0) > invoice.grandTotalMinorUnits && (
+                  <p className="tabular mt-1.5 text-sm font-medium text-ok">
+                    {t('restaurant.checkout.changeDue', { amount: formatMinorUnits((parseMoney(cashText) ?? 0) - invoice.grandTotalMinorUnits) })}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {method === 'UPI' && pending && (
+              <div className="rounded-panel border border-info/30 bg-info-soft p-4">
+                <p className="font-display text-lg font-semibold text-info">{t('restaurant.checkout.upiPendingTitle')}</p>
+                <p className="mb-3 mt-1 text-sm">{t('restaurant.checkout.upiPendingBody', { amount: formatMinorUnits(invoice.grandTotalMinorUnits) })}</p>
+                <Field
+                  label={t('restaurant.checkout.utr')}
+                  autoComplete="off"
+                  value={utr}
+                  onChange={(e) => setUtr(e.target.value)}
+                  disabled={payer.busy}
+                />
+              </div>
+            )}
 
             <p role="alert" className="text-sm text-bad">
               {payError}

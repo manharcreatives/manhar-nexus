@@ -10,7 +10,7 @@
  * Data created (all clearly synthetic):
  *   Business:  "The Pilot Kitchen"
  *   Location:  "Main Location"
- *   Modules:   restaurant, catalog, checkout, costs (all ACTIVE)
+ *   Modules:   restaurant, catalog, checkout, reports, costs (all ACTIVE)
  *   Users:     demo.owner / demo.cashier / demo.kitchen / demo.waiter
  *   Catalog:   3 tax categories, 4 menu categories, 12 menu items
  *   Dining:    2 areas (Main Hall, Outdoor), 6 tables (T1–T6)
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
   const locationId = location.id;
 
   // ── 3. Module activations (restaurant → catalog → checkout → costs) ──────────
-  const MODULES_TO_ACTIVATE = ['restaurant', 'catalog', 'checkout', 'costs'];
+  const MODULES_TO_ACTIVATE = ['restaurant', 'catalog', 'checkout', 'reports', 'costs'];
   for (const moduleKey of MODULES_TO_ACTIVATE) {
     await prisma.moduleActivation.upsert({
       where: { businessId_moduleKey: { businessId, moduleKey } },

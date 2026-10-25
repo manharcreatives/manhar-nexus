@@ -13,7 +13,7 @@ export interface DiningArea {
 
 export interface DiningTable {
   id: string;
-  areaId: string;
+  diningAreaId: string;
   code: string;
   capacity: number;
   status: 'AVAILABLE' | 'OCCUPIED' | 'CLEANING';
@@ -101,10 +101,10 @@ export interface InvoiceLine {
   variantNameSnapshot: string | null;
   quantity: number;
   unitPriceMinorUnits: number;
-  taxRateSnapshot: number;
-  subtotalMinorUnits: number;
-  taxMinorUnits: number;
-  totalMinorUnits: number;
+  taxRateSnapshot: string;
+  lineSubtotalMinorUnits: number;
+  lineTaxMinorUnits: number;
+  lineTotalMinorUnits: number;
 }
 
 export interface Invoice {
@@ -112,7 +112,7 @@ export interface Invoice {
   sessionId: string;
   status: 'DRAFT' | 'FINALISED' | 'PAID' | 'VOID';
   subtotalMinorUnits: number;
-  taxMinorUnits: number;
+  totalTaxMinorUnits: number;
   grandTotalMinorUnits: number;
   lines: InvoiceLine[];
 }
@@ -260,14 +260,22 @@ export const checkoutApi = {
       method: 'POST',
       body: '{}',
     }),
-  pay: (invoiceId: string, method: string, amountMinorUnits: number, idempotencyKey: string = crypto.randomUUID()) =>
+  /** CASH is captured immediately; UPI stays PENDING until `capture` is called with the UTR. */
+  pay: (
+    invoiceId: string,
+    method: string,
+    amountMinorUnits: number,
+    idempotencyKey: string = crypto.randomUUID(),
+    extra: { cashReceivedMinorUnits?: number } = {},
+  ) =>
     api<Payment>(`/admin/checkout/invoices/${invoiceId}/payments`, {
       method: 'POST',
-      body: JSON.stringify({
-        method,
-        amountMinorUnits,
-        idempotencyKey,
-      }),
+      body: JSON.stringify({ method, amountMinorUnits, idempotencyKey, ...extra }),
+    }),
+  capture: (paymentId: string, referenceCode: string) =>
+    api<Payment>(`/admin/checkout/payments/${paymentId}/capture`, {
+      method: 'POST',
+      body: JSON.stringify({ referenceCode }),
     }),
   void_: (invoiceId: string, reason = 'Voided by cashier') =>
     api<Invoice>(`/admin/checkout/invoices/${invoiceId}/void`, {
