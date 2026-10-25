@@ -1,539 +1,589 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { costsApi, listLocations, formatMinorUnits, type ExpenseCategory, type Expense, type ExpenseStatus, type Location } from './api';
+import {
+  costsApi,
+  listLocations,
+  formatMinorUnits,
+  type CostSummary,
+  type Expense,
+  type ExpenseCategory,
+  type ExpenseStatus,
+  type Location,
+} from './api';
+import { formatDate, presetRange, todayIso } from '../reports/dates';
+import { useAsync } from '../reports/useAsync';
+import { PageHeader } from '../ui/PageHeader';
+import { Tabs } from '../ui/Tabs';
+import { Panel } from '../ui/Panel';
+import { Field } from '../ui/Field';
+import { Select } from '../ui/Select';
+import { Checkbox } from '../ui/Checkbox';
+import { Textarea } from '../ui/Textarea';
+import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
+import { StatCard } from '../ui/StatCard';
+import { StatusPill } from '../ui/StatusPill';
+import { Table, Th, Td } from '../ui/Table';
+import { EmptyState, ErrorState, Skeleton } from '../ui/states';
+import { useToast } from '../ui/Toast';
 
 type Tab = 'expenses' | 'categories' | 'summary';
 
-// ── Shared helpers ─────────────────────────────────────────────────────────────
-
-function statusBadge(status: ExpenseStatus) {
-  const base = 'inline-block rounded-full px-2 py-0.5 text-xs font-medium';
-  if (status === 'APPROVED') return <span className={`${base} bg-green-100 text-green-700`}>Approved</span>;
-  if (status === 'REJECTED') return <span className={`${base} bg-red-100 text-red-700`}>Rejected</span>;
-  return <span className={`${base} bg-amber-100 text-amber-700`}>Pending</span>;
+function errText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
 }
 
-function randomUuid(): string {
-  return crypto.randomUUID();
+/** Parses a decimal major-unit string ("12", "12.5", "12.50") into integer minor units, or null. */
+function parseMinor(input: string): number | null {
+  const s = input.trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  const [whole, frac = ''] = s.split('.');
+  const minor = Number(whole) * 100 + Number(frac.padEnd(2, '0'));
+  return Number.isSafeInteger(minor) && minor > 0 ? minor : null;
 }
 
-// ── Categories tab ─────────────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: ExpenseStatus }) {
+  const { t } = useTranslation();
+  if (status === 'APPROVED') return <StatusPill tone="ok">{t('costs.status.APPROVED')}</StatusPill>;
+  if (status === 'REJECTED') return <StatusPill tone="bad">{t('costs.status.REJECTED')}</StatusPill>;
+  return <StatusPill tone="warn">{t('costs.status.PENDING_APPROVAL')}</StatusPill>;
+}
+
+function LoadError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return <ErrorState title={t('costs.loadError')} body={message} onRetry={onRetry} retryLabel={t('costs.retry')} />;
+}
+
+function ListSkeleton() {
+  return (
+    <div aria-hidden className="space-y-2">
+      {[0, 1, 2, 3].map((i) => (
+        <Skeleton key={i} className="h-12" />
+      ))}
+    </div>
+  );
+}
+
+function Live({ busy }: { busy: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <div role="status" aria-live="polite" className="sr-only">
+      {busy ? t('costs.loading') : ''}
+    </div>
+  );
+}
+
+// -- Categories ------------------------------------------------------------
 
 function CategoriesTab() {
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const toast = useToast();
+  const { data, loading, error, reload, setData } = useAsync<ExpenseCategory[]>(costsApi.listCategories);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const savingRef = useRef(false);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    costsApi.listCategories()
-      .then(setCategories)
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const createCategory = (e: React.FormEvent) => {
+  const create = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (savingRef.current) return;
+    const trimmed = name.trim();
+    if (!trimmed) return setNameError(t('costs.v.categoryName'));
+    if ((data ?? []).some((c) => c.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+      return setNameError(t('costs.v.categoryDuplicate'));
+    }
+    setNameError(null);
+    savingRef.current = true;
     setSaving(true);
-    costsApi.createCategory({ name: name.trim(), description: description.trim() || undefined, requiresApproval })
+    costsApi
+      .createCategory({ name: trimmed, description: description.trim() || undefined, requiresApproval })
       .then((cat) => {
-        setCategories((prev) => [...prev, cat]);
+        setData((prev) => [...(prev ?? []), cat]);
         setName('');
         setDescription('');
         setRequiresApproval(false);
+        toast.show(t('costs.categoryAdded', { name: cat.name }));
       })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setSaving(false));
+      .catch((err: unknown) => toast.show(errText(err), 'bad'))
+      .finally(() => {
+        savingRef.current = false;
+        setSaving(false);
+      });
   };
 
-  const toggleActive = (cat: ExpenseCategory) => {
-    costsApi.updateCategory(cat.id, { isActive: !cat.isActive })
-      .then((updated) => setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c))))
-      .catch((err: Error) => setError(err.message));
+  const toggle = (cat: ExpenseCategory) => {
+    if (busyIds.has(cat.id)) return;
+    setBusyIds((s) => new Set(s).add(cat.id));
+    costsApi
+      .updateCategory(cat.id, { isActive: !cat.isActive })
+      .then((u) => setData((prev) => (prev ?? []).map((c) => (c.id === u.id ? u : c))))
+      .catch((err: unknown) => toast.show(errText(err), 'bad'))
+      .finally(() =>
+        setBusyIds((s) => {
+          const n = new Set(s);
+          n.delete(cat.id);
+          return n;
+        }),
+      );
   };
 
   return (
     <div className="space-y-6">
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {loading && <p className="text-sm text-slate-500">Loading categories…</p>}
+      <Live busy={loading} />
+      <Panel>
+        <form onSubmit={create} noValidate aria-label={t('costs.addCategory')} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto] lg:items-start">
+          <Field label={t('costs.categoryName')} value={name} onChange={(e) => setName(e.target.value)} error={nameError} placeholder={t('costs.categoryNamePh')} />
+          <Field label={t('costs.description')} value={description} onChange={(e) => setDescription(e.target.value)} hint={t('costs.optional')} />
+          <div className="sm:pt-7">
+            <Checkbox label={t('costs.requiresApproval')} checked={requiresApproval} onChange={(e) => setRequiresApproval(e.target.checked)} />
+          </div>
+          <div className="sm:pt-7">
+            <Button type="submit" loading={saving}>
+              {saving ? t('costs.saving') : t('costs.addCategory')}
+            </Button>
+          </div>
+        </form>
+      </Panel>
 
-      <form onSubmit={createCategory} className="flex flex-wrap gap-3 items-end rounded-lg border border-slate-200 bg-white p-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Category name *</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Rent, Utilities"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={requiresApproval}
-            onChange={(e) => setRequiresApproval(e.target.checked)}
-          />
-          Requires approval
-        </label>
-        <button
-          type="submit"
-          disabled={saving || !name.trim()}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Add category'}
-        </button>
-      </form>
-
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50">
+      {error && <LoadError message={error} onRetry={reload} />}
+      {loading && !data && <ListSkeleton />}
+      {data && data.length === 0 && <EmptyState title={t('costs.noCategories')} body={t('costs.noCategoriesBody')} />}
+      {data && data.length > 0 && (
+        <Table>
+          <thead>
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Description</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Approval required</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
-              <th className="px-4 py-3" />
+              <Th>{t('costs.categoryName')}</Th>
+              <Th>{t('costs.description')}</Th>
+              <Th>{t('costs.approvalRequired')}</Th>
+              <Th>{t('costs.colStatus')}</Th>
+              <Th>
+                <span className="sr-only">{t('costs.colActions')}</span>
+              </Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {categories.length === 0 && !loading && (
-              <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-sm text-slate-500">
-                  No categories yet. Add one above.
-                </td>
-              </tr>
-            )}
-            {categories.map((cat) => (
+          <tbody>
+            {data.map((cat) => (
               <tr key={cat.id}>
-                <td className="px-4 py-3 font-medium text-slate-900">{cat.name}</td>
-                <td className="px-4 py-3 text-slate-600">{cat.description ?? '—'}</td>
-                <td className="px-4 py-3">{cat.requiresApproval ? 'Yes' : 'No'}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${cat.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                    {cat.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    type="button"
-                    onClick={() => toggleActive(cat)}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    {cat.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
-                </td>
+                <Td className="font-medium">{cat.name}</Td>
+                <Td className="text-muted">{cat.description ?? '-'}</Td>
+                <Td>{cat.requiresApproval ? t('costs.yes') : t('costs.no')}</Td>
+                <Td>
+                  <StatusPill tone={cat.isActive ? 'ok' : 'neutral'}>{cat.isActive ? t('costs.active') : t('costs.inactive')}</StatusPill>
+                </Td>
+                <Td className="text-right">
+                  <Button variant="ghost" onClick={() => toggle(cat)} loading={busyIds.has(cat.id)} aria-label={`${cat.isActive ? t('costs.deactivate') : t('costs.activate')}: ${cat.name}`}>
+                    {cat.isActive ? t('costs.deactivate') : t('costs.activate')}
+                  </Button>
+                </Td>
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </Table>
+      )}
     </div>
   );
 }
 
-// ── Expenses tab ───────────────────────────────────────────────────────────────
+// -- Expenses ----------------------------------------------------------------
+
+interface ExpenseData {
+  expenses: Expense[];
+  categories: ExpenseCategory[];
+  locations: Location[];
+}
+
+const emptyForm = () => ({
+  locationId: '',
+  expenseCategoryId: '',
+  amount: '',
+  paidAt: todayIso(),
+  description: '',
+  vendorName: '',
+  isRecurring: false,
+});
 
 function ExpensesTab() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const toast = useToast();
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | ''>('');
-
-  // New expense form
-  const [form, setForm] = useState({
-    locationId: '',
-    expenseCategoryId: '',
-    amountRupees: '',
-    paidAt: new Date().toISOString().slice(0, 10),
-    description: '',
-    vendorName: '',
-    isRecurring: false,
-  });
-  const [saving, setSaving] = useState(false);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-
-  const loadData = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([
+  const fn = useCallback(async (): Promise<ExpenseData> => {
+    const [expenses, categories, locations] = await Promise.all([
       costsApi.listExpenses(filterStatus ? { status: filterStatus } : {}),
       costsApi.listCategories(),
       listLocations(),
-    ])
-      .then(([exp, cats, locs]) => {
-        setExpenses(exp);
-        setCategories(cats.filter((c) => c.isActive));
-        setLocations(locs.filter((l) => l.isActive));
-        // Auto-select first location if form is empty and one location available
-        if (locs.length === 1) {
-          setForm((f) => (f.locationId ? f : { ...f, locationId: locs[0].id }));
-        }
-      })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+    ]);
+    return { expenses, categories: categories.filter((c) => c.isActive), locations: locations.filter((l) => l.isActive) };
   }, [filterStatus]);
+  const { data, loading, error, reload } = useAsync<ExpenseData>(fn);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const [form, setForm] = useState(emptyForm);
+  const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  // One idempotency key per logical submission: a double click or retry after a network error reuses it.
+  const keyRef = useRef(crypto.randomUUID());
 
-  const submitExpense = (e: React.FormEvent) => {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [rejectIds, setRejectIds] = useState<string[] | null>(null);
+  const [reason, setReason] = useState('');
+  const [reasonError, setReasonError] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState(false);
+
+  const locationId = form.locationId || (data?.locations.length === 1 ? data.locations[0].id : '');
+  const amountMinor = parseMinor(form.amount);
+  const errors = {
+    location: !locationId ? t('costs.v.location') : null,
+    category: !form.expenseCategoryId ? t('costs.v.category') : null,
+    amount: amountMinor === null ? t('costs.v.amount') : null,
+    paidAt: !form.paidAt ? t('costs.v.paidAt') : null,
+  };
+  const show = (k: keyof typeof errors) => (submitted ? errors[k] : null);
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const amountMinorUnits = Math.round(parseFloat(form.amountRupees) * 100);
-    if (!form.locationId || !form.expenseCategoryId || isNaN(amountMinorUnits) || amountMinorUnits < 1) return;
+    if (savingRef.current) return;
+    setSubmitted(true);
+    if (Object.values(errors).some(Boolean) || amountMinor === null) return;
+    savingRef.current = true;
     setSaving(true);
-    costsApi.createExpense({
-      locationId: form.locationId,
-      expenseCategoryId: form.expenseCategoryId,
-      amountMinorUnits,
-      paidAt: new Date(form.paidAt).toISOString(),
-      description: form.description || undefined,
-      vendorName: form.vendorName || undefined,
-      isRecurring: form.isRecurring,
-      idempotencyKey: randomUuid(),
-    })
-      .then((exp) => {
-        setExpenses((prev) => [exp, ...prev]);
-        setForm({ locationId: '', expenseCategoryId: '', amountRupees: '', paidAt: new Date().toISOString().slice(0, 10), description: '', vendorName: '', isRecurring: false });
+    costsApi
+      .createExpense({
+        locationId,
+        expenseCategoryId: form.expenseCategoryId,
+        amountMinorUnits: amountMinor,
+        paidAt: new Date(`${form.paidAt}T12:00:00`).toISOString(),
+        description: form.description.trim() || undefined,
+        vendorName: form.vendorName.trim() || undefined,
+        isRecurring: form.isRecurring,
+        idempotencyKey: keyRef.current,
       })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setSaving(false));
+      .then(() => {
+        keyRef.current = crypto.randomUUID();
+        setForm(emptyForm());
+        setSubmitted(false);
+        toast.show(t('costs.expenseRecorded'));
+        reload();
+      })
+      .catch((err: unknown) => toast.show(errText(err), 'bad'))
+      .finally(() => {
+        savingRef.current = false;
+        setSaving(false);
+      });
   };
 
-  const approve = (id: string) => {
-    costsApi.approveExpense(id)
-      .then((updated) => setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e))))
-      .catch((err: Error) => setError(err.message));
+  const markBusy = (ids: string[], on: boolean) =>
+    setBusyIds((s) => {
+      const n = new Set(s);
+      ids.forEach((id) => (on ? n.add(id) : n.delete(id)));
+      return n;
+    });
+
+  /** Runs an action over ids sequentially, then reports a single summary. */
+  const runBatch = async (ids: string[], action: (id: string) => Promise<unknown>, okKey: string) => {
+    const todo = ids.filter((id) => !busyIds.has(id));
+    if (todo.length === 0) return;
+    markBusy(todo, true);
+    let ok = 0;
+    let firstError: string | null = null;
+    const failed: string[] = [];
+    for (const id of todo) {
+      try {
+        await action(id);
+        ok += 1;
+      } catch (err) {
+        failed.push(id);
+        firstError ??= errText(err);
+      }
+    }
+    markBusy(todo, false);
+    setSelected(new Set(failed));
+    if (ok > 0) toast.show(t(okKey, { count: ok }));
+    if (failed.length > 0) toast.show(t('costs.someFailed', { count: failed.length, reason: firstError }), 'bad');
+    reload();
+    return failed.length === 0;
   };
 
-  const confirmReject = (id: string) => {
-    if (!rejectReason.trim()) return;
-    costsApi.rejectExpense(id, rejectReason.trim())
-      .then((updated) => {
-        setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-        setRejectingId(null);
-        setRejectReason('');
-      })
-      .catch((err: Error) => setError(err.message));
+  const approve = (ids: string[]) => runBatch(ids, (id) => costsApi.approveExpense(id), 'costs.approvedCount');
+
+  const approveSelected = async () => {
+    setBulkBusy(true);
+    await approve([...selected]);
+    setBulkBusy(false);
   };
+
+  const openReject = (ids: string[]) => {
+    setReason('');
+    setReasonError(null);
+    setRejectIds(ids);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectIds || rejecting) return;
+    const trimmed = reason.trim();
+    if (!trimmed) return setReasonError(t('costs.v.reason'));
+    setRejecting(true);
+    const allOk = await runBatch(rejectIds, (id) => costsApi.rejectExpense(id, trimmed), 'costs.rejectedCount');
+    setRejecting(false);
+    if (allOk) setRejectIds(null);
+  };
+
+  const pending = (data?.expenses ?? []).filter((x) => x.status === 'PENDING_APPROVAL');
+  const allPendingSelected = pending.length > 0 && pending.every((x) => selected.has(x.id));
+  const toggleOne = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
 
   return (
     <div className="space-y-6">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Live busy={loading || saving} />
+      <Panel>
+        <form onSubmit={submit} noValidate aria-label={t('costs.recordExpense')} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Select label={t('costs.location')} value={locationId} onChange={(e) => setForm((f) => ({ ...f, locationId: e.target.value }))} error={show('location')}>
+              <option value="">{t('costs.selectPh')}</option>
+              {(data?.locations ?? []).map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </Select>
+            <Select label={t('costs.category')} value={form.expenseCategoryId} onChange={(e) => setForm((f) => ({ ...f, expenseCategoryId: e.target.value }))} error={show('category')}>
+              <option value="">{t('costs.selectPh')}</option>
+              {(data?.categories ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            <Field label={t('costs.amount')} inputMode="decimal" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} error={show('amount')} placeholder="0.00" />
+            <Field label={t('costs.paidOn')} type="date" value={form.paidAt} max={todayIso()} onChange={(e) => setForm((f) => ({ ...f, paidAt: e.target.value }))} error={show('paidAt')} />
+            <Field label={t('costs.vendor')} value={form.vendorName} onChange={(e) => setForm((f) => ({ ...f, vendorName: e.target.value }))} hint={t('costs.optional')} />
+            <Field label={t('costs.description')} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} hint={t('costs.optional')} />
+            <div className="sm:pt-7">
+              <Checkbox label={t('costs.recurring')} checked={form.isRecurring} onChange={(e) => setForm((f) => ({ ...f, isRecurring: e.target.checked }))} />
+            </div>
+          </div>
+          <Button type="submit" loading={saving}>
+            {saving ? t('costs.saving') : t('costs.recordExpense')}
+          </Button>
+        </form>
+      </Panel>
 
-      <form onSubmit={submitExpense} className="flex flex-wrap gap-3 items-end rounded-lg border border-slate-200 bg-white p-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Location *</label>
-          <select
-            value={form.locationId}
-            onChange={(e) => setForm((f) => ({ ...f, locationId: e.target.value }))}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="">Select location…</option>
-            {locations.map((l) => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="w-full sm:w-56">
+          <Select label={t('costs.filterStatus')} value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as ExpenseStatus | ''); setSelected(new Set()); }}>
+            <option value="">{t('costs.all')}</option>
+            <option value="PENDING_APPROVAL">{t('costs.status.PENDING_APPROVAL')}</option>
+            <option value="APPROVED">{t('costs.status.APPROVED')}</option>
+            <option value="REJECTED">{t('costs.status.REJECTED')}</option>
+          </Select>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Category *</label>
-          <select
-            value={form.expenseCategoryId}
-            onChange={(e) => setForm((f) => ({ ...f, expenseCategoryId: e.target.value }))}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="">Select…</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Amount (₹) *</label>
-          <input
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={form.amountRupees}
-            onChange={(e) => setForm((f) => ({ ...f, amountRupees: e.target.value }))}
-            placeholder="0.00"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Paid on *</label>
-          <input
-            type="date"
-            value={form.paidAt}
-            onChange={(e) => setForm((f) => ({ ...f, paidAt: e.target.value }))}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Vendor</label>
-          <input
-            value={form.vendorName}
-            onChange={(e) => setForm((f) => ({ ...f, vendorName: e.target.value }))}
-            placeholder="Optional"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
-          <input
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            placeholder="Optional"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={form.isRecurring}
-            onChange={(e) => setForm((f) => ({ ...f, isRecurring: e.target.checked }))}
-          />
-          Recurring
-        </label>
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Record expense'}
-        </button>
-      </form>
-
-      <div className="flex items-center gap-3">
-        <label className="text-sm text-slate-700">Filter:</label>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as ExpenseStatus | '')}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-        >
-          <option value="">All</option>
-          <option value="PENDING_APPROVAL">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
-        <button type="button" onClick={loadData} className="text-sm text-blue-600 hover:underline" disabled={loading}>
-          {loading ? 'Loading…' : 'Refresh'}
-        </button>
+        <Button variant="secondary" onClick={reload} loading={loading}>
+          {t('costs.refresh')}
+        </Button>
+        {selected.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('costs.bulkActions')}>
+            <span className="text-sm text-muted" aria-live="polite">
+              {t('costs.selectedCount', { count: selected.size })}
+            </span>
+            <Button onClick={() => void approveSelected()} loading={bulkBusy}>
+              {t('costs.approveSelected')}
+            </Button>
+            <Button variant="danger" onClick={() => openReject([...selected])} disabled={bulkBusy}>
+              {t('costs.rejectSelected')}
+            </Button>
+          </div>
+        )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50">
+      {error && <LoadError message={error} onRetry={reload} />}
+      {loading && !data && <ListSkeleton />}
+      {data && !error && data.expenses.length === 0 && <EmptyState title={t('costs.noExpenses')} body={t('costs.noExpensesBody')} />}
+      {data && data.expenses.length > 0 && (
+        <Table>
+          <thead>
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Paid on</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Category</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Vendor</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Amount</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
-              <th className="px-4 py-3" />
+              <Th className="w-10">
+                {pending.length > 0 && (
+                  <input
+                    type="checkbox"
+                    className="size-5 accent-(--color-accent)"
+                    aria-label={t('costs.selectAllPending')}
+                    checked={allPendingSelected}
+                    onChange={() => setSelected(allPendingSelected ? new Set() : new Set(pending.map((x) => x.id)))}
+                  />
+                )}
+              </Th>
+              <Th>{t('costs.paidOn')}</Th>
+              <Th>{t('costs.category')}</Th>
+              <Th>{t('costs.vendor')}</Th>
+              <Th numeric>{t('costs.amountCol')}</Th>
+              <Th>{t('costs.colStatus')}</Th>
+              <Th>
+                <span className="sr-only">{t('costs.colActions')}</span>
+              </Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {expenses.length === 0 && !loading && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">
-                  No expenses found.
-                </td>
-              </tr>
-            )}
-            {expenses.map((exp) => (
-              <tr key={exp.id}>
-                <td className="px-4 py-3 text-slate-900">{exp.paidAt.slice(0, 10)}</td>
-                <td className="px-4 py-3 text-slate-700">{exp.category.name}</td>
-                <td className="px-4 py-3 text-slate-600">{exp.vendorName ?? '—'}</td>
-                <td className="px-4 py-3 font-medium text-slate-900">{formatMinorUnits(exp.amountMinorUnits)}</td>
-                <td className="px-4 py-3">{statusBadge(exp.status)}</td>
-                <td className="px-4 py-3 text-right">
-                  {exp.status === 'PENDING_APPROVAL' && rejectingId === exp.id ? (
-                    <div className="flex items-center justify-end gap-2">
+          <tbody>
+            {data.expenses.map((x) => {
+              const isPending = x.status === 'PENDING_APPROVAL';
+              const busy = busyIds.has(x.id);
+              return (
+                <tr key={x.id}>
+                  <Td>
+                    {isPending && (
                       <input
-                        autoFocus
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        placeholder="Reason (required)"
-                        className="rounded border border-slate-300 px-2 py-1 text-xs w-40 focus:outline-none focus:ring-1 focus:ring-red-400"
+                        type="checkbox"
+                        className="size-5 accent-(--color-accent)"
+                        aria-label={t('costs.selectExpense', { vendor: x.vendorName ?? x.category.name, amount: formatMinorUnits(x.amountMinorUnits) })}
+                        checked={selected.has(x.id)}
+                        onChange={() => toggleOne(x.id)}
                       />
-                      <button
-                        type="button"
-                        onClick={() => confirmReject(exp.id)}
-                        disabled={!rejectReason.trim()}
-                        className="text-xs text-red-600 hover:underline disabled:opacity-40"
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setRejectingId(null); setRejectReason(''); }}
-                        className="text-xs text-slate-500 hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : exp.status === 'PENDING_APPROVAL' ? (
-                    <div className="flex items-center justify-end gap-2">
-                      <button type="button" onClick={() => approve(exp.id)} className="text-xs text-green-600 hover:underline">Approve</button>
-                      <button
-                        type="button"
-                        onClick={() => { setRejectingId(exp.id); setRejectReason(''); }}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
+                    )}
+                  </Td>
+                  <Td className="whitespace-nowrap">{formatDate(x.paidAt)}</Td>
+                  <Td>{x.category.name}</Td>
+                  <Td className="text-muted">{x.vendorName ?? '-'}</Td>
+                  <Td numeric className="font-medium">
+                    {formatMinorUnits(x.amountMinorUnits)}
+                  </Td>
+                  <Td>
+                    <StatusBadge status={x.status} />
+                    {x.status === 'REJECTED' && x.rejectionReason && <p className="mt-1 max-w-48 text-xs text-muted">{x.rejectionReason}</p>}
+                  </Td>
+                  <Td className="text-right">
+                    {isPending && (
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" onClick={() => void approve([x.id])} loading={busy} disabled={bulkBusy} aria-label={`${t('costs.approve')}: ${x.category.name} ${formatMinorUnits(x.amountMinorUnits)}`}>
+                          {t('costs.approve')}
+                        </Button>
+                        <Button variant="ghost" onClick={() => openReject([x.id])} disabled={busy || bulkBusy} aria-label={`${t('costs.reject')}: ${x.category.name} ${formatMinorUnits(x.amountMinorUnits)}`}>
+                          {t('costs.reject')}
+                        </Button>
+                      </div>
+                    )}
+                  </Td>
+                </tr>
+              );
+            })}
           </tbody>
-        </table>
-      </div>
+        </Table>
+      )}
+
+      <Dialog
+        open={rejectIds !== null}
+        onClose={() => !rejecting && setRejectIds(null)}
+        title={t('costs.rejectTitle', { count: rejectIds?.length ?? 0 })}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRejectIds(null)} disabled={rejecting}>
+              {t('costs.cancel')}
+            </Button>
+            <Button variant="danger" onClick={() => void confirmReject()} loading={rejecting}>
+              {t('costs.confirmReject')}
+            </Button>
+          </>
+        }
+      >
+        <Textarea label={t('costs.rejectReason')} value={reason} onChange={(e) => setReason(e.target.value)} error={reasonError} />
+      </Dialog>
     </div>
   );
 }
 
-// ── Summary tab ────────────────────────────────────────────────────────────────
+// -- Summary -----------------------------------------------------------------
 
 function SummaryTab() {
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStart = today.slice(0, 7) + '-01';
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(today);
-  const [summary, setSummary] = useState<import('./api').CostSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = () => {
-    setLoading(true);
-    setError(null);
-    costsApi.getSummary(new Date(from).toISOString(), new Date(to + 'T23:59:59').toISOString())
-      .then(setSummary)
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  };
+  const { t } = useTranslation();
+  const [range, setRange] = useState(() => presetRange('month'));
+  const rangeError = !range.from || !range.to ? t('costs.v.range') : range.from > range.to ? t('costs.v.rangeOrder') : null;
+  const fn = useCallback(
+    () => costsApi.getSummary(new Date(`${range.from}T00:00:00`).toISOString(), new Date(`${range.to}T23:59:59`).toISOString()),
+    [range.from, range.to],
+  );
+  const { data, loading, error, reload } = useAsync<CostSummary>(rangeError ? null : fn);
 
   return (
     <div className="space-y-6">
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex flex-wrap gap-3 items-end rounded-lg border border-slate-200 bg-white p-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">From</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">To</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
-        </div>
-        <button type="button" onClick={load} disabled={loading} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          {loading ? 'Loading…' : 'Generate'}
-        </button>
-      </div>
-
-      {summary && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Total Approved</p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">{formatMinorUnits(summary.grandTotalMinorUnits)}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Expenses</p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">{summary.expenseCount}</p>
-            </div>
+      <Live busy={loading} />
+      <Panel>
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-2">
+            <Field label={t('costs.from')} type="date" value={range.from} onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))} />
+            <Field label={t('costs.to')} type="date" value={range.to} onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))} error={rangeError} />
           </div>
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50">
+          <Button variant="secondary" className="sm:mt-7" onClick={reload} loading={loading} disabled={!!rangeError}>
+            {t('costs.refresh')}
+          </Button>
+        </div>
+      </Panel>
+      {error && <LoadError message={error} onRetry={reload} />}
+      {loading && !data && <ListSkeleton />}
+      {data && !error && !rangeError && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted">{t('costs.summaryPeriod', { from: formatDate(range.from), to: formatDate(range.to) })}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <StatCard label={t('costs.totalApproved')} value={formatMinorUnits(data.grandTotalMinorUnits)} />
+            <StatCard label={t('costs.expenseCount')} value={data.expenseCount} />
+          </div>
+          {data.byCategory.length === 0 ? (
+            <EmptyState title={t('costs.noSummary')} body={t('costs.noSummaryBody')} />
+          ) : (
+            <Table>
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Category</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Count</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
+                  <Th>{t('costs.category')}</Th>
+                  <Th numeric>{t('costs.count')}</Th>
+                  <Th numeric>{t('costs.total')}</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {summary.byCategory.map((row) => (
+              <tbody>
+                {data.byCategory.map((row) => (
                   <tr key={row.categoryId}>
-                    <td className="px-4 py-3 text-slate-900">{row.categoryName}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{row.count}</td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-900">{formatMinorUnits(row.totalMinorUnits)}</td>
+                    <Td>{row.categoryName}</Td>
+                    <Td numeric>{row.count}</Td>
+                    <Td numeric className="font-medium">
+                      {formatMinorUnits(row.totalMinorUnits)}
+                    </Td>
                   </tr>
                 ))}
-                {summary.byCategory.length === 0 && (
-                  <tr><td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-500">No approved expenses in this period.</td></tr>
-                )}
               </tbody>
-            </table>
-          </div>
+            </Table>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-// ── Page shell ─────────────────────────────────────────────────────────────────
+// -- Page --------------------------------------------------------------------
 
 export function CostsPage() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('expenses');
-
-  const tabs: { key: Tab; label: string }[] = [
+  const items = [
     { key: 'expenses', label: t('costs.tabExpenses') },
     { key: 'categories', label: t('costs.tabCategories') },
     { key: 'summary', label: t('costs.tabSummary') },
   ];
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('costs.title')}</h1>
-        <p className="mt-1 text-sm text-slate-600">{t('costs.subtitle')}</p>
+    <>
+      <PageHeader title={t('costs.title')} description={t('costs.subtitle')} />
+      <Tabs items={items} active={tab} onChange={(k) => setTab(k as Tab)} label={t('costs.title')} />
+      <div role="tabpanel">
+        {tab === 'expenses' && <ExpensesTab />}
+        {tab === 'categories' && <CategoriesTab />}
+        {tab === 'summary' && <SummaryTab />}
       </div>
-
-      <div className="flex gap-1 border-b border-slate-200">
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === key
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'expenses' && <ExpensesTab />}
-      {tab === 'categories' && <CategoriesTab />}
-      {tab === 'summary' && <SummaryTab />}
-    </div>
+    </>
   );
 }

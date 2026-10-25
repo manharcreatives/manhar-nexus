@@ -268,3 +268,21 @@ export const updateChecklistItem = (
     `/internal/commercial/clients/${businessId}/activation-requests/${requestId}/checklist/items/${itemId}`,
     { method: 'PATCH', body: JSON.stringify(body) },
   );
+
+// ─── Module catalogue (platform realm) ───────────────────────────────────────
+
+export interface ModuleOption {
+  key: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * There is no global module-list endpoint for the platform realm. The per-business
+ * listing returns the full registry (with that business's status), so we use it
+ * and keep only what the picker needs.
+ */
+export const listModuleOptions = async (businessId: string): Promise<ModuleOption[]> => {
+  const rows = await api<ModuleOption[]>(`/internal/businesses/${businessId}/modules`);
+  return rows.map((m) => ({ key: m.key, name: m.name, description: m.description }));
+};

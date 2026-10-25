@@ -15,11 +15,26 @@ function todayIso(): string {
 }
 
 const REPORT_ROLES = new Set(['owner', 'location-manager']);
+// Mirror the AppShell nav gating so a role never sees a link it cannot open.
+const FULL_ACCESS_ROLES = new Set(['owner', 'location-manager', 'platform-admin']);
+const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 'service-team', 'host']);
+const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
 
 export function HomePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const canSeeSales = user?.realm !== 'PLATFORM' && (user?.roles ?? []).some((r) => REPORT_ROLES.has(r.key));
+  const roles = user?.roles ?? [];
+  const isPlatform = user?.realm === 'PLATFORM';
+  const has = (allowed: Set<string>) => roles.some((r) => allowed.has(r.key));
+  const isFullAccess = has(FULL_ACCESS_ROLES);
+  const links = [
+    { to: '/tables', label: t('shell.nav.tables'), show: isPlatform || has(TABLE_ROLES) },
+    { to: '/kitchen', label: t('shell.nav.kitchen'), show: isPlatform || has(KITCHEN_ROLES) },
+    { to: '/reports', label: t('shell.nav.reports'), show: isFullAccess },
+    { to: '/costs', label: t('shell.nav.costs'), show: isPlatform || isFullAccess },
+    { to: '/activity', label: t('shell.nav.activity'), show: isFullAccess },
+  ].filter((l) => l.show);
   const [report, setReport] = useState<DailyClosingReport | null>(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(canSeeSales);
@@ -49,8 +64,11 @@ export function HomePage() {
           <h2 id="today-h" className="mb-3 text-lg font-semibold">
             {t('home.today')}
           </h2>
+          <div role="status" aria-live="polite" className="sr-only">
+            {loading ? t('home.loading') : ''}
+          </div>
           {loading && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[0, 1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-28" />
               ))}
@@ -71,15 +89,19 @@ export function HomePage() {
           )}
         </section>
       )}
-      <Panel>
-        <h2 className="text-lg font-semibold">{t('home.quickLinks')}</h2>
-        <p className="mt-1 text-sm text-muted">{t('home.quickLinksBody')}</p>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
-          <Link className={linkClass} to="/tables">{t('shell.nav.tables')}</Link>
-          <Link className={linkClass} to="/kitchen">{t('shell.nav.kitchen')}</Link>
-          <Link className={linkClass} to="/reports">{t('shell.nav.reports')}</Link>
-        </div>
-      </Panel>
+      {links.length > 0 && (
+        <Panel>
+          <h2 className="text-lg font-semibold">{t('home.quickLinks')}</h2>
+          <p className="mt-1 text-sm text-muted">{t('home.quickLinksBody')}</p>
+          <nav aria-label={t('home.quickLinks')} className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
+            {links.map((l) => (
+              <Link key={l.to} className={linkClass} to={l.to}>
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        </Panel>
+      )}
     </>
   );
 }

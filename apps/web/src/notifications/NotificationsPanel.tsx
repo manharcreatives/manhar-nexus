@@ -1,114 +1,275 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../ui/Button';
+import { Skeleton } from '../ui/states';
 import { notificationsApi, type AlertNotification } from './api';
+
+const ROUTES = ['tables', 'kitchen', 'reports', 'activity', 'costs', 'config', 'modules'];
+
+/** Returns an in-app path for a notification's resourceUrl, or null if it is not a known page. */
+export function resolveDeepLink(resourceUrl: string | null): string | null {
+  if (!resourceUrl) return null;
+  let path = resourceUrl;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(resourceUrl)) {
+    try {
+      const u = new URL(resourceUrl);
+      if (u.origin !== window.location.origin) return null;
+      path = u.pathname + u.search;
+    } catch {
+      return null;
+    }
+  }
+  if (!path.startsWith('/') || path.startsWith('//')) return null;
+  const first = path.split(/[/?#]/)[1];
+  return ROUTES.includes(first) ? path : null;
+}
+
+function NotificationItem({
+  n,
+  onOpen,
+  onMarkRead,
+}: {
+  n: AlertNotification;
+  onOpen: (n: AlertNotification, link: string) => void;
+  onMarkRead: (n: AlertNotification) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const link = resolveDeepLink(n.resourceUrl);
+  const content = (
+    <>
+      <span className="block text-sm font-medium break-words">{n.title}</span>
+      <span className="mt-0.5 block text-sm text-muted break-words">{n.body}</span>
+      <span className="tabular mt-1 block text-xs text-muted">
+        {new Date(n.createdAt).toLocaleString(i18n.language)}
+      </span>
+    </>
+  );
+  return (
+    <li className={`flex items-start gap-1 border-b border-line/60 last:border-b-0 ${n.isRead ? '' : 'bg-accent-soft/40'}`}>
+      {link ? (
+        <button
+          type="button"
+          aria-label={t('notifications.openItem', { title: n.title })}
+          title={t('notifications.linkHint')}
+          onClick={() => onOpen(n, link)}
+          className="min-h-11 min-w-0 flex-1 px-4 py-3 text-left hover:bg-sunken"
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="min-h-11 min-w-0 flex-1 px-4 py-3">{content}</div>
+      )}
+      {!n.isRead && (
+        <button
+          type="button"
+          aria-label={t('notifications.markReadLabel', { title: n.title })}
+          title={t('notifications.markRead')}
+          onClick={() => onMarkRead(n)}
+          className="flex size-11 shrink-0 items-center justify-center rounded-control hover:bg-sunken"
+        >
+          <span aria-hidden className="size-2.5 rounded-full bg-accent" />
+        </button>
+      )}
+    </li>
+  );
+}
 
 export function NotificationsPanel() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AlertNotification[]>([]);
   const [totalUnread, setTotalUnread] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [actionError, setActionError] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
-    notificationsApi.list({ take: 20 })
-      .then((r) => { setNotifications(r.notifications); setTotalUnread(r.totalUnread); })
-      .catch(() => {})
-      .finally(() => { setLoading(false); });
-  };
+    setLoadFailed(false);
+    notificationsApi
+      .list({ take: 20 })
+      .then((r) => {
+        setNotifications(r.notifications);
+        setTotalUnread(r.totalUnread);
+      })
+      .catch(() => setLoadFailed(true))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  const close = useCallback((returnFocus: boolean) => {
+    setOpen(false);
+    if (returnFocus) buttonRef.current?.focus();
   }, []);
 
   useEffect(() => {
+    if (!open) return;
+    panelRef.current?.focus();
     const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
-    return () => { document.removeEventListener('mousedown', handler); };
-  }, []);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
-  const markRead = (id: string) => {
-    notificationsApi.markRead(id)
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && open) {
+      e.stopPropagation();
+      close(true);
+    }
+  }
+
+  function onBlur(e: FocusEvent) {
+    if (open && e.relatedTarget && !wrapRef.current?.contains(e.relatedTarget as Node)) setOpen(false);
+  }
+
+  function toggle() {
+    if (!open) {
+      setActionError(false);
+      load();
+    }
+    setOpen((o) => !o);
+  }
+
+  const markRead = (n: AlertNotification) => {
+    setActionError(false);
+    notificationsApi
+      .markRead(n.id)
       .then(() => {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-        );
+        setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
         setTotalUnread((c) => Math.max(0, c - 1));
       })
-      .catch(() => {});
+      .catch(() => setActionError(true));
   };
 
   const markAllRead = () => {
-    notificationsApi.markAllRead()
+    if (markingAll) return;
+    setMarkingAll(true);
+    setActionError(false);
+    notificationsApi
+      .markAllRead()
       .then(() => {
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        setNotifications((prev) => prev.map((x) => ({ ...x, isRead: true })));
         setTotalUnread(0);
       })
-      .catch(() => {});
+      .catch(() => setActionError(true))
+      .finally(() => setMarkingAll(false));
   };
 
+  const openItem = (n: AlertNotification, link: string) => {
+    if (!n.isRead) markRead(n);
+    close(false);
+    navigate(link);
+  };
+
+  const unread = notifications.filter((n) => !n.isRead);
+  const earlier = notifications.filter((n) => n.isRead);
+  const panelId = 'notifications-panel';
+
   return (
-    <div className="relative" ref={panelRef}>
+    <div className="relative" ref={wrapRef} onKeyDown={onKeyDown} onBlur={onBlur}>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => { setOpen((o) => !o); if (!open) load(); }}
-        className="relative rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
+        aria-label={totalUnread > 0 ? t('notifications.ariaLabel', { count: totalUnread }) : t('notifications.ariaLabelNone')}
+        onClick={toggle}
+        className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink hover:bg-sunken"
       >
-        {t('shell.alerts')}
+        <span aria-hidden>{t('shell.alerts')}</span>
         {totalUnread > 0 && (
-          <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+          <span
+            aria-hidden
+            className="tabular inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-medium text-surface"
+          >
             {totalUnread > 99 ? '99+' : totalUnread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-slate-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <span className="text-sm font-semibold text-slate-900">{t('notifications.title')}</span>
+        <div
+          id={panelId}
+          ref={panelRef}
+          role="dialog"
+          aria-label={t('notifications.panelLabel')}
+          tabIndex={-1}
+          className="fixed inset-x-4 top-16 z-50 rounded-panel border border-line bg-surface shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2">
+            <h2 className="text-base font-semibold">
+              {t('notifications.title')}
+              {totalUnread > 0 && (
+                <span className="ml-2 text-sm font-normal text-muted">{t('notifications.unreadCount', { count: totalUnread })}</span>
+              )}
+            </h2>
             {totalUnread > 0 && (
-              <button type="button" onClick={markAllRead} className="text-xs text-blue-600 hover:underline">
+              <Button variant="ghost" loading={markingAll} onClick={markAllRead} className="text-accent-strong">
                 {t('notifications.markAllRead')}
-              </button>
+              </Button>
             )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
-            {loading && (
-              <p className="px-4 py-6 text-center text-sm text-slate-500">{t('notifications.loading')}</p>
+          <div aria-live="polite" className="max-h-[70vh] overflow-y-auto sm:max-h-96">
+            {actionError && (
+              <p role="alert" className="border-b border-line bg-bad-soft px-4 py-2 text-sm text-bad">
+                {t('notifications.markFailed')}
+              </p>
             )}
-            {!loading && notifications.length === 0 && (
-              <p className="px-4 py-6 text-center text-sm text-slate-500">{t('notifications.empty')}</p>
-            )}
-            {notifications.map((n) => (
-              <div
-                key={n.id}
-                className={`border-b border-slate-50 px-4 py-3 ${n.isRead ? '' : 'bg-blue-50'}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">{n.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-600 line-clamp-2">{n.body}</p>
-                    <p className="mt-1 text-[10px] text-slate-400">
-                      {new Date(n.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  {!n.isRead && (
-                    <button
-                      type="button"
-                      onClick={() => markRead(n.id)}
-                      className="shrink-0 h-2 w-2 rounded-full bg-blue-500 mt-1.5"
-                      title="Mark as read"
-                    />
-                  )}
-                </div>
+            {loading && notifications.length === 0 && (
+              <div role="status" aria-label={t('notifications.loading')} className="space-y-2 p-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-            ))}
+            )}
+            {loadFailed && !loading && (
+              <div role="alert" className="px-4 py-6 text-center">
+                <p className="text-sm text-bad">{t('notifications.loadError')}</p>
+                <Button variant="secondary" className="mt-3" onClick={load}>
+                  {t('notifications.retry')}
+                </Button>
+              </div>
+            )}
+            {!loading && !loadFailed && notifications.length === 0 && (
+              <div className="px-4 py-8 text-center">
+                <p className="text-sm font-medium">{t('notifications.empty')}</p>
+                <p className="mt-1 text-sm text-muted">{t('notifications.emptyBody')}</p>
+              </div>
+            )}
+            {unread.length > 0 && (
+              <section aria-labelledby="notif-unread">
+                <h3 id="notif-unread" className="bg-sunken/60 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-muted">
+                  {t('notifications.sectionUnread')}
+                </h3>
+                <ul>
+                  {unread.map((n) => (
+                    <NotificationItem key={n.id} n={n} onOpen={openItem} onMarkRead={markRead} />
+                  ))}
+                </ul>
+              </section>
+            )}
+            {earlier.length > 0 && (
+              <section aria-labelledby="notif-earlier">
+                <h3 id="notif-earlier" className="bg-sunken/60 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-muted">
+                  {t('notifications.sectionEarlier')}
+                </h3>
+                <ul>
+                  {earlier.map((n) => (
+                    <NotificationItem key={n.id} n={n} onOpen={openItem} onMarkRead={markRead} />
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
         </div>
       )}

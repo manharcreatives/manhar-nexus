@@ -1,182 +1,263 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { listOfferings, createOffering, updateOffering, type Offering, type OfferingType } from './api';
+import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
+import { Field } from '../ui/Field';
+import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
+import { StatusPill } from '../ui/StatusPill';
+import { Table, Td, Th } from '../ui/Table';
+import { EmptyState, ErrorState } from '../ui/states';
+import { useToast } from '../ui/Toast';
+import { createOffering, listOfferings, updateOffering, type Offering, type OfferingType } from './api';
+import { errorMessage, KEY_PATTERN } from './helpers';
+import { FormError, ListSkeleton } from './Shared';
 
-const TYPE_LABELS: Record<OfferingType, string> = {
-  SETUP_FEE: 'Setup Fee',
-  RECURRING: 'Recurring',
-  ONE_TIME: 'One-Time',
-  TRIAL: 'Trial',
-};
+const TYPES: OfferingType[] = ['SETUP_FEE', 'RECURRING', 'ONE_TIME', 'TRIAL'];
+const MODULE_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
+const FORM_ID = 'offering-form';
+
+interface FormState {
+  key: string;
+  name: string;
+  description: string;
+  type: OfferingType;
+  moduleKeys: string;
+}
+const EMPTY: FormState = { key: '', name: '', description: '', type: 'SETUP_FEE', moduleKeys: '' };
+
+function parseModuleKeys(raw: string): string[] {
+  return Array.from(new Set(raw.split(',').map((k) => k.trim()).filter(Boolean)));
+}
 
 export function OfferingsPage() {
   const { t } = useTranslation();
-  const [offerings, setOfferings] = useState<Offering[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ key: '', name: '', type: 'SETUP_FEE' as OfferingType, moduleKeys: '' });
+  const toast = useToast();
+  const [offerings, setOfferings] = useState<Offering[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<FormState>(EMPTY);
+  const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  useEffect(() => { void load(); }, []);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async () => {
+    setLoadFailed(false);
     try {
       setOfferings(await listOfferings());
     } catch {
-      setError(t('commercial.errors.loadFailed'));
-    } finally {
-      setLoading(false);
+      setLoadFailed(true);
     }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const keys = parseModuleKeys(form.moduleKeys);
+  const errors = {
+    key: !form.key.trim()
+      ? t('commercial.offerings.errors.keyRequired')
+      : !KEY_PATTERN.test(form.key.trim())
+        ? t('commercial.offerings.errors.keyFormat')
+        : null,
+    name: form.name.trim() ? null : t('commercial.offerings.errors.nameRequired'),
+    moduleKeys: keys.some((k) => !MODULE_KEY_PATTERN.test(k))
+      ? t('commercial.offerings.errors.moduleKeysFormat')
+      : null,
+  };
+  const valid = !errors.key && !errors.name && !errors.moduleKeys;
+
+  function openForm() {
+    setForm(EMPTY);
+    setSubmitted(false);
+    setFormError(null);
+    setOpen(true);
   }
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setSubmitted(true);
+    if (!valid || saving) return;
+    setSaving(true);
+    setFormError(null);
     try {
       await createOffering({
-        key: form.key,
-        name: form.name,
+        key: form.key.trim(),
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
         type: form.type,
-        moduleKeys: form.moduleKeys ? form.moduleKeys.split(',').map((k) => k.trim()) : [],
+        moduleKeys: keys,
       });
-      setShowForm(false);
-      setForm({ key: '', name: '', type: 'SETUP_FEE', moduleKeys: '' });
+      toast.show(t('commercial.offerings.created', { name: form.name.trim() }));
+      setOpen(false);
       await load();
-    } catch {
-      setError(t('commercial.errors.saveFailed'));
+    } catch (err) {
+      setFormError(errorMessage(err, t('commercial.errors.saveFailed')));
+    } finally {
+      setSaving(false);
     }
   }
 
   async function toggleActive(o: Offering) {
+    setTogglingId(o.id);
     try {
       await updateOffering(o.id, { isActive: !o.isActive });
+      toast.show(t(o.isActive ? 'commercial.offerings.deactivated' : 'commercial.offerings.activated', { name: o.name }));
       await load();
-    } catch {
-      setError(t('commercial.errors.saveFailed'));
+    } catch (err) {
+      toast.show(errorMessage(err, t('commercial.errors.saveFailed')), 'bad');
+    } finally {
+      setTogglingId(null);
     }
   }
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-medium text-slate-900">{t('commercial.offerings.title')}</h2>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="text-sm rounded-md bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-700"
-        >
-          {t('commercial.offerings.add')}
-        </button>
+    <section aria-labelledby="offerings-h" className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="offerings-h" className="text-xl font-semibold">
+            {t('commercial.offerings.title')}
+          </h2>
+          <p className="text-sm text-muted">{t('commercial.offerings.help')}</p>
+        </div>
+        <Button onClick={openForm}>{t('commercial.offerings.add')}</Button>
       </div>
 
-      {showForm && (
-        <form onSubmit={(e) => void submit(e)} className="mb-6 rounded-lg border border-slate-200 p-4 space-y-3">
-          <h3 className="font-medium text-sm">{t('commercial.offerings.addTitle')}</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-600 mb-1">{t('commercial.offerings.key')}</label>
-              <input
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                placeholder="e.g. restaurant-setup"
-                value={form.key}
-                onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-600 mb-1">{t('commercial.offerings.name')}</label>
-              <input
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                placeholder="e.g. Restaurant Setup"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-600 mb-1">{t('commercial.offerings.type')}</label>
-              <select
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as OfferingType }))}
-              >
-                {(Object.keys(TYPE_LABELS) as OfferingType[]).map((k) => (
-                  <option key={k} value={k}>{TYPE_LABELS[k]}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-600 mb-1">{t('commercial.offerings.moduleKeys')}</label>
-              <input
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-                placeholder="restaurant,catalog"
-                value={form.moduleKeys}
-                onChange={(e) => setForm((f) => ({ ...f, moduleKeys: e.target.value }))}
-              />
-            </div>
-          </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button type="submit" className="text-sm rounded-md bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-700">
-              {t('commercial.save')}
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="text-sm rounded-md border border-slate-300 px-3 py-1.5 text-slate-600 hover:bg-slate-50">
-              {t('commercial.cancel')}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {error && !showForm && <p className="mb-4 text-sm text-red-600">{error}</p>}
-
-      {loading ? (
-        <p className="text-sm text-slate-500">{t('commercial.loading')}</p>
+      {loadFailed ? (
+        <ErrorState
+          title={t('commercial.errors.loadTitle')}
+          body={t('commercial.errors.loadFailed')}
+          onRetry={() => void load()}
+          retryLabel={t('commercial.retry')}
+        />
+      ) : offerings === null ? (
+        <ListSkeleton label={t('commercial.loading')} />
       ) : offerings.length === 0 ? (
-        <p className="text-sm text-slate-500">{t('commercial.offerings.empty')}</p>
+        <EmptyState
+          title={t('commercial.offerings.emptyTitle')}
+          body={t('commercial.offerings.empty')}
+          action={<Button onClick={openForm}>{t('commercial.offerings.add')}</Button>}
+        />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="text-left px-4 py-2.5 font-medium text-slate-600">Key</th>
-                <th className="text-left px-4 py-2.5 font-medium text-slate-600">Name</th>
-                <th className="text-left px-4 py-2.5 font-medium text-slate-600">Type</th>
-                <th className="text-left px-4 py-2.5 font-medium text-slate-600">Modules</th>
-                <th className="text-left px-4 py-2.5 font-medium text-slate-600">Status</th>
-                <th className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {offerings.map((o) => (
-                <tr key={o.id} className={o.isActive ? '' : 'opacity-50'}>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{o.key}</td>
-                  <td className="px-4 py-3 font-medium">{o.name}</td>
-                  <td className="px-4 py-3 text-slate-500">{TYPE_LABELS[o.type]}</td>
-                  <td className="px-4 py-3 text-slate-500">{o.moduleKeys.join(', ') || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${o.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                      {o.isActive ? 'Active' : 'Inactive'}
+        <Table aria-label={t('commercial.offerings.title')}>
+          <thead>
+            <tr>
+              <Th>{t('commercial.offerings.name')}</Th>
+              <Th>{t('commercial.offerings.type')}</Th>
+              <Th>{t('commercial.offerings.modules')}</Th>
+              <Th>{t('commercial.col.status')}</Th>
+              <Th>
+                <span className="sr-only">{t('commercial.actions')}</span>
+              </Th>
+            </tr>
+          </thead>
+          <tbody>
+            {offerings.map((o) => (
+              <tr key={o.id}>
+                <Td>
+                  <div className={o.isActive ? 'font-medium' : 'font-medium text-muted'}>{o.name}</div>
+                  {o.description && <div className="text-xs text-muted">{o.description}</div>}
+                  <div className="font-mono text-xs text-muted">{o.key}</div>
+                </Td>
+                <Td>{t(`commercial.offeringType.${o.type}`)}</Td>
+                <Td>
+                  {o.moduleKeys.length === 0 ? (
+                    <span className="text-muted">{t('commercial.none')}</span>
+                  ) : (
+                    <span className="flex flex-wrap gap-1">
+                      {o.moduleKeys.map((k) => (
+                        <span key={k} className="rounded-control bg-sunken px-2 py-0.5 text-xs">
+                          {k}
+                        </span>
+                      ))}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => void toggleActive(o)}
-                      className="text-xs text-slate-500 hover:text-slate-800"
-                    >
-                      {o.isActive ? 'Deactivate' : 'Activate'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  )}
+                </Td>
+                <Td>
+                  <StatusPill tone={o.isActive ? 'ok' : 'neutral'}>
+                    {t(o.isActive ? 'commercial.active' : 'commercial.inactive')}
+                  </StatusPill>
+                </Td>
+                <Td>
+                  <Button
+                    variant="ghost"
+                    loading={togglingId === o.id}
+                    onClick={() => void toggleActive(o)}
+                    aria-label={t(o.isActive ? 'commercial.offerings.deactivateNamed' : 'commercial.offerings.activateNamed', { name: o.name })}
+                  >
+                    {t(o.isActive ? 'commercial.deactivate' : 'commercial.activate')}
+                  </Button>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       )}
-    </div>
+
+      <Dialog
+        open={open}
+        onClose={() => !saving && setOpen(false)}
+        title={t('commercial.offerings.addTitle')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
+              {t('commercial.cancel')}
+            </Button>
+            <Button type="submit" form={FORM_ID} loading={saving}>
+              {saving ? t('commercial.saving') : t('commercial.offerings.create')}
+            </Button>
+          </>
+        }
+      >
+        <form id={FORM_ID} onSubmit={(e) => void submit(e)} noValidate className="space-y-4">
+          <Field
+            label={t('commercial.offerings.name')}
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder={t('commercial.offerings.namePlaceholder')}
+            error={submitted ? errors.name : null}
+            autoComplete="off"
+          />
+          <Field
+            label={t('commercial.offerings.key')}
+            hint={t('commercial.offerings.keyHint')}
+            value={form.key}
+            onChange={(e) => setForm((f) => ({ ...f, key: e.target.value.toLowerCase() }))}
+            placeholder="restaurant-setup"
+            error={submitted ? errors.key : null}
+            autoComplete="off"
+          />
+          <Select
+            label={t('commercial.offerings.type')}
+            value={form.type}
+            onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as OfferingType }))}
+          >
+            {TYPES.map((k) => (
+              <option key={k} value={k}>
+                {t(`commercial.offeringType.${k}`)}
+              </option>
+            ))}
+          </Select>
+          <Field
+            label={t('commercial.offerings.moduleKeys')}
+            hint={t('commercial.offerings.moduleKeysHint')}
+            value={form.moduleKeys}
+            onChange={(e) => setForm((f) => ({ ...f, moduleKeys: e.target.value }))}
+            placeholder="restaurant, catalog"
+            error={submitted ? errors.moduleKeys : null}
+            autoComplete="off"
+          />
+          <Textarea
+            label={t('commercial.offerings.description')}
+            value={form.description}
+            maxLength={500}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          />
+          <FormError message={formError} />
+        </form>
+      </Dialog>
+    </section>
   );
 }

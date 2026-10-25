@@ -14,30 +14,6 @@ export const ONBOARDING_STEPS = [
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
-export const STEP_LABELS: Record<OnboardingStep, string> = {
-  BUSINESS_CREATED: 'Business Created',
-  LOCATION_ADDED: 'Location Added',
-  MODULES_SELECTED: 'Modules Activated',
-  BRANDING_SET: 'Branding Configured',
-  CONFIGURATION_DONE: 'Configuration Done',
-  USERS_PROVISIONED: 'Users Provisioned',
-  DEVICES_CONFIGURED: 'Devices Configured',
-  VALIDATED: 'Validated & Tested',
-  COMPLETED: 'Go Live ✓',
-};
-
-export const STEP_DESCRIPTIONS: Record<OnboardingStep, string> = {
-  BUSINESS_CREATED: 'Business workspace created with type and basic details.',
-  LOCATION_ADDED: 'At least one active location configured.',
-  MODULES_SELECTED: 'Relevant modules activated and setup completed.',
-  BRANDING_SET: 'Logo, accent color, and invoice identity configured.',
-  CONFIGURATION_DONE: 'Key operational settings and alert rules configured.',
-  USERS_PROVISIONED: 'Owner and staff accounts created with correct roles.',
-  DEVICES_CONFIGURED: 'Print agents and printers set up (if applicable).',
-  VALIDATED: 'Test transactions completed successfully.',
-  COMPLETED: 'Client is live — handover completed.',
-};
-
 export interface OnboardingBusiness {
   id: string;
   name: string;

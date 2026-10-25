@@ -1,0 +1,322 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
+import { Panel } from '../ui/Panel';
+import { EmptyState, ErrorState, Skeleton } from '../ui/states';
+import { Textarea } from '../ui/Textarea';
+import { useToast } from '../ui/Toast';
+import { CheckoutDialog } from './CheckoutDialog';
+import { OrderBuilder } from './OrderBuilder';
+import { OrderStatusPill } from './StatusPills';
+import { describeError } from './errors';
+import { useSingleFlight } from './hooks';
+import {
+  type CatalogCategory,
+  type CatalogItem,
+  type DiningTable,
+  type GuestSession,
+  type ServiceRequest,
+  formatMinorUnits,
+  orderApi,
+  sessionApi,
+  timeAgo,
+} from './api';
+
+const ACTIVE = ['DRAFT', 'SENT', 'ACCEPTED', 'PREPARING', 'READY'];
+
+function orderTitle(order: ServiceRequest, t: (k: string, o?: Record<string, unknown>) => string): string {
+  const round = t('restaurant.session.round', { n: order.roundNumber });
+  return order.requestNumber ? `${round} - ${t('restaurant.session.ticketNumber', { number: order.requestNumber })}` : round;
+}
+
+function OrderCard({
+  order,
+  onChanged,
+  onRequestCancel,
+}: {
+  order: ServiceRequest;
+  onChanged: (o: ServiceRequest) => void;
+  onRequestCancel: (o: ServiceRequest) => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const serving = useSingleFlight();
+  const canCancel = order.status === 'DRAFT' || order.status === 'SENT';
+
+  async function serve() {
+    await serving.run(async () => {
+      try {
+        onChanged(await orderApi.serve(order.id));
+      } catch (err) {
+        toast.show(describeError(err, t, 'restaurant.errors.generic'), 'bad');
+      }
+    });
+  }
+
+  return (
+    <Panel className="p-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-display text-lg font-semibold">{orderTitle(order, t)}</h3>
+        <OrderStatusPill status={order.status} />
+      </div>
+      <ul className="space-y-1">
+        {order.lines
+          .filter((l) => l.status !== 'CANCELLED')
+          .map((line) => (
+            <li key={line.id} className="flex justify-between gap-3 text-base">
+              <span>
+                <span className="tabular font-semibold">{line.quantity}x</span> {line.itemNameSnapshot}
+              </span>
+              <span className="tabular text-muted">{formatMinorUnits(line.unitPriceMinorUnits * line.quantity)}</span>
+            </li>
+          ))}
+      </ul>
+      {(canCancel || order.status === 'READY') && (
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
+          {canCancel && (
+            <Button variant="secondary" onClick={() => onRequestCancel(order)} className="min-h-11">
+              {t('restaurant.session.cancelOrder')}
+            </Button>
+          )}
+          {order.status === 'READY' && (
+            <Button loading={serving.busy} onClick={() => void serve()} className="min-h-11">
+              {t('restaurant.session.markServed')}
+            </Button>
+          )}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+export function SessionPanel({
+  session,
+  table,
+  categories,
+  items,
+  onClose,
+  onRefresh,
+}: {
+  session: GuestSession;
+  table: DiningTable;
+  categories: CatalogCategory[];
+  items: CatalogItem[];
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [orders, setOrders] = useState<ServiceRequest[] | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const [showOrder, setShowOrder] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showClose, setShowClose] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<ServiceRequest | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReasonError, setCancelReasonError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
+  const closer = useSingleFlight();
+  const canceller = useSingleFlight();
+
+  const sessionId = session.id;
+  const loadOrders = useCallback(async () => {
+    try {
+      setOrders(await orderApi.list({ sessionId }));
+      setLoadError('');
+    } catch (err) {
+      setLoadError(describeError(err, t, 'restaurant.errors.loadOrders'));
+    }
+  }, [sessionId, t]);
+
+  useEffect(() => {
+    void loadOrders();
+  }, [loadOrders]);
+
+  const replaceOrder = (updated: ServiceRequest) =>
+    setOrders((prev) => (prev ? prev.map((o) => (o.id === updated.id ? updated : o)) : prev));
+
+  async function closeSession() {
+    setActionError('');
+    await closer.run(async () => {
+      try {
+        await sessionApi.close(sessionId);
+        toast.show(t('restaurant.session.closedToast', { code: table.code }));
+        setShowClose(false);
+        onRefresh();
+        onClose();
+      } catch (err) {
+        setShowClose(false);
+        setActionError(describeError(err, t, 'restaurant.errors.closeSession'));
+      }
+    });
+  }
+
+  async function confirmCancel() {
+    if (!cancelTarget) return;
+    const reason = cancelReason.trim();
+    if (!reason) {
+      setCancelReasonError(t('restaurant.session.cancelReasonRequired'));
+      return;
+    }
+    await canceller.run(async () => {
+      try {
+        replaceOrder(await orderApi.cancel(cancelTarget.id, reason));
+        toast.show(t('restaurant.session.cancelledToast'));
+        setCancelTarget(null);
+        setCancelReason('');
+      } catch (err) {
+        setCancelReasonError(describeError(err, t, 'restaurant.errors.cancelOrder'));
+      }
+    });
+  }
+
+  const list = orders ?? [];
+  const hasActiveOrders = list.some((o) => ACTIVE.includes(o.status));
+  const hasBillable = list.some((o) => o.status !== 'CANCELLED' && o.status !== 'DRAFT');
+  const guests = t('restaurant.tables.guests', { count: session.partySize });
+
+  return (
+    <>
+      <Dialog
+        open
+        onClose={onClose}
+        title={t('restaurant.session.title', { code: table.code })}
+        className="w-[min(40rem,calc(100vw-1rem))]!"
+        footer={
+          <>
+            <Button variant="secondary" size="lg" disabled={hasActiveOrders || closer.busy} onClick={() => setShowClose(true)}>
+              {t('restaurant.session.closeSession')}
+            </Button>
+            <Button variant="secondary" size="lg" disabled={!hasBillable} onClick={() => setShowCheckout(true)}>
+              {t('restaurant.session.checkout')}
+            </Button>
+            <Button size="lg" onClick={() => setShowOrder(true)}>
+              {t('restaurant.session.newOrder')}
+            </Button>
+          </>
+        }
+      >
+        <p className="-mt-2 mb-4 text-sm text-muted">{t('restaurant.session.meta', { guests, time: timeAgo(session.openedAt) })}</p>
+
+        <div className="max-h-[50dvh] space-y-3 overflow-y-auto pr-1" aria-live="polite">
+          {orders === null && !loadError && (
+            <div role="status" aria-label={t('restaurant.session.ordersHeading')} className="space-y-3">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          )}
+          {loadError && (
+            <ErrorState
+              title={t('restaurant.session.loadErrorTitle')}
+              body={loadError}
+              onRetry={() => void loadOrders()}
+              retryLabel={t('restaurant.common.retry')}
+            />
+          )}
+          {orders !== null && list.length === 0 && (
+            <EmptyState title={t('restaurant.session.noOrdersTitle')} body={t('restaurant.session.noOrdersBody')} />
+          )}
+          {list.map((order) => (
+            <OrderCard key={order.id} order={order} onChanged={replaceOrder} onRequestCancel={(o) => setCancelTarget(o)} />
+          ))}
+        </div>
+
+        {hasActiveOrders && <p className="mt-3 text-sm text-muted">{t('restaurant.session.closeBlocked')}</p>}
+        <p role="alert" className="mt-2 text-sm text-bad">
+          {actionError}
+        </p>
+      </Dialog>
+
+      {showOrder && (
+        <OrderBuilder
+          sessionId={sessionId}
+          tableCode={table.code}
+          categories={categories}
+          items={items}
+          onSent={(order) => {
+            setOrders((prev) => [order, ...(prev ?? [])]);
+            setShowOrder(false);
+            toast.show(t('restaurant.builder.sentToast'));
+          }}
+          onCancel={() => setShowOrder(false)}
+        />
+      )}
+
+      {showCheckout && (
+        <CheckoutDialog
+          session={session}
+          tableCode={table.code}
+          onCancel={() => {
+            setShowCheckout(false);
+            void loadOrders();
+          }}
+          onDone={(closeTable) => {
+            setShowCheckout(false);
+            void loadOrders();
+            if (closeTable) setShowClose(true);
+          }}
+        />
+      )}
+
+      <Dialog
+        open={showClose}
+        onClose={() => setShowClose(false)}
+        title={t('restaurant.session.closeDialogTitle', { code: table.code })}
+        footer={
+          <>
+            <Button variant="secondary" size="lg" onClick={() => setShowClose(false)} disabled={closer.busy}>
+              {t('restaurant.common.cancel')}
+            </Button>
+            <Button variant="danger" size="lg" loading={closer.busy} onClick={() => void closeSession()}>
+              {closer.busy ? t('restaurant.session.closing') : t('restaurant.session.closeConfirm')}
+            </Button>
+          </>
+        }
+      >
+        <p>{t('restaurant.session.closeDialogBody')}</p>
+      </Dialog>
+
+      <Dialog
+        open={cancelTarget !== null}
+        onClose={() => {
+          setCancelTarget(null);
+          setCancelReason('');
+          setCancelReasonError(null);
+        }}
+        title={t('restaurant.session.cancelDialogTitle')}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="lg"
+              disabled={canceller.busy}
+              onClick={() => {
+                setCancelTarget(null);
+                setCancelReason('');
+                setCancelReasonError(null);
+              }}
+            >
+              {t('restaurant.common.keep')}
+            </Button>
+            <Button variant="danger" size="lg" loading={canceller.busy} onClick={() => void confirmCancel()}>
+              {canceller.busy ? t('restaurant.session.cancelling') : t('restaurant.session.cancelConfirm')}
+            </Button>
+          </>
+        }
+      >
+        <p className="mb-3">{t('restaurant.session.cancelDialogBody', { summary: cancelTarget ? orderTitle(cancelTarget, t) : '' })}</p>
+        <Textarea
+          label={t('restaurant.session.cancelReason')}
+          value={cancelReason}
+          placeholder={t('restaurant.session.cancelReasonPlaceholder')}
+          onChange={(e) => {
+            setCancelReason(e.target.value);
+            setCancelReasonError(null);
+          }}
+          error={cancelReasonError}
+        />
+      </Dialog>
+    </>
+  );
+}

@@ -1,253 +1,378 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { reportsApi, formatMinorUnits, type DailyClosingReport, type SalesSummaryReport, type ItemReport } from './api';
+import { downloadCsv, minorToMajor, type CsvCell } from './csv';
+import { formatDate, presetRange, todayIso, type PresetKey } from './dates';
+import { useAsync } from './useAsync';
+import { PageHeader } from '../ui/PageHeader';
+import { Tabs } from '../ui/Tabs';
+import { Panel } from '../ui/Panel';
+import { Field } from '../ui/Field';
+import { Button } from '../ui/Button';
+import { StatCard } from '../ui/StatCard';
+import { Table, Th, Td } from '../ui/Table';
+import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 
 type Tab = 'daily' | 'sales' | 'items';
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+const PRINT_CSS = `
+.print-only { display: none; }
+@media print {
+  aside, nav, .no-print, body > #root header:not(main header) { display: none !important; }
+  html, body, #root, #root > div, main { height: auto !important; overflow: visible !important; background: #fff !important; }
+  .print-only { display: block !important; }
 }
+`;
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function PresetBar({ keys, onPick }: { keys: PresetKey[]; onPick: (k: PresetKey) => void }) {
+  const { t } = useTranslation();
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+    <div role="group" aria-label={t('reports.presets')} className="flex flex-wrap gap-2">
+      {keys.map((k) => (
+        <Button key={k} variant="secondary" onClick={() => onPick(k)}>
+          {t(`reports.preset.${k}`)}
+        </Button>
+      ))}
     </div>
   );
 }
 
+function Actions({ onCsv, disabled }: { onCsv: () => void; disabled: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Button variant="secondary" onClick={onCsv} disabled={disabled}>
+        {t('reports.exportCsv')}
+      </Button>
+      <Button variant="secondary" onClick={() => window.print()} disabled={disabled}>
+        {t('reports.print')}
+      </Button>
+    </>
+  );
+}
+
+function KpiSkeleton({ count }: { count: number }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <Skeleton key={i} className="h-28" />
+      ))}
+    </div>
+  );
+}
+
+/** Announces async progress politely and shows a retryable error. */
+function Status({ loading, error, onRetry }: { loading: boolean; error: string | null; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <div role="status" aria-live="polite" className="sr-only">
+        {loading ? t('reports.loading') : ''}
+      </div>
+      {error && <ErrorState title={t('reports.loadError')} body={error} onRetry={onRetry} retryLabel={t('reports.retry')} />}
+    </>
+  );
+}
+
+function PaymentTable({ rows }: { rows: { method: string; capturedCount: number; amountMinorUnits: number }[] }) {
+  const { t } = useTranslation();
+  return (
+    <section aria-labelledby="pay-h" className="space-y-2">
+      <h2 id="pay-h" className="text-lg font-semibold">
+        {t('reports.paymentBreakdown')}
+      </h2>
+      <Table>
+        <thead>
+          <tr>
+            <Th>{t('reports.colMethod')}</Th>
+            <Th numeric>{t('reports.colCount')}</Th>
+            <Th numeric>{t('reports.colAmount')}</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => (
+            <tr key={p.method}>
+              <Td>{p.method}</Td>
+              <Td numeric>{p.capturedCount}</Td>
+              <Td numeric>{formatMinorUnits(p.amountMinorUnits)}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </section>
+  );
+}
+
+// -- Daily ---------------------------------------------------------------
+
 function DailyReport() {
   const { t } = useTranslation();
-  const [date, setDate] = useState(today());
-  const [report, setReport] = useState<DailyClosingReport | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [date, setDate] = useState(todayIso());
+  const fn = useCallback(() => reportsApi.daily(date), [date]);
+  const { data: r, loading, error, reload } = useAsync<DailyClosingReport>(date ? fn : null);
 
-  const generate = () => {
-    setLoading(true);
-    setError(null);
-    reportsApi.daily(date)
-      .then((r) => { setReport(r); })
-      .catch((e: Error) => { setError(e.message); })
-      .finally(() => { setLoading(false); });
+  const exportCsv = () => {
+    if (!r) return;
+    const rows: CsvCell[][] = [
+      [t('reports.tabDaily'), r.date],
+      [],
+      [t('reports.metric'), t('reports.colValue')],
+      [t('reports.paidInvoices'), r.paidInvoiceCount],
+      [t('reports.grossSales'), minorToMajor(r.grossSalesMinorUnits)],
+      [t('reports.totalTax'), minorToMajor(r.totalTaxMinorUnits)],
+      [t('reports.totalRevenue'), minorToMajor(r.totalRevenueMinorUnits)],
+      [t('reports.refundCountLabel'), r.refundCount],
+      [t('reports.refunded'), minorToMajor(r.totalRefundedMinorUnits)],
+      [t('reports.netRevenue'), minorToMajor(r.netRevenueMinorUnits)],
+      [t('reports.voids'), r.voidedInvoiceCount],
+      [t('reports.orders'), r.servedOrderCount],
+      [],
+      [t('reports.paymentBreakdown')],
+      [t('reports.colMethod'), t('reports.colCount'), t('reports.colAmount')],
+      ...r.paymentBreakdown.map((p) => [p.method, p.capturedCount, minorToMajor(p.amountMinorUnits)]),
+      [],
+      [t('reports.taxBreakdown')],
+      [t('reports.colTax'), t('reports.colRatePct'), t('reports.colTaxable'), t('reports.colTaxAmount')],
+      ...r.taxBreakdown.map((x) => [x.name, (x.rate * 100).toFixed(2), minorToMajor(x.taxableAmountMinorUnits), minorToMajor(x.taxAmountMinorUnits)]),
+    ];
+    downloadCsv(`daily-closing-${r.date}.csv`, rows);
   };
+
+  const noData = r && r.paidInvoiceCount === 0 && r.refundCount === 0 && r.voidedInvoiceCount === 0 && r.servedOrderCount === 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">{t('reports.dateLabel')}</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={generate}
-          disabled={loading}
-          className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? t('reports.loading') : t('reports.generateButton')}
-        </button>
-      </div>
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      {report && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            <Stat label={t('reports.paidInvoices')} value={report.paidInvoiceCount} />
-            <Stat label={t('reports.grossSales')} value={formatMinorUnits(report.grossSalesMinorUnits)} />
-            <Stat label={t('reports.totalTax')} value={formatMinorUnits(report.totalTaxMinorUnits)} />
-            <Stat label={t('reports.totalRevenue')} value={formatMinorUnits(report.totalRevenueMinorUnits)} />
-            <Stat label={t('reports.refunds')} value={`${report.refundCount} · ${formatMinorUnits(report.totalRefundedMinorUnits)}`} />
-            <Stat label={t('reports.netRevenue')} value={formatMinorUnits(report.netRevenueMinorUnits)} />
-            <Stat label={t('reports.voids')} value={report.voidedInvoiceCount} />
-            <Stat label={t('reports.orders')} value={report.servedOrderCount} />
+      <Panel className="no-print space-y-4">
+        <PresetBar keys={['today', 'yesterday']} onPick={(k) => setDate(presetRange(k).from)} />
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="w-full sm:w-56">
+            <Field label={t('reports.dateLabel')} type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
           </div>
-
-          {report.paymentBreakdown.length > 0 && (
-            <section>
-              <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('reports.paymentBreakdown')}</h3>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-600">
-                    <tr>
-                      <th className="px-4 py-2 text-left">Method</th>
-                      <th className="px-4 py-2 text-right">Count</th>
-                      <th className="px-4 py-2 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.paymentBreakdown.map((p) => (
-                      <tr key={p.method} className="border-t border-slate-100">
-                        <td className="px-4 py-2">{p.method}</td>
-                        <td className="px-4 py-2 text-right">{p.capturedCount}</td>
-                        <td className="px-4 py-2 text-right">{formatMinorUnits(p.amountMinorUnits)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-          {report.taxBreakdown.length > 0 && (
-            <section>
-              <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('reports.taxBreakdown')}</h3>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-600">
-                    <tr>
-                      <th className="px-4 py-2 text-left">Tax</th>
-                      <th className="px-4 py-2 text-right">Rate</th>
-                      <th className="px-4 py-2 text-right">Taxable</th>
-                      <th className="px-4 py-2 text-right">Tax Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.taxBreakdown.map((tx) => (
-                      <tr key={`${tx.name}:${tx.rate}`} className="border-t border-slate-100">
-                        <td className="px-4 py-2">{tx.name}</td>
-                        <td className="px-4 py-2 text-right">{(tx.rate * 100).toFixed(2)}%</td>
-                        <td className="px-4 py-2 text-right">{formatMinorUnits(tx.taxableAmountMinorUnits)}</td>
-                        <td className="px-4 py-2 text-right">{formatMinorUnits(tx.taxAmountMinorUnits)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={reload} loading={loading}>
+              {t('reports.refresh')}
+            </Button>
+            <Actions onCsv={exportCsv} disabled={!r || loading} />
+          </div>
         </div>
-      )}
+      </Panel>
+      <p className="print-only text-lg font-semibold">
+        {t('reports.tabDaily')} - {formatDate(date)}
+      </p>
+      <Status loading={loading} error={error} onRetry={reload} />
+      {loading && !r && <KpiSkeleton count={8} />}
+      {r &&
+        !error &&
+        (noData ? (
+          <EmptyState title={t('reports.noDataTitle')} body={t('reports.noDataBody', { period: formatDate(r.date) })} />
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label={t('reports.netRevenue')} value={formatMinorUnits(r.netRevenueMinorUnits)} />
+              <StatCard label={t('reports.paidInvoices')} value={r.paidInvoiceCount} />
+              <StatCard label={t('reports.grossSales')} value={formatMinorUnits(r.grossSalesMinorUnits)} />
+              <StatCard label={t('reports.totalTax')} value={formatMinorUnits(r.totalTaxMinorUnits)} />
+              <StatCard label={t('reports.totalRevenue')} value={formatMinorUnits(r.totalRevenueMinorUnits)} />
+              <StatCard label={t('reports.refunded')} value={formatMinorUnits(r.totalRefundedMinorUnits)} note={t('reports.refundCount', { count: r.refundCount })} />
+              <StatCard label={t('reports.voids')} value={r.voidedInvoiceCount} />
+              <StatCard label={t('reports.orders')} value={r.servedOrderCount} />
+            </div>
+            {r.paymentBreakdown.length > 0 && <PaymentTable rows={r.paymentBreakdown} />}
+            {r.taxBreakdown.length > 0 && (
+              <section aria-labelledby="tax-h" className="space-y-2">
+                <h2 id="tax-h" className="text-lg font-semibold">
+                  {t('reports.taxBreakdown')}
+                </h2>
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>{t('reports.colTax')}</Th>
+                      <Th numeric>{t('reports.colRate')}</Th>
+                      <Th numeric>{t('reports.colTaxable')}</Th>
+                      <Th numeric>{t('reports.colTaxAmount')}</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {r.taxBreakdown.map((x) => (
+                      <tr key={`${x.name}:${x.rate}`}>
+                        <Td>{x.name}</Td>
+                        <Td numeric>{(x.rate * 100).toFixed(2)}%</Td>
+                        <Td numeric>{formatMinorUnits(x.taxableAmountMinorUnits)}</Td>
+                        <Td numeric>{formatMinorUnits(x.taxAmountMinorUnits)}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </section>
+            )}
+          </div>
+        ))}
     </div>
+  );
+}
+
+// -- Range reports ---------------------------------------------------------
+
+function useRange() {
+  const { t } = useTranslation();
+  const [range, setRangeState] = useState(() => presetRange('last7'));
+  const setRange = (from: string, to: string) => setRangeState({ from, to });
+  const rangeError = !range.from || !range.to ? t('reports.rangeRequired') : range.from > range.to ? t('reports.rangeInvalid') : null;
+  return { ...range, setRange, rangeError };
+}
+
+function RangeBar({
+  from,
+  to,
+  setRange,
+  rangeError,
+  onRefresh,
+  loading,
+  onCsv,
+  hasData,
+}: {
+  from: string;
+  to: string;
+  setRange: (f: string, t: string) => void;
+  rangeError: string | null;
+  onRefresh: () => void;
+  loading: boolean;
+  onCsv: () => void;
+  hasData: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Panel className="no-print space-y-4">
+      <PresetBar
+        keys={['today', 'yesterday', 'last7', 'month']}
+        onPick={(k) => {
+          const r = presetRange(k);
+          setRange(r.from, r.to);
+        }}
+      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-2">
+          <Field label={t('reports.fromLabel')} type="date" value={from} max={to || undefined} onChange={(e) => setRange(e.target.value, to)} />
+          <Field label={t('reports.toLabel')} type="date" value={to} min={from || undefined} max={todayIso()} onChange={(e) => setRange(from, e.target.value)} error={rangeError} />
+        </div>
+        <div className="flex flex-wrap gap-2 sm:pt-7">
+          <Button variant="secondary" onClick={onRefresh} loading={loading} disabled={!!rangeError}>
+            {t('reports.refresh')}
+          </Button>
+          <Actions onCsv={onCsv} disabled={!hasData || loading} />
+        </div>
+      </div>
+    </Panel>
   );
 }
 
 function SalesReport() {
   const { t } = useTranslation();
-  const [from, setFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().slice(0, 10);
-  });
-  const [to, setTo] = useState(today());
-  const [report, setReport] = useState<SalesSummaryReport | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { from, to, setRange, rangeError } = useRange();
+  const fn = useCallback(() => reportsApi.sales(from, to), [from, to]);
+  const { data: r, loading, error, reload } = useAsync<SalesSummaryReport>(rangeError ? null : fn);
+  const period = `${formatDate(from)} - ${formatDate(to)}`;
 
-  const generate = () => {
-    setLoading(true);
-    setError(null);
-    reportsApi.sales(from, to)
-      .then((r) => { setReport(r); })
-      .catch((e: Error) => { setError(e.message); })
-      .finally(() => { setLoading(false); });
+  const exportCsv = () => {
+    if (!r) return;
+    downloadCsv(`sales-summary-${from}_${to}.csv`, [
+      [t('reports.tabSales'), from, to],
+      [],
+      [t('reports.metric'), t('reports.colValue')],
+      [t('reports.paidInvoices'), r.paidInvoiceCount],
+      [t('reports.grossSales'), minorToMajor(r.grossSalesMinorUnits)],
+      [t('reports.totalTax'), minorToMajor(r.totalTaxMinorUnits)],
+      [t('reports.totalRevenue'), minorToMajor(r.totalRevenueMinorUnits)],
+      [t('reports.refunded'), minorToMajor(r.totalRefundedMinorUnits)],
+      [t('reports.netRevenue'), minorToMajor(r.netRevenueMinorUnits)],
+      [t('reports.avgInvoice'), minorToMajor(r.averageInvoiceMinorUnits)],
+      [],
+      [t('reports.paymentBreakdown')],
+      [t('reports.colMethod'), t('reports.colCount'), t('reports.colAmount')],
+      ...r.paymentBreakdown.map((p) => [p.method, p.capturedCount, minorToMajor(p.amountMinorUnits)]),
+    ]);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">{t('reports.fromLabel')}</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">{t('reports.toLabel')}</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
-        </div>
-        <button type="button" onClick={generate} disabled={loading} className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          {loading ? t('reports.loading') : t('reports.generateButton')}
-        </button>
-      </div>
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      {report && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Stat label={t('reports.paidInvoices')} value={report.paidInvoiceCount} />
-          <Stat label={t('reports.grossSales')} value={formatMinorUnits(report.grossSalesMinorUnits)} />
-          <Stat label={t('reports.totalTax')} value={formatMinorUnits(report.totalTaxMinorUnits)} />
-          <Stat label={t('reports.totalRevenue')} value={formatMinorUnits(report.totalRevenueMinorUnits)} />
-          <Stat label={t('reports.refunds')} value={formatMinorUnits(report.totalRefundedMinorUnits)} />
-          <Stat label={t('reports.netRevenue')} value={formatMinorUnits(report.netRevenueMinorUnits)} />
-          <Stat label={t('reports.avgInvoice')} value={formatMinorUnits(report.averageInvoiceMinorUnits)} />
-        </div>
-      )}
+      <RangeBar from={from} to={to} setRange={setRange} rangeError={rangeError} onRefresh={reload} loading={loading} onCsv={exportCsv} hasData={!!r && !rangeError} />
+      <p className="print-only text-lg font-semibold">
+        {t('reports.tabSales')} - {period}
+      </p>
+      <Status loading={loading} error={error} onRetry={reload} />
+      {loading && !r && <KpiSkeleton count={4} />}
+      {r &&
+        !error &&
+        !rangeError &&
+        (r.paidInvoiceCount === 0 && r.totalRefundedMinorUnits === 0 ? (
+          <EmptyState title={t('reports.noDataTitle')} body={t('reports.noDataBody', { period })} />
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label={t('reports.netRevenue')} value={formatMinorUnits(r.netRevenueMinorUnits)} />
+              <StatCard label={t('reports.paidInvoices')} value={r.paidInvoiceCount} />
+              <StatCard label={t('reports.avgInvoice')} value={formatMinorUnits(r.averageInvoiceMinorUnits)} />
+              <StatCard label={t('reports.grossSales')} value={formatMinorUnits(r.grossSalesMinorUnits)} />
+              <StatCard label={t('reports.totalTax')} value={formatMinorUnits(r.totalTaxMinorUnits)} />
+              <StatCard label={t('reports.totalRevenue')} value={formatMinorUnits(r.totalRevenueMinorUnits)} />
+              <StatCard label={t('reports.refunded')} value={formatMinorUnits(r.totalRefundedMinorUnits)} />
+            </div>
+            {r.paymentBreakdown.length > 0 && <PaymentTable rows={r.paymentBreakdown} />}
+          </div>
+        ))}
     </div>
   );
 }
 
 function ItemsReport() {
   const { t } = useTranslation();
-  const [from, setFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().slice(0, 10);
-  });
-  const [to, setTo] = useState(today());
-  const [report, setReport] = useState<ItemReport | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { from, to, setRange, rangeError } = useRange();
+  const fn = useCallback(() => reportsApi.items(from, to), [from, to]);
+  const { data: r, loading, error, reload } = useAsync<ItemReport>(rangeError ? null : fn);
+  const items = useMemo(() => r?.items ?? [], [r]);
+  const period = `${formatDate(from)} - ${formatDate(to)}`;
 
-  const generate = () => {
-    setLoading(true);
-    setError(null);
-    reportsApi.items(from, to)
-      .then((r) => { setReport(r); })
-      .catch((e: Error) => { setError(e.message); })
-      .finally(() => { setLoading(false); });
+  const exportCsv = () => {
+    if (!r) return;
+    downloadCsv(`top-items-${from}_${to}.csv`, [
+      [t('reports.itemName'), t('reports.quantity'), t('reports.revenue')],
+      ...items.map((i) => [i.itemName, i.quantity, minorToMajor(i.revenueMinorUnits)]),
+    ]);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">{t('reports.fromLabel')}</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">{t('reports.toLabel')}</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
-        </div>
-        <button type="button" onClick={generate} disabled={loading} className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-          {loading ? t('reports.loading') : t('reports.generateButton')}
-        </button>
-      </div>
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      {report && (
-        report.items.length === 0 ? (
-          <p className="text-sm text-slate-500">{t('reports.noData')}</p>
+      <RangeBar from={from} to={to} setRange={setRange} rangeError={rangeError} onRefresh={reload} loading={loading} onCsv={exportCsv} hasData={items.length > 0 && !rangeError} />
+      <p className="print-only text-lg font-semibold">
+        {t('reports.tabItems')} - {period}
+      </p>
+      <Status loading={loading} error={error} onRetry={reload} />
+      {loading && !r && <Skeleton className="h-48" />}
+      {r &&
+        !error &&
+        !rangeError &&
+        (items.length === 0 ? (
+          <EmptyState title={t('reports.noDataTitle')} body={t('reports.noDataBody', { period })} />
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-600">
-                <tr>
-                  <th className="px-4 py-2 text-left">{t('reports.itemName')}</th>
-                  <th className="px-4 py-2 text-right">{t('reports.quantity')}</th>
-                  <th className="px-4 py-2 text-right">{t('reports.revenue')}</th>
+          <Table>
+            <thead>
+              <tr>
+                <Th>{t('reports.itemName')}</Th>
+                <Th numeric>{t('reports.quantity')}</Th>
+                <Th numeric>{t('reports.revenue')}</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((i) => (
+                <tr key={i.itemName}>
+                  <Td>{i.itemName}</Td>
+                  <Td numeric>{i.quantity}</Td>
+                  <Td numeric>{formatMinorUnits(i.revenueMinorUnits)}</Td>
                 </tr>
-              </thead>
-              <tbody>
-                {report.items.map((item) => (
-                  <tr key={item.itemName} className="border-t border-slate-100">
-                    <td className="px-4 py-2">{item.itemName}</td>
-                    <td className="px-4 py-2 text-right">{item.quantity}</td>
-                    <td className="px-4 py-2 text-right">{formatMinorUnits(item.revenueMinorUnits)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      )}
+              ))}
+            </tbody>
+          </Table>
+        ))}
     </div>
   );
 }
@@ -255,42 +380,24 @@ function ItemsReport() {
 export function ReportsPage() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('daily');
-
-  const tabs: { key: Tab; label: string }[] = [
+  const items = [
     { key: 'daily', label: t('reports.tabDaily') },
     { key: 'sales', label: t('reports.tabSales') },
     { key: 'items', label: t('reports.tabItems') },
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('reports.title')}</h1>
-        <p className="mt-1 text-sm text-slate-600">{t('reports.subtitle')}</p>
+    <>
+      <style>{PRINT_CSS}</style>
+      <PageHeader title={t('reports.title')} description={t('reports.subtitle')} />
+      <div className="no-print">
+        <Tabs items={items} active={tab} onChange={(k) => setTab(k as Tab)} label={t('reports.title')} />
       </div>
-
-      <div className="flex gap-1 border-b border-slate-200">
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === key
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div>
+      <div role="tabpanel">
         {tab === 'daily' && <DailyReport />}
         {tab === 'sales' && <SalesReport />}
         {tab === 'items' && <ItemsReport />}
       </div>
-    </div>
+    </>
   );
 }

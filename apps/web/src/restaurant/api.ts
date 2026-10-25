@@ -260,13 +260,13 @@ export const checkoutApi = {
       method: 'POST',
       body: '{}',
     }),
-  pay: (invoiceId: string, method: string, amountMinorUnits: number) =>
+  pay: (invoiceId: string, method: string, amountMinorUnits: number, idempotencyKey: string = crypto.randomUUID()) =>
     api<Payment>(`/admin/checkout/invoices/${invoiceId}/payments`, {
       method: 'POST',
       body: JSON.stringify({
         method,
         amountMinorUnits,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey,
       }),
     }),
   void_: (invoiceId: string, reason = 'Voided by cashier') =>
