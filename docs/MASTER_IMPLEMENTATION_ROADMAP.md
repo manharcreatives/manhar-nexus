@@ -45,6 +45,10 @@
 > **The correct next action is: recruit and onboard a real pilot client.**
 > Do not implement additional modules without validated pilot demand.
 
+### UI OVERHAUL PASS (branch `feat/sellable-v1-ui`, 2026-10-25)
+
+Design system (ADR-031), routed shell, redesigned pages, Bills (refund/void) with additive `GET /admin/checkout/invoices`, item variants/modifiers, route guards. E2E 607/607, web 22/22, API unit 27/27. Golden path verified in a real browser. Evidence and open items: `docs/ui/QA_REPORT.md`, `docs/ui/CRITIQUE_LOG.md`, `docs/ui/SECURITY_REVIEW.md`. Not merged to `main`; not signed off by an independent reviewer.
+
 ### IMMEDIATE NEXT ACTIONS
 
 ```
