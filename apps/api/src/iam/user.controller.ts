@@ -16,10 +16,14 @@ import { UserService } from './user.service';
 import {
   assignRoleSchema,
   createUserSchema,
+  resetPasswordSchema,
   updateUserSchema,
+  userDirectoryQuerySchema,
   type AssignRoleBody,
   type CreateUserBody,
+  type ResetPasswordBody,
   type UpdateUserBody,
+  type UserDirectoryQuery,
 } from './iam.dto';
 import { CurrentPrincipal, RequirePermission, scopeFromPrincipal, type Principal } from './principal';
 
@@ -41,6 +45,27 @@ export class UserController {
     @Query(zodBody(paginationQuerySchema)) q: PaginationQuery,
   ) {
     return this.users.list(scopeFromPrincipal(p), q);
+  }
+
+  /** Team directory (search/filter/paginate, roles + locations by name). Declared before :id. */
+  @Get('directory')
+  @RequirePermission('core.user.view')
+  directory(
+    @CurrentPrincipal() p: Principal,
+    @Query(zodBody(userDirectoryQuerySchema)) q: UserDirectoryQuery,
+  ) {
+    return this.users.directory(scopeFromPrincipal(p), p, q);
+  }
+
+  @Post(':id/password')
+  @RequirePermission('core.user.edit')
+  @HttpCode(204)
+  async resetPassword(
+    @CurrentPrincipal() p: Principal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(zodBody(resetPasswordSchema)) dto: ResetPasswordBody,
+  ) {
+    await this.users.resetPassword(scopeFromPrincipal(p), p, id, dto.password);
   }
 
   @Get(':id')

@@ -29,6 +29,24 @@ export const assignRoleSchema = z
   .strict();
 export type AssignRoleBody = z.infer<typeof assignRoleSchema>;
 
+/** GET /admin/users/directory — bounded, filterable team listing. */
+export const userDirectoryQuerySchema = z.object({
+  q: z.string().trim().max(200).optional(),
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'PENDING']).optional(),
+  roleId: z.string().uuid().optional(),
+  skip: z.coerce.number().int().min(0).optional(),
+  take: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type UserDirectoryQuery = z.infer<typeof userDirectoryQuerySchema>;
+
+/** POST /admin/users/:id/password — an administrator sets a new password. */
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8).max(200),
+  })
+  .strict();
+export type ResetPasswordBody = z.infer<typeof resetPasswordSchema>;
+
 // ── Roles ──
 export const createRoleSchema = z
   .object({

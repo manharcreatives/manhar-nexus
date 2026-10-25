@@ -1,0 +1,183 @@
+{
+  "shell": {
+    "nav": {
+      "team": "Team"
+    },
+    "keywords": {
+      "team": "staff users people roles access password"
+    }
+  },
+  "people": {
+    "title": "Team",
+    "description": "Everyone who can sign in to your business, what they can do, and where.",
+    "loading": "Loading your team",
+    "loadError": "We could not load your team.",
+    "retry": "Try again",
+    "close": "Close",
+    "cancel": "Cancel",
+    "back": "Back",
+    "save": "Save",
+    "you": "You",
+    "showing": "Showing {{from}}-{{to}} of {{total}}",
+    "prev": "Previous",
+    "next": "Next",
+    "readOnly": "You can see the team, but only someone with permission to manage people can make changes.",
+    "add": {
+      "action": "Add person",
+      "title": "Add a person",
+      "intro": "They will sign in with this email and the password you set. There is no email invite yet, so share the password with them privately.",
+      "name": "Full name",
+      "email": "Email",
+      "emailHint": "Used to sign in. Each email can belong to one person only.",
+      "password": "Password",
+      "passwordHint": "At least 8 characters. Share it with them in person or by a private message.",
+      "confirm": "Type the password again",
+      "suggest": "Suggest a password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "roles": "What can they do?",
+      "rolesHint": "Roles chosen here apply at every location. You can limit them to certain locations afterwards from Manage.",
+      "rolesUnavailable": "You can add roles after creating this person.",
+      "noRoleWarning": "Without a role they can sign in but will not see anything yet.",
+      "submit": "Add person",
+      "done": "{{name}} was added. Share their password with them privately."
+    },
+    "err": {
+      "name": {
+        "required": "Enter their name.",
+        "tooLong": "Keep the name under 200 characters."
+      },
+      "email": {
+        "required": "Enter their email.",
+        "invalid": "Enter a full email address, like name@example.com."
+      },
+      "password": {
+        "required": "Set a password.",
+        "tooShort": "Use at least 8 characters.",
+        "tooLong": "Keep the password under 200 characters."
+      },
+      "confirm": {
+        "mismatch": "The two passwords do not match."
+      },
+      "network": "We could not reach the server. Check your connection and try again.",
+      "noAccess": "You do not have permission to do this.",
+      "notFound": "This person no longer exists. The list has been refreshed.",
+      "emailTaken": "Someone already uses this email. Use a different one.",
+      "selfChange": "You cannot do this to your own account. Ask another owner to help.",
+      "beyondYourRole": "You can only give out roles that are within your own access.",
+      "beyondYourLocations": "You can only give access to locations you can reach yourself.",
+      "invalid": "Some details were not accepted. Check the form and try again.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "filter": {
+      "search": "Search by name or email",
+      "searchPlaceholder": "Name or email",
+      "status": "Status",
+      "role": "Role",
+      "allStatuses": "Any status",
+      "allRoles": "Any role",
+      "clear": "Clear filters"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "PENDING": "Not activated",
+      "locked": "Locked out"
+    },
+    "col": {
+      "person": "Person",
+      "roles": "Roles",
+      "status": "Status",
+      "lastSeen": "Last signed in",
+      "actions": "Actions"
+    },
+    "noRoles": "No role yet",
+    "allLocations": "All locations",
+    "onlyLocations": "Only {{names}}",
+    "manage": "Manage",
+    "manageName": "Manage {{name}}",
+    "lastSeen": {
+      "never": "Never signed in",
+      "justNow": "Just now",
+      "minutes_one": "{{count}} minute ago",
+      "minutes_other": "{{count}} minutes ago",
+      "hours_one": "{{count}} hour ago",
+      "hours_other": "{{count}} hours ago",
+      "days_one": "{{count}} day ago",
+      "days_other": "{{count}} days ago"
+    },
+    "empty": {
+      "title": "No one matches",
+      "body": "Try a different name, status or role.",
+      "teamTitle": "It is just you so far",
+      "teamBody": "Add the people who work with you so they can sign in with their own account."
+    },
+    "detail": {
+      "email": "Email",
+      "added": "Added",
+      "lastSeen": "Last signed in",
+      "lockedUntil": "Locked out after too many wrong passwords, until {{time}}. Setting a new password unlocks them.",
+      "access": "Access",
+      "editName": "Edit name",
+      "changeAccess": "Change access",
+      "setPassword": "Set new password",
+      "suspend": "Suspend",
+      "reactivate": "Reactivate",
+      "selfNote": "This is your account. You cannot change your own access, password or status here; ask another owner if you need to.",
+      "ownerNote": "Owners have full control of the business, including the team."
+    },
+    "rename": {
+      "title": "Edit name",
+      "label": "Full name",
+      "done": "Name updated."
+    },
+    "access": {
+      "title": "Change access for {{name}}",
+      "intro": "Pick what {{name}} can do. Changes apply on their next action, no sign-out needed.",
+      "beyond": "Beyond your own access, so you cannot give this role.",
+      "where": "Where",
+      "everywhere": "All locations",
+      "some": "Only some locations",
+      "pickLocations": "Pick at least one location, or choose All locations.",
+      "ownerRemoval": "Removing Owner takes away their full control of the business.",
+      "noRoleWarning": "With no role they can still sign in but will not see anything.",
+      "noChanges": "Nothing has changed.",
+      "rolesUnavailable": "We could not load the list of roles.",
+      "done": "Access updated for {{name}}.",
+      "partial": "Some changes were saved and some were not. The current access is shown below."
+    },
+    "password": {
+      "title": "Set a new password for {{name}}",
+      "intro": "This signs {{name}} out on every device and clears any sign-in lock. Share the new password with them privately.",
+      "label": "New password",
+      "confirm": "Type it again",
+      "submit": "Set password",
+      "done": "New password set for {{name}}. They have been signed out everywhere."
+    },
+    "suspend": {
+      "title": "Suspend {{name}}?",
+      "body": "{{name}} will be signed out within a minute and cannot sign in until you reactivate them. Their sales, orders and history stay as they are.",
+      "ownerWarning": "{{name}} is an owner. While suspended they cannot manage the business.",
+      "confirm": "Suspend {{name}}",
+      "done": "{{name}} is suspended."
+    },
+    "reactivate": {
+      "title": "Reactivate {{name}}?",
+      "body": "{{name}} can sign in again with their existing password and keeps the access they had.",
+      "confirm": "Reactivate {{name}}",
+      "done": "{{name}} can sign in again."
+    },
+    "roleDesc": {
+      "owner": "Full control of the business, including billing, settings and the team.",
+      "location-manager": "Runs day-to-day operations, menus, tables and reports.",
+      "checkout-associate": "Takes payments, prints bills and handles their shift.",
+      "service-team": "Seats guests and takes orders on the floor.",
+      "host": "Manages bookings, the waiting list and seating.",
+      "kitchen-team": "Sees and updates the kitchen order screen only.",
+      "stock-control-manager": "Looks after stock and purchases.",
+      "accountant": "Reviews costs, approves expenses and reads financial reports."
+    },
+    "roleCustom_one": "Custom role with {{count}} permission",
+    "roleCustom_other": "Custom role with {{count}} permissions"
+  }
+}
