@@ -38,7 +38,9 @@
     "notFoundTitle": "This page doesn't exist",
     "notFoundBody": "Use the navigation to get back on track.",
     "crashTitle": "Something went wrong on this page",
-    "crashBody": "Your data is safe. Try again, or pick another page."
+    "crashBody": "Your data is safe. Try again, or pick another page.",
+    "noAccessTitle": "You don't have access to this page",
+    "noAccessBody": "Your role doesn't include it. Ask an owner or manager if you need access."
   },
   "auth": {
     "signInTitle": "Sign in to Manhar Nexus",

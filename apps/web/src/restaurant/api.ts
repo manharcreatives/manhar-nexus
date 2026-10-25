@@ -93,6 +93,48 @@ export interface CatalogItem {
   taxCategoryId: string | null;
   isActive: boolean;
   type: string;
+  /** Present on GET /admin/catalog/items. */
+  variants?: CatalogVariant[];
+  /** Junction rows; group definitions come from GET /admin/catalog/modifier-groups. */
+  modifierGroups?: { modifierGroupId: string; sortOrder: number }[];
+}
+
+export interface CatalogVariant {
+  id: string;
+  name: string;
+  /** Delta from the item base price, minor units (may be negative). */
+  priceAdjMinorUnits: number;
+  isAvailable: boolean;
+  sortOrder: number;
+}
+
+export interface ModifierOption {
+  id: string;
+  name: string;
+  priceAdjMinorUnits: number;
+  isDefault: boolean;
+  isAvailable: boolean;
+  sortOrder: number;
+}
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  selectionType: 'SINGLE' | 'MULTIPLE';
+  isRequired: boolean;
+  minSelections: number;
+  maxSelections: number | null;
+  sortOrder: number;
+  isActive: boolean;
+  options: ModifierOption[];
+}
+
+export interface OrderLineInput {
+  catalogItemId: string;
+  variantId?: string;
+  quantity: number;
+  modifiers?: { modifierOptionId: string }[];
+  notes?: string;
 }
 
 export interface InvoiceLine {
@@ -194,7 +236,7 @@ export const orderApi = {
   create: (body: {
     sessionId: string;
     idempotencyKey: string;
-    lines: { catalogItemId: string; quantity: number; modifiers?: { modifierOptionId: string }[]; notes?: string }[];
+    lines: OrderLineInput[];
     notes?: string;
   }) => api<ServiceRequest>('/admin/orders', { method: 'POST', body: JSON.stringify(body) }),
   send: (id: string, notes?: string) =>
@@ -243,6 +285,7 @@ export const kitchenApi = {
 export const catalogApi = {
   listCategories: () => api<CatalogCategory[]>('/admin/catalog/categories'),
   listItems: () => api<CatalogItem[]>('/admin/catalog/items'),
+  listModifierGroups: () => api<ModifierGroup[]>('/admin/catalog/modifier-groups'),
 };
 
 // ── Checkout ───────────────────────────────────────────────────────────────────

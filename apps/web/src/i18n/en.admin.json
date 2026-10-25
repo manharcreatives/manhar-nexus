@@ -143,8 +143,8 @@
   "notifications": {
     "title": "Notifications",
     "open": "Notifications",
-    "ariaLabel": "Notifications, {{count}} unread",
-    "ariaLabelNone": "Notifications, none unread",
+    "ariaLabel": "Alerts, {{count}} unread",
+    "ariaLabelNone": "Alerts, none unread",
     "unreadCount": "{{count}} unread",
     "panelLabel": "Notifications panel",
     "close": "Close notifications",

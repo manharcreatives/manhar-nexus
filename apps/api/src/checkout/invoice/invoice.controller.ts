@@ -1,13 +1,15 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { CurrentPrincipal, RequirePermission, scopeFromPrincipal, type Principal } from '../../iam/principal';
 import { RequireModule } from '../../modules/module-gating.guard';
-import { zodBody } from '../../common/zod-validation.pipe';
+import { zodBody, zodQuery } from '../../common/zod-validation.pipe';
 import { InvoiceService } from './invoice.service';
 import {
   createInvoiceSchema,
+  listInvoicesSchema,
   finaliseInvoiceSchema,
   voidInvoiceSchema,
   type CreateInvoiceDto,
+  type ListInvoicesQuery,
   type FinaliseInvoiceDto,
   type VoidInvoiceDto,
 } from './invoice.dto';
@@ -34,6 +36,15 @@ export class InvoiceController {
     @Param('sessionId', ParseUUIDPipe) sessionId: string,
   ) {
     return this.invoices.findSessionInvoice(scopeFromPrincipal(p), sessionId);
+  }
+
+  @Get('invoices')
+  @RequirePermission('checkout.invoice.view')
+  list(
+    @CurrentPrincipal() p: Principal,
+    @Query(zodQuery(listInvoicesSchema)) q: ListInvoicesQuery,
+  ) {
+    return this.invoices.listInvoices(scopeFromPrincipal(p), p, q);
   }
 
   @Get('invoices/:id')

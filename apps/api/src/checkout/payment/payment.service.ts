@@ -3,6 +3,7 @@ import { InvoiceStatus, PaymentStatus, type Payment, type Refund } from '@prisma
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConflictError, NotFoundError, ValidationError, VersionConflictError } from '../../common/errors';
 import { TenantScopedRepository } from '../../common/tenant-scoped.repository';
+import { lockBusiness } from '../../common/locks';
 import { AuditService } from '../../core/audit/audit.service';
 import { AlertDispatcher } from '../../core/alerts/alert-dispatcher';
 import { PaymentProviderRegistry } from '../provider/payment-provider.registry';
@@ -261,30 +262,35 @@ export class PaymentService extends TenantScopedRepository {
       throw new ValidationError('Only CAPTURED payments can be refunded', { paymentId, status: payment.status });
     }
 
-    // Scope to businessId (defense-in-depth — paymentId already validated via findPaymentOrThrow)
-    const existingRefunds = await this.prisma.refund.aggregate({
-      where: { paymentId, businessId: scope.businessId, status: { not: 'FAILED' } },
-      _sum: { amountMinorUnits: true },
-    });
-    const alreadyRefunded = existingRefunds._sum.amountMinorUnits ?? 0;
-    const remaining = payment.amountMinorUnits - alreadyRefunded;
-
-    if (dto.amountMinorUnits > remaining) {
-      throw new ValidationError('Refund amount exceeds remaining refundable balance', {
-        paymentId,
-        requested: dto.amountMinorUnits,
-        remaining,
-      });
-    }
-
-    const provider = this.providers.get(payment.method);
-    const result = await provider.refund({
-      paymentId,
-      amountMinorUnits: dto.amountMinorUnits,
-      reason: dto.reason,
-    });
-
+    // Serialise concurrent refunds: take the tenant advisory lock, then compute
+    // the remaining balance INSIDE the transaction so two simultaneous requests
+    // cannot both pass the check and over-refund the same payment.
     return this.prisma.$transaction(async (tx) => {
+      await lockBusiness(tx, scope.businessId);
+
+      // Scope to businessId (defense-in-depth - paymentId already validated via findPaymentOrThrow)
+      const existingRefunds = await tx.refund.aggregate({
+        where: { paymentId, businessId: scope.businessId, status: { not: 'FAILED' } },
+        _sum: { amountMinorUnits: true },
+      });
+      const alreadyRefunded = existingRefunds._sum.amountMinorUnits ?? 0;
+      const remaining = payment.amountMinorUnits - alreadyRefunded;
+
+      if (dto.amountMinorUnits > remaining) {
+        throw new ValidationError('Refund amount exceeds remaining refundable balance', {
+          paymentId,
+          requested: dto.amountMinorUnits,
+          remaining,
+        });
+      }
+
+      const provider = this.providers.get(payment.method);
+      const result = await provider.refund({
+        paymentId,
+        amountMinorUnits: dto.amountMinorUnits,
+        reason: dto.reason,
+      });
+
       const refund = await tx.refund.create({
         data: {
           businessId: scope.businessId,

@@ -280,6 +280,119 @@ async function main(): Promise<void> {
   }
   console.log(`[8] Menu items: ${itemCount} created (${MENU_ITEMS.length - itemCount} already existed)`);
 
+  // ── 8b. Variants and modifier groups (idempotent: skip-if-exists by name) ─────
+  const VARIANTS: Record<string, { name: string; adj: number }[]> = {
+    'Paneer Tikka': [{ name: 'Half (4 pcs)', adj: -8000 }, { name: 'Full (8 pcs)', adj: 0 }],
+    'Dal Makhani': [{ name: 'Half', adj: -7000 }, { name: 'Full', adj: 0 }],
+    'Cold Coffee': [{ name: 'Regular', adj: 0 }, { name: 'Large', adj: 3000 }],
+  };
+  let variantCount = 0;
+  for (const [itemName, defs] of Object.entries(VARIANTS)) {
+    const item = await prisma.catalogItem.findFirst({ where: { businessId, name: itemName } });
+    if (!item) continue;
+    for (const [idx, v] of defs.entries()) {
+      const ex = await prisma.catalogVariant.findFirst({ where: { catalogItemId: item.id, name: v.name } });
+      if (!ex) {
+        await prisma.catalogVariant.create({
+          data: { catalogItemId: item.id, businessId, name: v.name, priceAdjMinorUnits: v.adj, sortOrder: idx },
+        });
+        variantCount++;
+      }
+    }
+  }
+
+  const MODIFIER_GROUPS: {
+    name: string;
+    selectionType: 'SINGLE' | 'MULTIPLE';
+    isRequired: boolean;
+    minSelections: number;
+    maxSelections: number | null;
+    options: { name: string; adj: number; isDefault?: boolean }[];
+    items: string[];
+  }[] = [
+    {
+      name: 'Spice level',
+      selectionType: 'SINGLE',
+      isRequired: true,
+      minSelections: 1,
+      maxSelections: 1,
+      options: [
+        { name: 'Mild', adj: 0 },
+        { name: 'Medium', adj: 0, isDefault: true },
+        { name: 'Hot', adj: 0 },
+      ],
+      items: ['Paneer Tikka', 'Paneer Butter Masala', 'Dal Makhani'],
+    },
+    {
+      name: 'Extra toppings',
+      selectionType: 'MULTIPLE',
+      isRequired: false,
+      minSelections: 0,
+      maxSelections: 2,
+      options: [
+        { name: 'Extra cheese', adj: 3000 },
+        { name: 'Extra butter', adj: 2000 },
+        { name: 'Chopped onion', adj: 0 },
+      ],
+      items: ['Paneer Tikka', 'Butter Naan'],
+    },
+    {
+      name: 'Sugar level',
+      selectionType: 'SINGLE',
+      isRequired: false,
+      minSelections: 0,
+      maxSelections: 1,
+      options: [
+        { name: 'No sugar', adj: 0 },
+        { name: 'Less sugar', adj: 0 },
+        { name: 'Extra sweet', adj: 0 },
+      ],
+      items: ['Masala Chai', 'Cold Coffee'],
+    },
+  ];
+  let groupCount = 0;
+  for (const g of MODIFIER_GROUPS) {
+    let group = await prisma.modifierGroup.findFirst({ where: { businessId, name: g.name } });
+    if (!group) {
+      group = await prisma.modifierGroup.create({
+        data: {
+          businessId,
+          name: g.name,
+          selectionType: g.selectionType,
+          isRequired: g.isRequired,
+          minSelections: g.minSelections,
+          maxSelections: g.maxSelections,
+        },
+      });
+      groupCount++;
+    }
+    for (const [idx, o] of g.options.entries()) {
+      const ex = await prisma.modifierOption.findFirst({ where: { modifierGroupId: group.id, name: o.name } });
+      if (!ex) {
+        await prisma.modifierOption.create({
+          data: {
+            modifierGroupId: group.id,
+            businessId,
+            name: o.name,
+            priceAdjMinorUnits: o.adj,
+            isDefault: o.isDefault ?? false,
+            sortOrder: idx,
+          },
+        });
+      }
+    }
+    for (const itemName of g.items) {
+      const item = await prisma.catalogItem.findFirst({ where: { businessId, name: itemName } });
+      if (!item) continue;
+      await prisma.catalogItemModifierGroup.upsert({
+        where: { catalogItemId_modifierGroupId: { catalogItemId: item.id, modifierGroupId: group.id } },
+        create: { catalogItemId: item.id, modifierGroupId: group.id },
+        update: {},
+      });
+    }
+  }
+  console.log(`[8b] Variants: ${variantCount} created; modifier groups: ${groupCount} created`);
+
   // ── 9. Dining areas and tables ────────────────────────────────────────────────
   for (const areaDef of DINING_AREAS) {
     let area = await prisma.diningArea.findFirst({ where: { businessId, name: areaDef.name } });

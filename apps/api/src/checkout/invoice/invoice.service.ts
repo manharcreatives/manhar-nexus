@@ -6,7 +6,8 @@ import { TenantScopedRepository } from '../../common/tenant-scoped.repository';
 import { AuditService } from '../../core/audit/audit.service';
 import { NumberingService } from '../../core/numbering/numbering.service';
 import type { TenantScope } from '../../common/tenant-scope';
-import type { CreateInvoiceDto, FinaliseInvoiceDto, VoidInvoiceDto } from './invoice.dto';
+import type { Principal } from '../../iam/principal';
+import type { CreateInvoiceDto, FinaliseInvoiceDto, ListInvoicesQuery, VoidInvoiceDto } from './invoice.dto';
 
 const INVOICE_WITH_LINES = {
   lines: { orderBy: { itemNameSnapshot: 'asc' as const } },
@@ -60,6 +61,88 @@ export class InvoiceService extends TenantScopedRepository {
     });
     if (!row) throw new NotFoundError('Invoice not found', { id });
     return this.assertOwned(row, scope);
+  }
+
+  /**
+   * Paginated invoice list (newest first) with payments and refund totals.
+   * Tenant-scoped; additionally restricted to the caller's permitted locations
+   * (and an optional `locationId` filter). Two queries total (page + count),
+   * relations are batched by Prisma — no per-row lookups.
+   */
+  async listInvoices(scope: TenantScope, principal: Principal, q: ListInvoicesQuery) {
+    if (q.locationId) await this.assertLocationInScope(scope, q.locationId);
+
+    const where: Prisma.InvoiceWhereInput = this.scoped(scope, {});
+    if (!principal.allLocations) {
+      const allowed = Array.from(principal.locationIds);
+      if (q.locationId && !allowed.includes(q.locationId)) {
+        return { items: [], total: 0 };
+      }
+      where.locationId = q.locationId ?? { in: allowed };
+    } else if (q.locationId) {
+      where.locationId = q.locationId;
+    }
+    if (q.status) where.status = q.status;
+    if (q.from || q.to) {
+      const createdAt: Prisma.DateTimeFilter = {};
+      if (q.from) createdAt.gte = new Date(q.from);
+      if (q.to) {
+        const end = new Date(q.to);
+        // Date-only value => inclusive of the whole day.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(q.to)) end.setUTCHours(23, 59, 59, 999);
+        createdAt.lte = end;
+      }
+      where.createdAt = createdAt;
+    }
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.invoice.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: q.skip,
+        take: q.take,
+        select: {
+          id: true,
+          invoiceNumber: true,
+          status: true,
+          grandTotalMinorUnits: true,
+          currencyCode: true,
+          createdAt: true,
+          finalisedAt: true,
+          paidAt: true,
+          voidedAt: true,
+          locationId: true,
+          sessionId: true,
+          session: { select: { diningTable: { select: { code: true } } } },
+          payments: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              method: true,
+              status: true,
+              amountMinorUnits: true,
+              referenceCode: true,
+              capturedAt: true,
+              refunds: { select: { amountMinorUnits: true, status: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
+
+    const items = rows.map(({ session, payments, ...inv }) => ({
+      ...inv,
+      tableCode: session?.diningTable.code ?? null,
+      payments: payments.map(({ refunds, ...pm }) => ({
+        ...pm,
+        // Same rule the refund endpoint uses: FAILED refunds do not count.
+        refundedMinorUnits: refunds
+          .filter((r) => r.status !== 'FAILED')
+          .reduce((sum, r) => sum + r.amountMinorUnits, 0),
+      })),
+    }));
+    return { items, total };
   }
 
   async findSessionInvoice(scope: TenantScope, sessionId: string): Promise<Invoice | null> {

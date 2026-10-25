@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
@@ -9,10 +9,25 @@ import { useSingleFlight } from './hooks';
 import {
   type CatalogCategory,
   type CatalogItem,
+  type ModifierGroup,
   type ServiceRequest,
+  catalogApi,
   formatMinorUnits,
   orderApi,
 } from './api';
+import {
+  type CartLine,
+  addLine,
+  adjustLine,
+  availableVariants,
+  buildLine,
+  cartCount,
+  cartTotal,
+  itemGroups,
+  needsConfiguration,
+  toApiLines,
+} from './cart';
+import { ItemConfigDialog } from './ItemConfigDialog';
 
 const OTHER = '__other';
 
@@ -20,48 +35,117 @@ function ItemRow({
   item,
   qty,
   locked,
+  configurable,
+  configDisabled,
+  fromPrice,
   onAdjust,
+  onConfigure,
 }: {
   item: CatalogItem;
   qty: number;
   locked: boolean;
+  configurable: boolean;
+  configDisabled: boolean;
+  fromPrice: number | null;
   onAdjust: (d: number) => void;
+  onConfigure: () => void;
 }) {
   const { t } = useTranslation();
   return (
     <li className="flex items-center justify-between gap-3 border-b border-line/60 py-2 last:border-0">
       <div className="min-w-0">
         <p className="text-base font-medium">{item.name}</p>
-        <p className="tabular text-sm text-muted">{formatMinorUnits(item.basePriceMinorUnits)}</p>
+        <p className="tabular text-sm text-muted">
+          {fromPrice !== null
+            ? t('restaurant.builder.fromPrice', { price: formatMinorUnits(fromPrice) })
+            : formatMinorUnits(item.basePriceMinorUnits)}
+          {configurable && qty > 0 && <span> - {t('restaurant.builder.inOrder', { count: qty })}</span>}
+        </p>
       </div>
-      <div className="flex shrink-0 items-center gap-1" role="group" aria-label={t('restaurant.builder.quantity', { name: item.name })}>
-        {qty > 0 && (
-          <>
-            <button
-              type="button"
-              disabled={locked}
-              aria-label={t('restaurant.builder.remove', { name: item.name })}
-              onClick={() => onAdjust(-1)}
-              className="grid size-11 place-items-center rounded-control border border-line bg-surface text-xl hover:bg-sunken disabled:opacity-50"
-            >
-              <span aria-hidden>-</span>
-            </button>
-            <span className="tabular w-8 text-center text-lg font-semibold" aria-live="polite">
-              {qty}
-            </span>
-          </>
-        )}
-        <button
-          type="button"
-          disabled={locked}
-          aria-label={t('restaurant.builder.add', { name: item.name })}
-          onClick={() => onAdjust(1)}
-          className="grid size-11 place-items-center rounded-control bg-accent text-xl text-surface hover:bg-accent-strong disabled:opacity-50"
-        >
-          <span aria-hidden>+</span>
-        </button>
-      </div>
+      {configurable ? (
+        <Button size="lg" variant="secondary" disabled={locked || configDisabled} onClick={onConfigure} aria-label={t('restaurant.builder.choose', { name: item.name })}>
+          {t('restaurant.builder.chooseShort')}
+        </Button>
+      ) : (
+        <div className="flex shrink-0 items-center gap-1" role="group" aria-label={t('restaurant.builder.quantity', { name: item.name })}>
+          {qty > 0 && (
+            <>
+              <button
+                type="button"
+                disabled={locked}
+                aria-label={t('restaurant.builder.remove', { name: item.name })}
+                onClick={() => onAdjust(-1)}
+                className="grid size-12 place-items-center rounded-control border border-line bg-surface text-xl hover:bg-sunken disabled:opacity-50"
+              >
+                <span aria-hidden>-</span>
+              </button>
+              <span className="tabular w-8 text-center text-lg font-semibold" aria-live="polite">
+                {qty}
+              </span>
+            </>
+          )}
+          <button
+            type="button"
+            disabled={locked}
+            aria-label={t('restaurant.builder.add', { name: item.name })}
+            onClick={() => onAdjust(1)}
+            className="grid size-12 place-items-center rounded-control bg-accent text-xl text-surface hover:bg-accent-strong disabled:opacity-50"
+          >
+            <span aria-hidden>+</span>
+          </button>
+        </div>
+      )}
     </li>
+  );
+}
+
+function CartSummary({ cart, locked, onAdjust }: { cart: CartLine[]; locked: boolean; onAdjust: (key: string, d: number) => void }) {
+  const { t } = useTranslation();
+  if (cart.length === 0) return null;
+  return (
+    <section className="mt-4 border-t border-line pt-3" aria-label={t('restaurant.builder.cartTitle')}>
+      <h3 className="mb-1 text-lg font-semibold">{t('restaurant.builder.cartTitle')}</h3>
+      <ul>
+        {cart.map((l) => {
+          const detail = [l.variantName, ...l.optionNames].filter(Boolean).join(', ');
+          return (
+            <li key={l.key} className="flex items-center justify-between gap-3 border-b border-line/60 py-2 last:border-0">
+              <div className="min-w-0">
+                <p className="text-base font-medium">{l.itemName}</p>
+                {detail && <p className="text-sm text-muted">{detail}</p>}
+                {l.note && (
+                  <p className="text-sm text-muted">
+                    {t('restaurant.builder.notePrefix')} {l.note}
+                  </p>
+                )}
+                <p className="tabular text-sm">{formatMinorUnits(l.unitPriceMinorUnits * l.quantity)}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1" role="group" aria-label={t('restaurant.builder.quantity', { name: l.itemName })}>
+                <button
+                  type="button"
+                  disabled={locked}
+                  aria-label={l.quantity === 1 ? t('restaurant.builder.removeLine', { name: l.itemName }) : t('restaurant.builder.remove', { name: l.itemName })}
+                  onClick={() => onAdjust(l.key, -1)}
+                  className="grid size-12 place-items-center rounded-control border border-line bg-surface text-xl hover:bg-sunken disabled:opacity-50"
+                >
+                  <span aria-hidden>-</span>
+                </button>
+                <span className="tabular w-8 text-center text-lg font-semibold">{l.quantity}</span>
+                <button
+                  type="button"
+                  disabled={locked}
+                  aria-label={t('restaurant.builder.add', { name: l.itemName })}
+                  onClick={() => onAdjust(l.key, 1)}
+                  className="grid size-12 place-items-center rounded-control border border-line bg-surface text-xl hover:bg-sunken disabled:opacity-50"
+                >
+                  <span aria-hidden>+</span>
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -81,7 +165,10 @@ export function OrderBuilder({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [configItem, setConfigItem] = useState<CatalogItem | null>(null);
+  const [groupsById, setGroupsById] = useState<ReadonlyMap<string, ModifierGroup>>(new Map());
+  const [groupsState, setGroupsState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState('');
   const [category, setCategory] = useState('all');
   const [draftSaved, setDraftSaved] = useState(false);
@@ -91,9 +178,30 @@ export function OrderBuilder({
   const idempotencyKey = useRef(crypto.randomUUID());
   const draftId = useRef<string | null>(null);
 
-  const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
-  const total = Object.entries(cart).reduce((sum, [id, qty]) => sum + (itemById.get(id)?.basePriceMinorUnits ?? 0) * qty, 0);
-  const count = Object.values(cart).reduce((a, b) => a + b, 0);
+  const needsGroups = useMemo(() => items.some((i) => (i.modifierGroups?.length ?? 0) > 0), [items]);
+  useEffect(() => {
+    if (!needsGroups) {
+      setGroupsState('ready');
+      return;
+    }
+    let live = true;
+    catalogApi
+      .listModifierGroups()
+      .then((list) => {
+        if (!live) return;
+        setGroupsById(new Map(list.map((g) => [g.id, g])));
+        setGroupsState('ready');
+      })
+      .catch(() => {
+        if (live) setGroupsState('failed');
+      });
+    return () => {
+      live = false;
+    };
+  }, [needsGroups]);
+
+  const total = cartTotal(cart);
+  const count = cartCount(cart);
 
   const groups = useMemo(() => {
     const active = items.filter((i) => i.isActive);
@@ -111,19 +219,26 @@ export function OrderBuilder({
   const visible = category === 'all' ? groups : groups.filter((g) => g.key === category);
   const locked = busy || draftSaved;
 
-  function adjust(itemId: string, delta: number) {
+  /** Total quantity of an item across all its configurations. */
+  function qtyFor(item: CatalogItem): number {
+    return cart.filter((l) => l.itemId === item.id).reduce((n, l) => n + l.quantity, 0);
+  }
+
+  function adjustPlain(item: CatalogItem, delta: number) {
     setError('');
     setCart((prev) => {
-      const next = { ...prev };
-      const cur = (next[itemId] ?? 0) + delta;
-      if (cur <= 0) delete next[itemId];
-      else next[itemId] = cur;
-      return next;
+      const line = buildLine(item, [], { variantId: null, options: {} }, '', 1);
+      return delta > 0 ? addLine(prev, line) : adjustLine(prev, line.key, delta);
     });
   }
 
+  function adjustLineQty(key: string, delta: number) {
+    setError('');
+    setCart((prev) => adjustLine(prev, key, delta));
+  }
+
   async function send() {
-    const lines = Object.entries(cart).map(([catalogItemId, quantity]) => ({ catalogItemId, quantity, modifiers: [] }));
+    const lines = toApiLines(cart);
     if (lines.length === 0) {
       setError(t('restaurant.builder.emptyCart'));
       return;
@@ -178,14 +293,49 @@ export function OrderBuilder({
               <section key={g.key} className="mb-4">
                 <h3 className="mb-1 text-lg font-semibold">{g.name}</h3>
                 <ul>
-                  {g.items.map((item) => (
-                    <ItemRow key={item.id} item={item} qty={cart[item.id] ?? 0} locked={locked} onAdjust={(d) => adjust(item.id, d)} />
-                  ))}
+                  {g.items.map((item) => {
+                    const configurable = needsConfiguration(item);
+                    const linked = item.modifierGroups?.length ?? 0;
+                    const variants = availableVariants(item);
+                    const fromPrice =
+                      variants.length > 1 ? item.basePriceMinorUnits + Math.min(...variants.map((v) => v.priceAdjMinorUnits)) : null;
+                    return (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        qty={qtyFor(item)}
+                        locked={locked}
+                        configurable={configurable}
+                        configDisabled={linked > 0 && groupsState !== 'ready'}
+                        fromPrice={fromPrice}
+                        onAdjust={(d) => adjustPlain(item, d)}
+                        onConfigure={() => setConfigItem(item)}
+                      />
+                    );
+                  })}
                 </ul>
               </section>
             ))}
+            <CartSummary cart={cart} locked={locked} onAdjust={adjustLineQty} />
           </div>
         </>
+      )}
+      {groupsState === 'failed' && (
+        <p role="alert" className="mt-3 text-sm text-bad">
+          {t('restaurant.builder.optionsLoadFailed')}
+        </p>
+      )}
+      {configItem && (
+        <ItemConfigDialog
+          item={configItem}
+          groups={itemGroups(configItem, groupsById)}
+          onClose={() => setConfigItem(null)}
+          onAdd={(line) => {
+            setError('');
+            setCart((prev) => addLine(prev, line));
+            setConfigItem(null);
+          }}
+        />
       )}
       <p role="alert" className="mt-3 text-sm text-bad">
         {error}

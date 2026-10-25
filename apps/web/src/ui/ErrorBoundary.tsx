@@ -16,6 +16,7 @@ export class ErrorBoundary extends Component<Props, { failed: boolean }> {
   }
 
   componentDidCatch(err: Error, info: ErrorInfo): void {
+    // eslint-disable-next-line no-console -- surfaces render failures to the browser console for support
     console.error(err, info.componentStack);
   }
 

@@ -1,0 +1,134 @@
+{
+  "shell": {
+    "nav": {
+      "bills": "Bills"
+    }
+  },
+  "bills": {
+    "title": "Bills",
+    "description": "Find a past bill to review its payments, refund money, or cancel an unpaid bill.",
+    "loading": "Loading bills",
+    "loadError": "We could not load the bills.",
+    "retry": "Try again",
+    "close": "Close",
+    "cancel": "Cancel",
+    "back": "Back",
+    "review": "Review",
+    "open": "Open",
+    "openBill": "Open bill {{number}}",
+    "draft": "Draft",
+    "noTable": "No table",
+    "noPayment": "None",
+    "notPaid": "Not paid",
+    "reason": "Reason (required)",
+    "reasonRequired": "Enter a reason before continuing.",
+    "showing": "Showing {{from}}-{{to}} of {{total}}",
+    "prev": "Previous",
+    "next": "Next",
+    "empty": {
+      "title": "No bills found",
+      "body": "Try a different status or date range."
+    },
+    "filter": {
+      "status": "Status",
+      "all": "All bills",
+      "from": "From date",
+      "to": "To date",
+      "presets": "Quick date ranges",
+      "today": "Today",
+      "last7": "Last 7 days",
+      "month": "This month",
+      "clearDates": "Clear dates",
+      "rangeInvalid": "The end date is before the start date."
+    },
+    "col": {
+      "bill": "Bill",
+      "table": "Table",
+      "total": "Total",
+      "status": "Status",
+      "paid": "Paid at",
+      "methods": "Paid with",
+      "actions": "Actions"
+    },
+    "status": {
+      "PAID": "Paid",
+      "FINALISED": "Awaiting payment",
+      "VOIDED": "Voided",
+      "DRAFT": "Draft"
+    },
+    "method": {
+      "CASH": "Cash",
+      "UPI": "UPI",
+      "CARD": "Card"
+    },
+    "paymentStatus": {
+      "PENDING": "Pending",
+      "CAPTURED": "Received",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
+    "refundStatus": {
+      "PENDING": "Pending payout",
+      "PROCESSED": "Refunded",
+      "FAILED": "Failed"
+    },
+    "detail": {
+      "title": "Bill {{number}}",
+      "titleDraft": "Draft bill",
+      "titleLoading": "Bill",
+      "loadError": "We could not load this bill.",
+      "paidAt": "Paid {{time}}",
+      "voidedAt": "Voided {{time}}",
+      "voidReason": "Void reason: {{reason}}",
+      "items": "Items",
+      "noLines": "No item details are available for this bill.",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total",
+      "payments": "Payments",
+      "noPayments": "No payments were recorded.",
+      "reference": "Reference: {{ref}}",
+      "refundedSoFar": "Refunded so far: {{amount}}"
+    },
+    "refund": {
+      "action": "Refund (up to {{amount}})",
+      "fullyRefunded": "Fully refunded.",
+      "intro": "Refund part or all of this {{method}} payment. You can refund up to {{max}}.",
+      "amount": "Refund amount",
+      "amountHint": "Maximum {{max}}",
+      "amountErr": {
+        "empty": "Enter an amount.",
+        "invalid": "Enter a valid amount, like 250 or 250.50.",
+        "zero": "The amount must be more than zero.",
+        "exceeds": "You can refund at most {{max}}."
+      },
+      "confirm": "Refund {{amount}}",
+      "confirmBody": "Refund {{amount}} to the customer?",
+      "reasonLabel": "Reason: {{reason}}",
+      "upiNote": "UPI refunds are recorded as pending. You must send the money back to the customer yourself.",
+      "irreversible": "A refund cannot be undone.",
+      "done": "{{amount}} refunded.",
+      "donePending": "{{amount}} refund recorded. Send the money back to the customer manually."
+    },
+    "void": {
+      "action": "Void this bill",
+      "help": "Voiding cancels an unpaid bill so it can no longer be paid.",
+      "paidHint": "A paid bill cannot be voided. Use Refund on its payment instead.",
+      "intro": "Voiding cancels this bill and any pending payment on it.",
+      "confirm": "Void bill",
+      "confirmBody": "Void this bill? This cannot be undone.",
+      "done": "Bill voided."
+    },
+    "err": {
+      "network": "Cannot reach the server. Check your connection, then check the refunds listed on this bill before trying again.",
+      "noAccess": "Your role does not allow this action.",
+      "notFound": "That bill or payment no longer exists. Close this window and refresh.",
+      "exceeds": "That is more than can still be refunded. The amounts have been refreshed.",
+      "notCaptured": "Only payments that were received can be refunded.",
+      "alreadyVoided": "This bill is already voided.",
+      "paidCannotVoid": "A paid bill cannot be voided. Refund its payment instead.",
+      "versionConflict": "This bill was changed by someone else. The latest details are shown, please review and try again.",
+      "generic": "Something went wrong. Check the refunds listed on this bill before trying again."
+    }
+  }
+}

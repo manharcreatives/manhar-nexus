@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState, type ComponentType, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -15,7 +15,9 @@ import { TablesPage } from '../restaurant/TablesPage';
 import { KitchenPage } from '../restaurant/KitchenPage';
 import { CostsPage } from '../costs/CostsPage';
 import { HomePage } from '../home/HomePage';
+import { BillsPage } from '../bills/BillsPage';
 import { Button } from '../ui/Button';
+import { PageHeader } from '../ui/PageHeader';
 import { EmptyState } from '../ui/states';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import * as Icons from '../ui/icons';
@@ -23,6 +25,7 @@ import * as Icons from '../ui/icons';
 // Role gating helpers (role keys from /auth/me). UI gating is convenience; the API is the boundary.
 const FULL_ACCESS_ROLES = new Set(['owner', 'location-manager', 'platform-admin']);
 const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 'service-team', 'host']);
+const BILLS_ROLES = new Set(['owner', 'location-manager', 'checkout-associate']);
 const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
 
 function hasAnyRole(userRoles: { key: string }[], allowed: Set<string>): boolean {
@@ -68,6 +71,7 @@ export function AppShell() {
   // The platform realm has no tenant context, so tenant pages would only 403 for it.
   const canSeeTables = !isPlatform && hasAnyRole(roles, TABLE_ROLES);
   const canSeeKitchen = !isPlatform && hasAnyRole(roles, KITCHEN_ROLES);
+  const canSeeBills = !isPlatform && hasAnyRole(roles, BILLS_ROLES);
   const canSeeCosts = !isPlatform && isFullAccess;
 
   const entries: NavEntry[] = [
@@ -78,6 +82,7 @@ export function AppShell() {
     { to: '/activity', label: t('shell.nav.activity'), icon: Icons.History, show: isFullAccess && !isPlatform, group: 'main' },
     { to: '/tables', label: t('shell.nav.tables'), icon: Icons.Armchair, show: canSeeTables, group: 'restaurant' },
     { to: '/kitchen', label: t('shell.nav.kitchen'), icon: Icons.ChefHat, show: canSeeKitchen, group: 'restaurant' },
+    { to: '/bills', label: t('shell.nav.bills'), icon: Icons.Receipt, show: canSeeBills, group: 'restaurant' },
     { to: '/costs', label: t('shell.nav.costs'), icon: Icons.Wallet, show: canSeeCosts, group: 'operations' },
     { to: '/commercial', label: t('shell.nav.commercial'), icon: Icons.Receipt, show: isPlatform, group: 'platform' },
     { to: '/onboarding', label: t('shell.nav.onboarding'), icon: Icons.Rocket, show: isPlatform, group: 'platform' },
@@ -88,6 +93,14 @@ export function AppShell() {
     ['operations', t('shell.nav.operations')],
     ['platform', t('shell.nav.platform')],
   ];
+
+  // UI gating is a convenience (the API is the real boundary); this explains a denied deep link.
+  const guarded = (path: string, allowed: boolean, page: ReactElement) => (
+    <Route
+      path={path}
+      element={allowed ? page : <EmptyState title={t('shell.noAccessTitle')} body={t('shell.noAccessBody')} />}
+    />
+  );
 
   const nav = (
     <nav aria-label={t('shell.primaryNav')} className="space-y-5">
@@ -179,17 +192,18 @@ export function AppShell() {
           <ErrorBoundary key={location.pathname} title={t('shell.crashTitle')} body={t('shell.crashBody')} retry={t('modules.retry')}>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/modules" element={<ModuleCenter />} />
-            <Route path="/config" element={<ConfigCenter />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/activity" element={<ActivityPage />} />
-            <Route path="/commercial" element={<CommercialPage />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/tables" element={<TablesPage />} />
-            <Route path="/kitchen" element={<KitchenPage />} />
-            <Route path="/costs" element={<CostsPage />} />
+            {guarded('/modules', isFullAccess && !isPlatform, <ModuleCenter />)}
+            {guarded('/config', isFullAccess && !isPlatform, <ConfigCenter />)}
+            {guarded('/reports', isFullAccess && !isPlatform, <ReportsPage />)}
+            {guarded('/activity', isFullAccess && !isPlatform, <ActivityPage />)}
+            {guarded('/commercial', isPlatform, <CommercialPage />)}
+            {guarded('/onboarding', isPlatform, <OnboardingPage />)}
+            {guarded('/tables', canSeeTables, <TablesPage />)}
+            {guarded('/kitchen', canSeeKitchen, <KitchenPage />)}
+            {guarded('/bills', canSeeBills, <BillsPage />)}
+            {guarded('/costs', canSeeCosts, <CostsPage />)}
             <Route path="/home" element={<Navigate to="/" replace />} />
-            <Route path="*" element={<EmptyState title={t('shell.notFoundTitle')} body={t('shell.notFoundBody')} />} />
+            <Route path="*" element={<PageHeader title={t('shell.notFoundTitle')} description={t('shell.notFoundBody')} />} />
           </Routes>
           </ErrorBoundary>
         </main>
