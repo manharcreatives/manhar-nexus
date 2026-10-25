@@ -1,7 +1,16 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { billsApi, type InvoiceDetail, type Payment } from './api';
-import { canVoid, classifyBillError, minorToInput, refundableMinor, refundedTotal, validateRefundAmount } from './helpers';
+import {
+  canVoid,
+  classifyBillError,
+  minorToInput,
+  nextRefundAttempt,
+  refundableMinor,
+  refundedTotal,
+  validateRefundAmount,
+  type RefundAttempt,
+} from './helpers';
 import { StatusBadge } from './StatusBadge';
 import { useAsync } from '../reports/useAsync';
 import { formatMoney } from '../lib/money';
@@ -35,6 +44,10 @@ export function BillDetailDialog({ invoiceId, onClose, onChanged }: Props) {
   // Synchronous guard: state updates are async, so a fast double-click could
   // otherwise slip a second request through before `submitting` re-renders.
   const inFlight = useRef(false);
+  // One idempotency key per refund attempt (payment + amount): kept across
+  // retries so an unknown outcome is replayed, not refunded twice; cleared on
+  // success, and replaced automatically when the amount or payment changes.
+  const refundAttempt = useRef<RefundAttempt | null>(null);
 
   const load = useCallback(
     () => (invoiceId ? Promise.all([billsApi.invoice(invoiceId), billsApi.payments(invoiceId)]) : Promise.reject(new Error('no id'))),
@@ -91,8 +104,15 @@ export function BillDetailDialog({ invoiceId, onClose, onChanged }: Props) {
     inFlight.current = true;
     setSubmitting(true);
     setFormError(null);
+    const attempt = nextRefundAttempt(refundAttempt.current, activePayment.id, amountCheck.minor, () => crypto.randomUUID());
+    refundAttempt.current = attempt;
     try {
-      const refund = await billsApi.refund(activePayment.id, { amountMinorUnits: amountCheck.minor, reason: reason.trim() });
+      const refund = await billsApi.refund(activePayment.id, {
+        amountMinorUnits: amountCheck.minor,
+        reason: reason.trim(),
+        idempotencyKey: attempt.key,
+      });
+      refundAttempt.current = null;
       toast.show(
         refund.status === 'PENDING'
           ? t('bills.refund.donePending', { amount: formatMoney(amountCheck.minor, invoice?.currencyCode) })

@@ -5,6 +5,7 @@ import {
   dayEndIso,
   dayStartIso,
   minorToInput,
+  nextRefundAttempt,
   refundableMinor,
   refundedTotal,
   validateRefundAmount,
@@ -69,5 +70,32 @@ describe('bill helpers', () => {
     expect(classifyBillError({ status: 409, message: 'Cannot void a PAID invoice - use a refund instead' })).toBe('paidCannotVoid');
     expect(classifyBillError({ status: 409, code: 'VERSION_CONFLICT' })).toBe('versionConflict');
     expect(classifyBillError({ status: 500 })).toBe('generic');
+  });
+});
+
+describe('refund idempotency key', () => {
+  let n = 0;
+  const gen = () => `key-${++n}`;
+
+  it('keeps the key when retrying the same payment and amount', () => {
+    const first = nextRefundAttempt(null, 'p1', 500, gen);
+    expect(nextRefundAttempt(first, 'p1', 500, gen)).toBe(first);
+  });
+
+  it('starts a fresh key when the amount changes', () => {
+    const first = nextRefundAttempt(null, 'p1', 500, gen);
+    const next = nextRefundAttempt(first, 'p1', 400, gen);
+    expect(next.key).not.toBe(first.key);
+    expect(next).toMatchObject({ paymentId: 'p1', amountMinor: 400 });
+  });
+
+  it('starts a fresh key for a different payment', () => {
+    const first = nextRefundAttempt(null, 'p1', 500, gen);
+    expect(nextRefundAttempt(first, 'p2', 500, gen).key).not.toBe(first.key);
+  });
+
+  it('starts a fresh key after a cleared (successful) attempt', () => {
+    const first = nextRefundAttempt(null, 'p1', 500, gen);
+    expect(nextRefundAttempt(null, 'p1', 500, gen).key).not.toBe(first.key);
   });
 });

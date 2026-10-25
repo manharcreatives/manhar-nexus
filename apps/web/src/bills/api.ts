@@ -103,7 +103,8 @@ export const billsApi = {
   },
   invoice: (id: string) => api<InvoiceDetail>(`/admin/checkout/invoices/${id}`),
   payments: (invoiceId: string) => api<Payment[]>(`/admin/checkout/invoices/${invoiceId}/payments`),
-  refund: (paymentId: string, body: { amountMinorUnits: number; reason: string }) =>
+  /** `idempotencyKey` makes a retried refund replay the original instead of refunding twice. */
+  refund: (paymentId: string, body: { amountMinorUnits: number; reason: string; idempotencyKey: string }) =>
     api<Refund>(`/admin/checkout/payments/${paymentId}/refunds`, { method: 'POST', body: JSON.stringify(body) }),
   voidInvoice: (id: string, body: { reason: string; expectedVersion?: number }) =>
     api<InvoiceDetail>(`/admin/checkout/invoices/${id}/void`, { method: 'POST', body: JSON.stringify(body) }),

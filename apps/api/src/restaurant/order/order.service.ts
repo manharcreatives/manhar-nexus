@@ -583,41 +583,81 @@ export class OrderService extends TenantScopedRepository {
   ): Promise<LineSnapshot[]> {
     const snapshots: LineSnapshot[] = [];
 
-    for (const line of lines) {
+    for (const [lineIndex, line] of lines.entries()) {
       const item = await this.prisma.catalogItem.findFirst({
         where: this.scoped(scope, { id: line.catalogItemId }),
-        include: { taxCategory: true },
+        include: {
+          taxCategory: true,
+          variants: true,
+          modifierGroups: { include: { modifierGroup: { include: { options: true } } } },
+        },
       });
       if (!item) throw new NotFoundError('Catalog item not found', { catalogItemId: line.catalogItemId });
       this.assertOwned(item, scope);
       if (!item.isActive) throw new ValidationError('Catalog item is not active', { catalogItemId: line.catalogItemId });
 
+      const fail = (reason: LineConfigReason, message: string, extra: Record<string, unknown> = {}): never => {
+        throw new ValidationError(`${LINE_CONFIG_ERROR_PREFIX}: ${message}`, {
+          reason,
+          lineIndex,
+          catalogItemId: item.id,
+          ...extra,
+        });
+      };
+
       let unitPrice = item.basePriceMinorUnits;
       let variantName: string | undefined;
 
+      // Variant: optional (variants are price deltas over the item base price),
+      // but if one is given it must belong to THIS item and be available.
       if (line.variantId) {
-        const variant = await this.prisma.catalogVariant.findFirst({
-          where: this.scoped(scope, { id: line.variantId, catalogItemId: line.catalogItemId }),
-        });
-        if (!variant) throw new NotFoundError('Catalog variant not found', { variantId: line.variantId });
-        unitPrice += variant.priceAdjMinorUnits;
-        variantName = variant.name;
+        const variant = item.variants.find((v) => v.id === line.variantId && v.businessId === scope.businessId);
+        if (!variant) fail('VARIANT_NOT_FOR_ITEM', 'variant does not belong to this item', { variantId: line.variantId });
+        else {
+          if (!variant.isAvailable) fail('VARIANT_UNAVAILABLE', 'variant is not available', { variantId: variant.id });
+          unitPrice += variant.priceAdjMinorUnits;
+          variantName = variant.name;
+        }
       }
 
-      // Resolve modifier snapshots
+      // Modifiers: only options of ACTIVE groups linked to this item, each at
+      // most once, and every linked group's selection bounds must hold.
+      const linkedGroups = item.modifierGroups
+        .map((link) => link.modifierGroup)
+        .filter((g) => g.isActive && g.businessId === scope.businessId);
+      const optionIds = (line.modifiers ?? []).map((m) => m.modifierOptionId);
+      const seen = new Set<string>();
+      for (const id of optionIds) {
+        if (seen.has(id)) fail('DUPLICATE_OPTION', 'an option was selected more than once', { modifierOptionId: id });
+        seen.add(id);
+      }
+
       const modifierSnapshots: ModifierSnapshot[] = [];
-      for (const mod of line.modifiers ?? []) {
-        const option = await this.prisma.modifierOption.findFirst({
-          where: this.scoped(scope, { id: mod.modifierOptionId }),
-        });
-        if (!option) throw new NotFoundError('Modifier option not found', { modifierOptionId: mod.modifierOptionId });
-        this.assertOwned(option, scope);
-        unitPrice += option.priceAdjMinorUnits;
-        modifierSnapshots.push({
-          modifierOptionId: option.id,
-          optionNameSnapshot: option.name,
-          priceAdjMinorUnits: option.priceAdjMinorUnits,
-        });
+      for (const id of optionIds) {
+        const group = linkedGroups.find((g) => g.options.some((o) => o.id === id));
+        const option = group?.options.find((o) => o.id === id);
+        if (!group || !option) {
+          fail('OPTION_NOT_FOR_ITEM', 'option is not offered for this item', { modifierOptionId: id });
+        } else {
+          if (!option.isAvailable) fail('OPTION_UNAVAILABLE', 'option is not available', { modifierOptionId: id });
+          unitPrice += option.priceAdjMinorUnits;
+          modifierSnapshots.push({
+            modifierOptionId: option.id,
+            optionNameSnapshot: option.name,
+            priceAdjMinorUnits: option.priceAdjMinorUnits,
+          });
+        }
+      }
+
+      for (const group of linkedGroups) {
+        const { min, max } = modifierGroupBounds(group);
+        const picked = group.options.filter((o) => seen.has(o.id)).length;
+        if (picked < min) {
+          fail('GROUP_MIN', `"${group.name}" needs at least ${min} selection(s)`, { modifierGroupId: group.id, min, picked });
+        }
+        if (picked > max) {
+          fail('GROUP_MAX', `"${group.name}" allows at most ${max} selection(s)`, { modifierGroupId: group.id, max, picked });
+        }
       }
 
       snapshots.push({
@@ -645,6 +685,40 @@ export class OrderService extends TenantScopedRepository {
     });
     if (!row) throw new ValidationError('Staff profile not found in this business', { staffId });
   }
+}
+
+/** Stable prefix of every order-line configuration ValidationError message (clients match on it). */
+export const LINE_CONFIG_ERROR_PREFIX = 'Invalid item configuration';
+
+/** Machine-readable `details.reason` of a line configuration ValidationError. */
+export type LineConfigReason =
+  | 'VARIANT_NOT_FOR_ITEM'
+  | 'VARIANT_UNAVAILABLE'
+  | 'OPTION_NOT_FOR_ITEM'
+  | 'OPTION_UNAVAILABLE'
+  | 'DUPLICATE_OPTION'
+  | 'GROUP_MIN'
+  | 'GROUP_MAX';
+
+/**
+ * Effective min/max picks for a modifier group — identical to the web
+ * builder's `groupBounds` (apps/web/src/restaurant/cart.ts) so the server never
+ * rejects a selection the UI allowed: required implies at least one, SINGLE
+ * caps at one, and both are clamped to the options currently available (a
+ * required group whose options are all sold out does not block the item).
+ */
+export function modifierGroupBounds(group: {
+  selectionType: 'SINGLE' | 'MULTIPLE';
+  isRequired: boolean;
+  minSelections: number;
+  maxSelections: number | null;
+  options: { isAvailable: boolean }[];
+}): { min: number; max: number } {
+  const count = group.options.filter((o) => o.isAvailable).length;
+  const min = Math.min(Math.max(group.minSelections, group.isRequired ? 1 : 0), count);
+  const cap = group.selectionType === 'SINGLE' ? 1 : (group.maxSelections ?? count);
+  const max = Math.max(min, Math.min(cap, count));
+  return { min, max };
 }
 
 interface LineSnapshot {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InvoiceStatus, PaymentStatus, type Payment, type Refund } from '@prisma/client';
+import { InvoiceStatus, PaymentStatus, Prisma, type Payment, type Refund } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConflictError, NotFoundError, ValidationError, VersionConflictError } from '../../common/errors';
 import { TenantScopedRepository } from '../../common/tenant-scoped.repository';
@@ -258,6 +258,15 @@ export class PaymentService extends TenantScopedRepository {
   async createRefund(scope: TenantScope, paymentId: string, dto: CreateRefundDto): Promise<Refund> {
     const payment = await this.findPaymentOrThrow(scope, paymentId);
 
+    // Early idempotency check (mirrors initiatePayment): a key we have already
+    // seen replays the original refund without re-validating or re-refunding.
+    if (dto.idempotencyKey) {
+      const existing = await this.prisma.refund.findFirst({
+        where: this.scoped(scope, { idempotencyKey: dto.idempotencyKey }),
+      });
+      if (existing) return this.replayRefund(existing, paymentId, dto);
+    }
+
     if (payment.status !== PaymentStatus.CAPTURED) {
       throw new ValidationError('Only CAPTURED payments can be refunded', { paymentId, status: payment.status });
     }
@@ -265,8 +274,44 @@ export class PaymentService extends TenantScopedRepository {
     // Serialise concurrent refunds: take the tenant advisory lock, then compute
     // the remaining balance INSIDE the transaction so two simultaneous requests
     // cannot both pass the check and over-refund the same payment.
+    try {
+      return await this.createRefundLocked(scope, payment, dto);
+    } catch (e) {
+      // Unique (businessId, idempotencyKey) race: another request won → replay it.
+      if (dto.idempotencyKey && e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const existing = await this.prisma.refund.findFirst({
+          where: this.scoped(scope, { idempotencyKey: dto.idempotencyKey }),
+        });
+        if (existing) return this.replayRefund(existing, paymentId, dto);
+      }
+      throw e;
+    }
+  }
+
+  /** Same key + same payment + same amount → the original refund; anything else → 409. */
+  private replayRefund(existing: Refund, paymentId: string, dto: CreateRefundDto): Refund {
+    if (existing.paymentId !== paymentId || existing.amountMinorUnits !== dto.amountMinorUnits) {
+      throw new ConflictError('Idempotency key was already used for a different refund', {
+        idempotencyKey: dto.idempotencyKey,
+        existingRefundId: existing.id,
+      });
+    }
+    return existing;
+  }
+
+  private createRefundLocked(scope: TenantScope, payment: Payment, dto: CreateRefundDto): Promise<Refund> {
+    const paymentId = payment.id;
     return this.prisma.$transaction(async (tx) => {
       await lockBusiness(tx, scope.businessId);
+
+      // Re-check under the lock: a concurrent request with the same key that
+      // committed first must be replayed, never refunded a second time.
+      if (dto.idempotencyKey) {
+        const existing = await tx.refund.findFirst({
+          where: { businessId: scope.businessId, idempotencyKey: dto.idempotencyKey },
+        });
+        if (existing) return this.replayRefund(existing, paymentId, dto);
+      }
 
       // Scope to businessId (defense-in-depth - paymentId already validated via findPaymentOrThrow)
       const existingRefunds = await tx.refund.aggregate({
@@ -295,6 +340,7 @@ export class PaymentService extends TenantScopedRepository {
         data: {
           businessId: scope.businessId,
           paymentId,
+          idempotencyKey: dto.idempotencyKey ?? null,
           reason: dto.reason,
           amountMinorUnits: dto.amountMinorUnits,
           status: result.status,
@@ -314,6 +360,7 @@ export class PaymentService extends TenantScopedRepository {
           amountMinorUnits: dto.amountMinorUnits,
           reason: dto.reason,
           status: result.status,
+          idempotencyKey: dto.idempotencyKey ?? null,
         },
       });
 

@@ -1306,6 +1306,9 @@ model Refund {
   id               String       @id @default(uuid()) @db.Uuid
   businessId       String       @db.Uuid
   paymentId        String       @db.Uuid
+  /// Optional client-generated UUID; a retried refund with the same key replays
+  /// the original refund instead of refunding twice. NULLs never collide.
+  idempotencyKey   String?      @db.Uuid
   reason           String
   amountMinorUnits Int
   status           RefundStatus @default(PENDING)
@@ -1320,6 +1323,7 @@ model Refund {
   business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
   payment  Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
 
+  @@unique([businessId, idempotencyKey])
   @@index([businessId])
   @@index([paymentId])
   @@map("refund")

@@ -22,6 +22,11 @@ export const cancelPaymentSchema = z.object({
 });
 
 export const createRefundSchema = z.object({
+  /**
+   * Optional client-generated UUID. Retrying with the same key replays the
+   * original refund; reusing it for a different payment/amount is a 409.
+   */
+  idempotencyKey: z.string().uuid().optional(),
   reason: z.string().min(1).max(500),
   amountMinorUnits: z.number().int().positive(),
   notes: z.string().max(500).optional(),

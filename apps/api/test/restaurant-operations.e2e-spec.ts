@@ -216,6 +216,14 @@ describe('Restaurant Operations — Phase 8 (e2e)', () => {
     expect(moRes.status).toBe(201);
     modOptionId = moRes.body.id as string;
 
+    // Add-ons are offered per item: the server only accepts options from groups
+    // linked to the ordered item, so link the group as a real menu would.
+    const linkRes = await aPost(ownerAToken, `/admin/catalog/items/${catalogItemId}/modifier-groups`, {
+      modifierGroupId: modGroupId,
+      sortOrder: 0,
+    });
+    expect(linkRes.status).toBe(201);
+
     // ── Dining fixtures for Biz A ────────────────────────────────────────────────
     const areaRes = await aPost(ownerAToken, '/admin/dining/areas', {
       locationId: locAId,

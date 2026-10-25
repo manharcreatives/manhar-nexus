@@ -26,7 +26,8 @@
       "payment": "The payment was not recorded.",
       "loadOrders": "Could not load the orders for this table.",
       "loadKitchen": "Could not load the kitchen queue.",
-      "kitchenAction": "Could not update the ticket. The queue has been refreshed."
+      "kitchenAction": "Could not update the ticket. The queue has been refreshed.",
+      "lineConfig": "That option isn't available for this item. Refresh the menu and try again."
     },
     "tables": {
       "title": "Tables",

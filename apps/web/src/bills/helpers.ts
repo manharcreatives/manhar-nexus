@@ -43,6 +43,29 @@ export function minorToInput(minor: number): string {
   return `${sign}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, '0')}`;
 }
 
+/** The idempotency key of one refund attempt: a specific amount on a specific payment. */
+export interface RefundAttempt {
+  key: string;
+  paymentId: string;
+  amountMinor: number;
+}
+
+/**
+ * Key for the next refund submission. A retry of the same payment + amount
+ * keeps the previous key (so an unknown outcome, e.g. a dropped connection,
+ * replays the original refund instead of refunding twice); any change of
+ * payment or amount starts a fresh attempt. Callers clear it after success.
+ */
+export function nextRefundAttempt(
+  prev: RefundAttempt | null,
+  paymentId: string,
+  amountMinor: number,
+  newKey: () => string,
+): RefundAttempt {
+  if (prev && prev.paymentId === paymentId && prev.amountMinor === amountMinor) return prev;
+  return { key: newKey(), paymentId, amountMinor };
+}
+
 /** An invoice can be voided only before it is paid (the API rejects PAID and VOIDED). */
 export function canVoid(status: string): boolean {
   return status === 'DRAFT' || status === 'FINALISED';
