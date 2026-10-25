@@ -1,7 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import type { ApiError } from './api';
+import { brand } from '../lib/brand';
+import { Button } from '../ui/Button';
+import { Field } from '../ui/Field';
+import * as Icons from '../ui/icons';
 
 /** Maps an auth error to a user-facing i18n key (no server text leakage). */
 function messageKey(err: ApiError): string {
@@ -18,11 +22,14 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (submitting) return;
     setErrorKey(null);
     setSubmitting(true);
     try {
@@ -34,61 +41,91 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
     }
   }
 
+  const onKey = (e: KeyboardEvent<HTMLInputElement>) => setCapsLock(e.getModifierState('CapsLock'));
+
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 flex items-center gap-2">
-          <span aria-hidden className="inline-block h-7 w-7 rounded-md bg-blue-700" />
-          <span className="text-lg font-semibold tracking-tight">{t('app.name')}</span>
+    <div className="grid min-h-screen w-full bg-paper lg:grid-cols-[1.1fr_1fr]">
+      <aside className="hidden flex-col justify-between bg-ink p-12 text-paper lg:flex">
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden
+            className="grid size-9 place-items-center rounded-control bg-accent font-display text-xl font-semibold text-surface"
+          >
+            {brand.name.charAt(0)}
+          </span>
+          <span className="font-display text-xl font-semibold">{brand.name}</span>
         </div>
-        <h1 className="text-xl font-semibold tracking-tight">{t('auth.signInTitle')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('auth.signInSubtitle')}</p>
+        <div>
+          <p className="max-w-md font-display text-5xl font-semibold leading-[1.05]">{t('auth.heroLine')}</p>
+          <p className="mt-5 max-w-sm text-base text-paper/70">{t('auth.heroBody')}</p>
+        </div>
+        <p className="text-sm text-paper/50">{t('auth.heroFootnote')}</p>
+      </aside>
 
-        {notice && (
-          <p role="status" className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            {t(`auth.${notice}`)}
-          </p>
-        )}
+      <main className="flex items-center justify-center px-5 py-10">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <span
+              aria-hidden
+              className="grid size-8 place-items-center rounded-control bg-accent font-display text-lg font-semibold text-surface"
+            >
+              {brand.name.charAt(0)}
+            </span>
+            <span className="font-display text-lg font-semibold">{brand.name}</span>
+          </div>
+          <h1 className="text-3xl font-semibold">{t('auth.signInTitle')}</h1>
+          <p className="mt-1.5 text-sm text-muted">{t('auth.signInSubtitle')}</p>
 
-        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">{t('auth.email')}</span>
-            <input
+          {notice && (
+            <p role="status" className="mt-5 rounded-control bg-warn-soft px-3 py-2 text-sm text-warn">
+              {t(`auth.${notice}`)}
+            </p>
+          )}
+
+          <form className="mt-7 space-y-5" onSubmit={onSubmit} noValidate={false}>
+            <Field
+              label={t('auth.email')}
               type="email"
               autoComplete="username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">{t('auth.password')}</span>
-            <input
-              type="password"
+            <Field
+              label={t('auth.password')}
+              type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              onKeyUp={onKey}
+              onKeyDown={onKey}
+              hint={capsLock ? t('auth.capsLock') : undefined}
+              adornment={
+                <button
+                  type="button"
+                  className="grid size-9 place-items-center rounded-control text-muted hover:bg-sunken"
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((s) => !s)}
+                >
+                  {showPassword ? <Icons.EyeOff className="size-4" /> : <Icons.Eye className="size-4" />}
+                </button>
+              }
             />
-          </label>
 
-          {errorKey && (
-            <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-              {t(errorKey)}
-            </p>
-          )}
+            {errorKey && (
+              <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad">
+                {t(errorKey)}
+              </p>
+            )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-md bg-blue-700 px-3 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60"
-          >
-            {submitting ? t('auth.signingIn') : t('auth.signIn')}
-          </button>
-        </form>
-      </div>
+            <Button type="submit" size="lg" loading={submitting} className="w-full">
+              {submitting ? t('auth.signingIn') : t('auth.signIn')}
+            </Button>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }

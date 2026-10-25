@@ -1,1 +1,71 @@
 @import "tailwindcss";
+@import "@fontsource-variable/fraunces/index.css";
+@import "@fontsource-variable/inter-tight/index.css";
+
+/*
+ * Design tokens — "Ledger & Ember". Single source of styling truth.
+ * Rebrand: change --color-accent-* here (or override at runtime via
+ * applyBrand() in lib/brand.ts). See docs/ui/OWNERSHIP_AND_WHITE_LABEL.md.
+ */
+@theme {
+  --font-display: "Fraunces Variable", Georgia, serif;
+  --font-ui: "Inter Tight Variable", ui-sans-serif, sans-serif;
+
+  --color-paper: #f6f1e9;
+  --color-surface: #fffdf9;
+  --color-sunken: #ece5d8;
+  --color-line: #ddd4c3;
+  --color-ink: #1b1a17;
+  --color-muted: #6b6558;
+
+  --color-accent: #b53a0a;
+  --color-accent-strong: #8f2d07;
+  --color-accent-soft: #fbe6da;
+
+  --color-ok: #3f6212;
+  --color-ok-soft: #e7efd4;
+  --color-warn: #92600a;
+  --color-warn-soft: #fbefcf;
+  --color-bad: #a32119;
+  --color-bad-soft: #fbe0dd;
+  --color-info: #1f5a6b;
+  --color-info-soft: #dcecf0;
+
+  --radius-control: 0.5rem;
+  --radius-panel: 0.875rem;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-micro: 160ms;
+  --duration-surface: 280ms;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-ui);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}

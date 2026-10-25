@@ -1,4 +1,5 @@
 import { api } from '../auth/api';
+import { formatMoney } from '../lib/money';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -150,9 +151,5 @@ export const costsApi = {
 };
 
 export function formatMinorUnits(minorUnits: number): string {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2,
-  }).format(minorUnits / 100);
+  return formatMoney(minorUnits);
 }

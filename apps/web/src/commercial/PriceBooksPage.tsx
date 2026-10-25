@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatMoney } from '../lib/money';
 import { listPriceBooks, createPriceBook, type PriceBook } from './api';
 
-function formatMinorUnits(amount: number, currency = 'INR'): string {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency, minimumFractionDigits: 2 }).format(
-    amount / 100,
-  );
-}
+const formatMinorUnits = formatMoney;
 
 export function PriceBooksPage() {
   const { t } = useTranslation();

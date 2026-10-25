@@ -1,4 +1,5 @@
 import { api } from '../auth/api';
+import { formatMoney } from '../lib/money';
 
 export interface PaymentMethodSummary {
   method: string;
@@ -74,10 +75,5 @@ export const reportsApi = {
 
 /** Format minor units (paise) to a readable currency string. */
 export function formatMinorUnits(minorUnits: number, currencyCode = 'INR'): string {
-  const major = minorUnits / 100;
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: currencyCode,
-    minimumFractionDigits: 2,
-  }).format(major);
+  return formatMoney(minorUnits, currencyCode);
 }
