@@ -157,7 +157,7 @@ export function AppShell() {
         </button>
         <BrandMark />
         <div className="ml-auto flex items-center gap-2">
-          <NotificationsPanel />
+          {!isPlatform && <NotificationsPanel />}
           <span className="hidden text-sm text-muted sm:inline" title={user?.email}>
             {isPlatform ? `${t('shell.platformRealm')} · ` : ''}
             {user?.displayName ?? user?.email}

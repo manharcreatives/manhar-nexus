@@ -17,4 +17,6 @@ Demo logins are printed by the seed (owner, cashier, kitchen, waiter). They are 
 | 4:15 | Activity History → Verify. | "Every action is recorded, and the log can prove it has not been tampered with." |
 | 4:45 | Sign out; sign in as **Demo Kitchen**. | "A kitchen user only sees what they need — no sales, no settings." |
 
-**Do not demo:** Card payment (not built), refunds from the floor (use Bills page once shipped), printing (needs a real printer).
+**Optional extras:** pick **Paneer Tikka** to show portion, spice and toppings choices (+₹30 for extra cheese); open **Bills** to show a past bill and the refund form.
+
+**Do not demo:** Card payment (not built), printing (needs a real printer), anything under Commercial/Onboarding unless the audience is the platform team.

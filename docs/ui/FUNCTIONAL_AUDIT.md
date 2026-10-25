@@ -32,3 +32,27 @@ modified `20260824130000_module_engine`. Not ours to alter; verify on a fresh DB
 ## To verify in Phase 4/5 (not yet exercised in a browser)
 Touch ergonomics of `TablesPage` (782 lines), UI double-submit protection on payment/close,
 sale -> Reports/Activity propagation, permission-denied messaging for non-owner roles.
+
+## Resolution status (end of pass)
+| # | Finding | Status |
+|---|---|---|
+| 1 | Disabled business/location selectors | Removed (honest). A working switcher is **not** built. |
+| 2 | No router | Fixed (react-router, real URLs). |
+| 3 | Placeholder home | Replaced with a real Today dashboard (thin; see CRITIQUE_LOG). |
+| 4 | Raw UUID onboarding input | Fixed (searchable client picker; list capped at 200 clients client-side). |
+| 5 | `window.prompt` module activation | Fixed (dialog with checklist). |
+| 6 | Four money formatters | Fixed (single `lib/money.ts`). |
+| 7 | No error boundary / 404 | Fixed, plus a designed no-access state for restricted deep links. |
+| 8 | Login UX | Fixed (toggle, Caps Lock hint, loading). Return-to-view after session expiry not built. |
+| 9 | Mobile nav | Fixed (drawer). |
+| 10 | Report export/print | CSV export and print added. |
+| 11 | Metadata | Favicon, theme-color, robots added; OG image not built. |
+
+### Found by driving the real UI (see QA_REPORT.md)
+Seed drift, missing `reports` module, table grouping, ₹NaN checkout, cash and UPI payment failures, refund race, platform-realm dead pages and bell. All fixed.
+
+### Newly added scope
+Bills page with refund and void (+ additive list endpoint), item variants and modifiers in the order builder.
+
+### Still open
+Business/location switcher; card payments; server-side modifier validation; refund idempotency key; trend charts; richer demo data; Lighthouse on authenticated routes; touch-hardware and screen-reader checks.
