@@ -55,7 +55,7 @@ export function ContextSwitcher({ isPlatform }: { isPlatform: boolean }) {
   }
 
   const businessLine = businessName && (
-    <span className="block truncate text-[0.6875rem] leading-4 font-medium tracking-wide text-muted uppercase">
+    <span id={`${uid}-biz`} className="block truncate text-[0.6875rem] leading-4 font-medium tracking-wide text-muted uppercase">
       {businessName}
     </span>
   );
@@ -145,16 +145,12 @@ export function ContextSwitcher({ isPlatform }: { isPlatform: boolean }) {
 
   return (
     <div ref={wrapRef} className="relative min-w-0">
-      <span id={labelId} className="sr-only">
-        {t('shell.locationSelector')}
-      </span>
       <button
         ref={buttonRef}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
-        aria-labelledby={`${labelId} ${uid}-value`}
         onClick={() => (open ? setOpen(false) : openAt(selectedIndex))}
         onKeyDown={onButtonKey}
         className={cn(
@@ -162,6 +158,10 @@ export function ContextSwitcher({ isPlatform }: { isPlatform: boolean }) {
           open && 'bg-sunken',
         )}
       >
+        {/* Name comes from the content (no aria-label override), so it always contains the visible text (WCAG 2.5.3). */}
+        <span id={labelId} className="sr-only">
+          {t('shell.locationSelector')}
+        </span>
         <span className="min-w-0 leading-tight">
           {businessLine}
           <span id={`${uid}-value`} className="flex min-w-0 items-center gap-1.5 text-sm font-medium">

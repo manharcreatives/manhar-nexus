@@ -135,15 +135,15 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onSignOut }: Pr
         onKeyDown={onButtonKey}
         className="grid size-11 place-items-center rounded-full transition-colors duration-(--duration-micro) hover:bg-sunken"
       >
+        {/* Initials come from CSS so they are not "visible label text" the accessible name must repeat (WCAG 2.5.3). */}
         <span
           aria-hidden
+          data-initials={initialsOf(user.displayName, user.email)}
           className={cn(
-            'grid size-8 place-items-center rounded-full text-xs font-semibold tracking-wide',
+            'grid size-8 place-items-center rounded-full text-xs font-semibold tracking-wide before:content-[attr(data-initials)]',
             isPlatform ? 'bg-ink text-surface' : 'bg-accent-soft text-accent-strong',
           )}
-        >
-          {initialsOf(user.displayName, user.email)}
-        </span>
+        />
       </button>
 
       {open && (

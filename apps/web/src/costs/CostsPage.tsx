@@ -26,6 +26,8 @@ import { StatusPill } from '../ui/StatusPill';
 import { Table, Th, Td } from '../ui/Table';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { useToast } from '../ui/Toast';
+import { useAuth } from '../auth/AuthContext';
+import { computeAccess } from '../shell/access';
 
 type Tab = 'expenses' | 'categories' | 'summary';
 
@@ -75,7 +77,7 @@ function Live({ busy }: { busy: boolean }) {
 
 // -- Categories ------------------------------------------------------------
 
-function CategoriesTab() {
+function CategoriesTab({ canManage }: { canManage: boolean }) {
   const { t } = useTranslation();
   const toast = useToast();
   const { data, loading, error, reload, setData } = useAsync<ExpenseCategory[]>(costsApi.listCategories);
@@ -133,7 +135,7 @@ function CategoriesTab() {
   return (
     <div className="space-y-6">
       <Live busy={loading} />
-      <Panel>
+      {canManage && <Panel>
         <form onSubmit={create} noValidate aria-label={t('costs.addCategory')} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto] lg:items-start">
           <Field label={t('costs.categoryName')} value={name} onChange={(e) => setName(e.target.value)} error={nameError} placeholder={t('costs.categoryNamePh')} />
           <Field label={t('costs.description')} value={description} onChange={(e) => setDescription(e.target.value)} hint={t('costs.optional')} />
@@ -146,7 +148,7 @@ function CategoriesTab() {
             </Button>
           </div>
         </form>
-      </Panel>
+      </Panel>}
 
       {error && <LoadError message={error} onRetry={reload} />}
       {loading && !data && <ListSkeleton />}
@@ -174,9 +176,9 @@ function CategoriesTab() {
                   <StatusPill tone={cat.isActive ? 'ok' : 'neutral'}>{cat.isActive ? t('costs.active') : t('costs.inactive')}</StatusPill>
                 </Td>
                 <Td className="text-right">
-                  <Button variant="ghost" onClick={() => toggle(cat)} loading={busyIds.has(cat.id)} aria-label={`${cat.isActive ? t('costs.deactivate') : t('costs.activate')}: ${cat.name}`}>
+                  {canManage && <Button variant="ghost" onClick={() => toggle(cat)} loading={busyIds.has(cat.id)} aria-label={`${cat.isActive ? t('costs.deactivate') : t('costs.activate')}: ${cat.name}`}>
                     {cat.isActive ? t('costs.deactivate') : t('costs.activate')}
-                  </Button>
+                  </Button>}
                 </Td>
               </tr>
             ))}
@@ -205,7 +207,7 @@ const emptyForm = () => ({
   isRecurring: false,
 });
 
-function ExpensesTab() {
+function ExpensesTab({ canCreate }: { canCreate: boolean }) {
   const { t } = useTranslation();
   const toast = useToast();
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | ''>('');
@@ -345,7 +347,7 @@ function ExpensesTab() {
   return (
     <div className="space-y-6">
       <Live busy={loading || saving} />
-      <Panel>
+      {canCreate && <Panel>
         <form onSubmit={submit} noValidate aria-label={t('costs.recordExpense')} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Select label={t('costs.location')} value={locationId} onChange={(e) => setForm((f) => ({ ...f, locationId: e.target.value }))} error={show('location')}>
@@ -376,7 +378,7 @@ function ExpensesTab() {
             {saving ? t('costs.saving') : t('costs.recordExpense')}
           </Button>
         </form>
-      </Panel>
+      </Panel>}
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-full sm:w-56">
@@ -569,6 +571,9 @@ function SummaryTab() {
 
 export function CostsPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  // Accountants view and approve expenses but cannot record them or manage categories (costs.expense.create / costs.category.manage).
+  const { canManageCosts } = computeAccess(user);
   const [tab, setTab] = useState<Tab>('expenses');
   const items = [
     { key: 'expenses', label: t('costs.tabExpenses') },
@@ -580,8 +585,8 @@ export function CostsPage() {
       <PageHeader title={t('costs.title')} description={t('costs.subtitle')} />
       <Tabs items={items} active={tab} onChange={(k) => setTab(k as Tab)} label={t('costs.title')} />
       <div role="tabpanel">
-        {tab === 'expenses' && <ExpensesTab />}
-        {tab === 'categories' && <CategoriesTab />}
+        {tab === 'expenses' && <ExpensesTab canCreate={canManageCosts} />}
+        {tab === 'categories' && <CategoriesTab canManage={canManageCosts} />}
         {tab === 'summary' && <SummaryTab />}
       </div>
     </>

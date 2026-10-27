@@ -48,6 +48,9 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'core.numbering.view',
       'core.numbering.manage',
       'core.notification.view',
+      // Alert rules (Settings > Alerts tab): the manager configures their own location's alerts.
+      'core.alert.view',
+      'core.alert.edit',
       'reports.daily.view',
       'reports.sales.view',
       // Catalog (module-manifest keys)
@@ -102,7 +105,8 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       // Catalog (view only — needed to display line items)
       'catalog.item.view',
       'catalog.category.view',
-      // Restaurant (view sessions/orders to link invoices)
+      // Restaurant (view floor + sessions/orders to link invoices; the Tables page lists areas/tables)
+      'restaurant.dining.view',
       'restaurant.session.view',
       'restaurant.order.view',
       // Checkout (module-manifest keys)
@@ -154,6 +158,10 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'restaurant.booking.view',
       'restaurant.booking.manage',
       'restaurant.order.view',
+      // Catalog (view only: the Tables page loads the menu for its order panel)
+      'catalog.category.view',
+      'catalog.item.view',
+      'catalog.modifier.view',
     ],
   },
   {
@@ -163,7 +171,9 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     realm: 'BUSINESS',
     permissions: [
       'core.notification.view',
-      // Restaurant (kitchen queue only)
+      // Restaurant (kitchen queue only; dining.view + session.view are read-only lookups the queue uses for table names / guests)
+      'restaurant.dining.view',
+      'restaurant.session.view',
       'restaurant.order.view',
       'restaurant.kitchen.view',
       'restaurant.kitchen.manage',
@@ -183,6 +193,8 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     realm: 'BUSINESS',
     permissions: [
       'core.business.view',
+      // Costs filters by location
+      'core.location.view',
       'core.audit.view',
       'core.audit.export',
       'core.notification.view',

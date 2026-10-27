@@ -12,6 +12,12 @@ const TEAM_ROLES = new Set(['owner', 'location-manager']);
 // restaurant.kitchen.view: waiters get a read-only queue; only these roles hold .manage and may advance tickets.
 const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
 const KITCHEN_MANAGE_ROLES = new Set(['owner', 'location-manager', 'kitchen-team']);
+// core.modules.view / .manage: only the owner (wildcard); the manager's template does not include them.
+const MODULE_ROLES = new Set(['owner']);
+// reports.sales.view, core.audit.view and costs.*.view are held by these (accountant: costs + reports, no create).
+const FINANCE_VIEW_ROLES = new Set(['owner', 'location-manager', 'accountant']);
+// costs.expense.create / costs.category.manage.
+const COSTS_MANAGE_ROLES = new Set(['owner', 'location-manager']);
 
 export interface Access {
   isPlatform: boolean;
@@ -24,6 +30,11 @@ export interface Access {
   canManageKitchen: boolean;
   canSeeBills: boolean;
   canSeeCosts: boolean;
+  /** Can record expenses and manage categories (accountants only view and approve). */
+  canManageCosts: boolean;
+  canSeeModules: boolean;
+  canSeeReports: boolean;
+  canSeeActivity: boolean;
   canSeeTeam: boolean;
 }
 
@@ -48,7 +59,11 @@ export function computeAccess(user: AccessUser | null): Access {
     canSeeKitchen: !isPlatform && hasAnyRole(roles, KITCHEN_ROLES),
     canManageKitchen: !isPlatform && hasAnyRole(roles, KITCHEN_MANAGE_ROLES),
     canSeeBills: !isPlatform && hasAnyRole(roles, BILLS_ROLES),
-    canSeeCosts: !isPlatform && isFullAccess,
+    canSeeCosts: !isPlatform && hasAnyRole(roles, FINANCE_VIEW_ROLES),
+    canManageCosts: !isPlatform && hasAnyRole(roles, COSTS_MANAGE_ROLES),
+    canSeeModules: !isPlatform && hasAnyRole(roles, MODULE_ROLES),
+    canSeeReports: !isPlatform && hasAnyRole(roles, FINANCE_VIEW_ROLES),
+    canSeeActivity: !isPlatform && hasAnyRole(roles, FINANCE_VIEW_ROLES),
     canSeeTeam: !isPlatform && hasAnyRole(roles, TEAM_ROLES),
   };
 }

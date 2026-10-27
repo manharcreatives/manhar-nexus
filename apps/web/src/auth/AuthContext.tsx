@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, login as apiLogin, setAccessToken, setAuthLostHandler, tryRefresh } from './api';
+import { api, hasSessionHint, login as apiLogin, setAccessToken, setAuthLostHandler, setSessionHint, tryRefresh } from './api';
 
 export interface AuthUser {
   id: string;
@@ -42,7 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     let active = true;
     void (async () => {
-      const refreshed = await tryRefresh().catch(() => false);
+      // No hint = nobody ever signed in here (or they signed out): skip the doomed refresh call.
+      const refreshed = hasSessionHint() ? await tryRefresh().catch(() => false) : false;
       if (!active) return;
       if (!refreshed) {
         setStatus('unauthenticated');
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signOut() {
         await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
         setAccessToken(null); // clear in-memory token immediately (server already revoked)
+        setSessionHint(false);
         setUser(null);
         setStatus('unauthenticated');
       },

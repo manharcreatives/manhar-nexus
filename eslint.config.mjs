@@ -13,4 +13,17 @@ export default tseslint.config(
       'no-console': 'warn',
     },
   },
+  {
+    // Dev-only QA scripts: plain Node ESM that also ships snippets evaluated in the browser page.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly', console: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly',
+        URL: 'readonly', Buffer: 'readonly',
+        document: 'readonly', window: 'readonly', history: 'readonly', dispatchEvent: 'readonly',
+        PopStateEvent: 'readonly', location: 'readonly', localStorage: 'readonly',
+      },
+    },
+    rules: { 'no-console': 'off' },
+  },
 );

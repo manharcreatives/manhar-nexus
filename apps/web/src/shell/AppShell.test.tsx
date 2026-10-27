@@ -3,6 +3,12 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import App from '../App';
 import '../i18n';
 
+// The live stream is not under test here; its async status updates would otherwise trigger act() warnings.
+vi.mock('../realtime/RealtimeProvider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../realtime/RealtimeProvider')>()),
+  RealtimeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 // jsdom has no modal dialog support; emulate the bits the shell relies on.
 beforeAll(() => {
   const proto = HTMLDialogElement.prototype as HTMLDialogElement & { __patched?: boolean };
@@ -40,6 +46,7 @@ function json(body: unknown, status = 200) {
 beforeEach(() => {
   locations = [...allLocations];
   window.localStorage.clear();
+  window.localStorage.setItem('nx.session', '1'); // a previous sign-in: allows the silent refresh
   window.history.pushState({}, '', '/');
   vi.stubGlobal(
     'fetch',

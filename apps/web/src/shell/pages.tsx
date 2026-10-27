@@ -44,11 +44,11 @@ export const PAGE_GROUPS: Array<{ id: PageGroup; headingKey: string | null }> = 
 
 export const PAGES: PageDef[] = [
   { path: '/', labelKey: 'shell.nav.home', keywordsKey: 'shell.keywords.home', icon: Icons.Home, group: 'main', can: () => true, Component: HomePage, goKey: 'h' },
-  { path: '/modules', labelKey: 'shell.nav.modules', keywordsKey: 'shell.keywords.modules', icon: Icons.LayoutGrid, group: 'main', can: (a) => a.isTenantAdmin, Component: ModuleCenter },
+  { path: '/modules', labelKey: 'shell.nav.modules', keywordsKey: 'shell.keywords.modules', icon: Icons.LayoutGrid, group: 'main', can: (a) => a.canSeeModules, Component: ModuleCenter },
   { path: '/config', labelKey: 'shell.nav.config', keywordsKey: 'shell.keywords.config', icon: Icons.Settings, group: 'main', can: (a) => a.isTenantAdmin, Component: ConfigCenter },
-  { path: '/reports', labelKey: 'shell.nav.reports', keywordsKey: 'shell.keywords.reports', icon: Icons.BarChart3, group: 'main', can: (a) => a.isTenantAdmin, Component: ReportsPage, goKey: 'r' },
+  { path: '/reports', labelKey: 'shell.nav.reports', keywordsKey: 'shell.keywords.reports', icon: Icons.BarChart3, group: 'main', can: (a) => a.canSeeReports, Component: ReportsPage, goKey: 'r' },
   { path: '/team', labelKey: 'shell.nav.team', keywordsKey: 'shell.keywords.team', icon: Icons.Users, group: 'main', can: (a) => a.canSeeTeam, Component: PeoplePage },
-  { path: '/activity', labelKey: 'shell.nav.activity', keywordsKey: 'shell.keywords.activity', icon: Icons.History, group: 'main', can: (a) => a.isTenantAdmin, Component: ActivityPage },
+  { path: '/activity', labelKey: 'shell.nav.activity', keywordsKey: 'shell.keywords.activity', icon: Icons.History, group: 'main', can: (a) => a.canSeeActivity, Component: ActivityPage },
   { path: '/tables', labelKey: 'shell.nav.tables', keywordsKey: 'shell.keywords.tables', icon: Icons.Armchair, group: 'restaurant', can: (a) => a.canSeeTables, Component: TablesPage, goKey: 't' },
   { path: '/kitchen', labelKey: 'shell.nav.kitchen', keywordsKey: 'shell.keywords.kitchen', icon: Icons.ChefHat, group: 'restaurant', can: (a) => a.canSeeKitchen, Component: KitchenPage, goKey: 'k' },
   { path: '/bills', labelKey: 'shell.nav.bills', keywordsKey: 'shell.keywords.bills', icon: Icons.Receipt, group: 'restaurant', can: (a) => a.canSeeBills, Component: BillsPage },

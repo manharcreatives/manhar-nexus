@@ -1,0 +1,2236 @@
+[
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, Demo Kitchen",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts TUE",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/kitchen",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Kitchen display",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts Kit",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/modules",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/config",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/reports",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/team",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/activity",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/tables",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/bills",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/costs",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 403",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "desktop",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Kitchen Display ? Keyboard shortcuts 404",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, Demo Kitchen",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts TUESDAY, 27 OCTOBER Good to see you, Demo Kitchen Kitchen LIVE Right now KITCHEN Kitchen screen 4 4",
+    "console": [
+      "error: Failed to load resource: net::ERR_CONNECTION_RESET"
+    ],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/kitchen",
+    "inNav": true,
+    "alerts": [
+      "Could not load the kitchen queueCannot reach the server. Check the connection and try again.Try again",
+      "after \"Refresh\": Could not load the kitchen queueCannot reach the server. Check the connection and try again.Try again"
+    ],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Kitchen display",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts Kitchen display Reconnecting… Refresh Could not load the kitchen queue Cannot reach the server. Check th",
+    "console": [
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    ],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": [
+          "Could not load the kitchen queueCannot reach the server. Check the connection and try again.Try again"
+        ]
+      }
+    ]
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/modules",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    ],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/config",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/reports",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/team",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/activity",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/tables",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/bills",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/costs",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or manager if you ne",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "kitchen",
+    "viewport": "phone",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus Search or jump to… Alerts 404 This page doesn't exist Use the navigation to get back on track. Home",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, QA Manager",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/modules",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/config",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Settings",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Settings",
+        "alerts": []
+      },
+      {
+        "label": "Alert rules",
+        "alerts": []
+      },
+      {
+        "label": "Add rule",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/reports",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Reports",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Sales Summary",
+        "alerts": []
+      },
+      {
+        "label": "Today",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/team",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Team",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [
+      "error: Failed to load resource: net::ERR_CONNECTION_RESET",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    ],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Manage Demo Cashier",
+        "alerts": []
+      },
+      {
+        "label": "Manage Demo Kitchen",
+        "alerts": []
+      },
+      {
+        "label": "Manage Demo Owner",
+        "alerts": []
+      },
+      {
+        "label": "Manage Demo Waiter",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Accountant",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Host",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Manager",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Tmp",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/activity",
+    "inNav": true,
+    "alerts": [
+      "Activity history didn't loadFailed to fetchTry again",
+      "after \"Verify log\": Activity history didn't loadFailed to fetchTry again",
+      "after \"Verify again\": Activity history didn't loadFailed to fetchTry again",
+      "after \"Search\": Activity history didn't loadFailed to fetchTry again"
+    ],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Activity History",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "error: Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    ],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Verify log",
+        "alerts": [
+          "Activity history didn't loadFailed to fetchTry again"
+        ]
+      },
+      {
+        "label": "Verify again",
+        "alerts": [
+          "Activity history didn't loadFailed to fetchTry again"
+        ]
+      },
+      {
+        "label": "Search",
+        "alerts": [
+          "Activity history didn't loadFailed to fetchTry again"
+        ]
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/tables",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Tables",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "n": 2,
+        "target": "button[aria-label=\"Mark G1 available\"] <<button type=\"button\" aria-label=\"Mark G1 available\" class=\"nx-press inline-flex...\">> | button[aria-label=\"Mark G2 available\"] <<button type=\"button\" aria-label=\"Mark G2 available\" class=\"nx-press inline-flex...\">>"
+      }
+    ],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": []
+      },
+      {
+        "label": "River View",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/kitchen",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Kitchen display",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/bills",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Bills",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "n": 14,
+        "target": "button[aria-label=\"Open bill RV-0308\"] <<button type=\"button\" aria-label=\"Open bill RV-0308\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0377\"] <<button type=\"button\" aria-label=\"Open bill ML-0377\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0376\"] <<button type=\"button\" aria-label=\"Open bill ML-0376\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0307\"] <<button type=\"button\" aria-label=\"Open bill RV-0307\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0375\"] <<button type=\"button\" aria-label=\"Open bill ML-0375\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0306\"] <<button type=\"button\" aria-label=\"Open bill RV-0306\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0374\"] <<button type=\"button\" aria-label=\"Open bill ML-0374\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0373\"] <<button type=\"button\" aria-label=\"Open bill ML-0373\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0305\"] <<button type=\"button\" aria-label=\"Open bill RV-0305\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0372\"] <<button type=\"button\" aria-label=\"Open bill ML-0372\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0304\"] <<button type=\"button\" aria-label=\"Open bill RV-0304\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0371\"] <<button type=\"button\" aria-label=\"Open bill ML-0371\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0303\"] <<button type=\"button\" aria-label=\"Open bill RV-0303\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0302\"] <<button type=\"button\" aria-label=\"Open bill RV-0302\" class=\"grid min-h-14 w-full...\">>"
+      }
+    ],
+    "explored": [
+      {
+        "label": "Today",
+        "alerts": []
+      },
+      {
+        "label": "This month",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0308",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0377",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0376",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0307",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0375",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0306",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0374",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0373",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0305",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0372",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0304",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0371",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0303",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0302",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0370",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0369",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0368",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0301",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0300",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0299",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0367",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0298",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0297",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/costs",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Operating Costs",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Expenses",
+        "alerts": []
+      },
+      {
+        "label": "Categories",
+        "alerts": []
+      },
+      {
+        "label": "Summary",
+        "alerts": []
+      },
+      {
+        "label": "Refresh",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "desktop",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Config",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, QA Manager",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts TUESDAY, 27 OCTOBER Good to see you, QA Manager Seat a",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/modules",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts 403 You don't have access to this page Your role does",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/config",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Settings",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Settings Control how your business runs and who is aler",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Settings",
+        "alerts": []
+      },
+      {
+        "label": "Alert rules",
+        "alerts": []
+      },
+      {
+        "label": "Add rule",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/reports",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Reports",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Reports Operational reports for your business. Daily C",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Sales Summary",
+        "alerts": []
+      },
+      {
+        "label": "Today",
+        "alerts": []
+      },
+      {
+        "label": "This month",
+        "alerts": []
+      },
+      {
+        "label": "Refresh",
+        "alerts": []
+      },
+      {
+        "label": "Export CSV",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/team",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Team",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Team Everyone who can sign in to your business, what th",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Manage Demo Cashier",
+        "alerts": []
+      },
+      {
+        "label": "Manage Demo Kitchen",
+        "alerts": []
+      },
+      {
+        "label": "Manage Demo Owner",
+        "alerts": []
+      },
+      {
+        "label": "Manage Demo Waiter",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Accountant",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Host",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Manager",
+        "alerts": []
+      },
+      {
+        "label": "Manage QA Tmp",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/activity",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Activity History",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Activity History Audit log of all changes in your busin",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Verify log",
+        "alerts": []
+      },
+      {
+        "label": "Verify again",
+        "alerts": []
+      },
+      {
+        "label": "Search",
+        "alerts": []
+      },
+      {
+        "label": "Details: Alert rule changed",
+        "alerts": []
+      },
+      {
+        "label": "Hide: Alert rule changed",
+        "alerts": []
+      },
+      {
+        "label": "Details: Alert rule added",
+        "alerts": []
+      },
+      {
+        "label": "Hide: Alert rule added",
+        "alerts": []
+      },
+      {
+        "label": "Details: Team member changed",
+        "alerts": []
+      },
+      {
+        "label": "Details: Team member added",
+        "alerts": []
+      },
+      {
+        "label": "Hide: Team member added",
+        "alerts": []
+      },
+      {
+        "label": "Details: Updated",
+        "alerts": []
+      },
+      {
+        "label": "Details: Kitchen started cooking",
+        "alerts": []
+      },
+      {
+        "label": "Details: Order sent to the kitchen",
+        "alerts": []
+      },
+      {
+        "label": "Details: Order started",
+        "alerts": []
+      },
+      {
+        "label": "Details: Table seated",
+        "alerts": []
+      },
+      {
+        "label": "Hide: Table seated",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/tables",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Tables",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Tables Select a table to open a session, take an order ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "n": 2,
+        "target": "button[aria-label=\"Mark G1 available\"] <<button type=\"button\" aria-label=\"Mark G1 available\" class=\"nx-press inline-flex...\">> | button[aria-label=\"Mark G2 available\"] <<button type=\"button\" aria-label=\"Mark G2 available\" class=\"nx-press inline-flex...\">>"
+      }
+    ],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": []
+      },
+      {
+        "label": "River View",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/kitchen",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Kitchen display",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Kitchen display 4 active tickets - Updated 8:10:26 pm ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/bills",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Bills",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Bills Find a past bill to review its payments, refund m",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "n": 14,
+        "target": "button[aria-label=\"Open bill RV-0308\"] <<button type=\"button\" aria-label=\"Open bill RV-0308\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0377\"] <<button type=\"button\" aria-label=\"Open bill ML-0377\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0376\"] <<button type=\"button\" aria-label=\"Open bill ML-0376\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0307\"] <<button type=\"button\" aria-label=\"Open bill RV-0307\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0375\"] <<button type=\"button\" aria-label=\"Open bill ML-0375\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0306\"] <<button type=\"button\" aria-label=\"Open bill RV-0306\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0374\"] <<button type=\"button\" aria-label=\"Open bill ML-0374\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0373\"] <<button type=\"button\" aria-label=\"Open bill ML-0373\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0305\"] <<button type=\"button\" aria-label=\"Open bill RV-0305\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0372\"] <<button type=\"button\" aria-label=\"Open bill ML-0372\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0304\"] <<button type=\"button\" aria-label=\"Open bill RV-0304\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill ML-0371\"] <<button type=\"button\" aria-label=\"Open bill ML-0371\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0303\"] <<button type=\"button\" aria-label=\"Open bill RV-0303\" class=\"grid min-h-14 w-full...\">> | button[aria-label=\"Open bill RV-0302\"] <<button type=\"button\" aria-label=\"Open bill RV-0302\" class=\"grid min-h-14 w-full...\">>"
+      }
+    ],
+    "explored": [
+      {
+        "label": "Today",
+        "alerts": []
+      },
+      {
+        "label": "This month",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0308",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0377",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0376",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0307",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0375",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0306",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0374",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0373",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0305",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0372",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0304",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0371",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0303",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0302",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0370",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0369",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0368",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0301",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0300",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0299",
+        "alerts": []
+      },
+      {
+        "label": "Open bill ML-0367",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0298",
+        "alerts": []
+      },
+      {
+        "label": "Open bill RV-0297",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/costs",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Operating Costs",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts Operating Costs Track and approve business expenses by ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": [
+      {
+        "label": "Expenses",
+        "alerts": []
+      },
+      {
+        "label": "Categories",
+        "alerts": []
+      },
+      {
+        "label": "Summary",
+        "alerts": []
+      },
+      {
+        "label": "Refresh",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts 403 You don't have access to this page Your role does",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts 403 You don't have access to this page Your role does",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "manager",
+    "viewport": "phone",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus Working location THE PILOT KITCHEN All locations Search or jump to… Alerts 404 This page doesn't exist Use the navigation to get",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, QA Accountant",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/modules",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/config",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/reports",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Reports",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/team",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/activity",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Activity History",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/tables",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/kitchen",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/bills",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/costs",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Operating Costs",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "desktop",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus THE PILOT KITCHEN Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home Reports Activity History OPERATIONS ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, QA Accountant",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts TUESDAY, 27 OCTOBER Good to see you, QA Accountant Record expense NET REVENUE TODAY L",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/modules",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/config",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/reports",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Reports",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts Reports Operational reports for your business. Daily Closing Sales Summary Top items ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/team",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/activity",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Activity History",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts Activity History Audit log of all changes in your business. Log integrity Each entry",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/tables",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/kitchen",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/bills",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/costs",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Operating Costs",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts Operating Costs Track and approve business expenses by category. Expenses Categories ",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. Ask an owner or",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "accountant",
+    "viewport": "phone",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus THE PILOT KITCHEN Search or jump to… Alerts 404 This page doesn't exist Use the navigation to get back on track. Home",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, QA Host",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/tables",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Tables",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "n": 2,
+        "target": "button[aria-label=\"Mark G1 available\"] <<button type=\"button\" aria-label=\"Mark G1 available\" class=\"nx-press inline-flex...\">> | button[aria-label=\"Mark G2 available\"] <<button type=\"button\" aria-label=\"Mark G2 available\" class=\"nx-press inline-flex...\">>"
+      }
+    ],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": []
+      },
+      {
+        "label": "River View",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/modules",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/config",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/reports",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/team",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/activity",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/kitchen",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/bills",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/costs",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "desktop",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus Manhar Nexus Working location All locations Search or jump to… Ctrl K ENVIRONMENT: DEVELOPMENT Alerts Home RESTAURANT Tables & Se",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Good to see you, QA Host",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts TUESDAY, 27 OCTOBER Good to see you, QA Host Seat a table LIVE Right n",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/tables",
+    "inNav": true,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "Tables",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts Tables Select a table to open a session, take an order or check out. Liv",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "n": 2,
+        "target": "button[aria-label=\"Mark G1 available\"] <<button type=\"button\" aria-label=\"Mark G1 available\" class=\"nx-press inline-flex...\">> | button[aria-label=\"Mark G2 available\"] <<button type=\"button\" aria-label=\"Mark G2 available\" class=\"nx-press inline-flex...\">>"
+      }
+    ],
+    "explored": [
+      {
+        "label": "Refresh",
+        "alerts": []
+      },
+      {
+        "label": "River View",
+        "alerts": []
+      }
+    ]
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/modules",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/config",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/reports",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/team",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/activity",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/kitchen",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/bills",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/costs",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/commercial",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/onboarding",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "You don't have access to this page",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 403 You don't have access to this page Your role doesn't include it. As",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  },
+  {
+    "role": "host",
+    "viewport": "phone",
+    "path": "/no-such-page",
+    "inNav": false,
+    "alerts": [],
+    "rawKeys": [],
+    "overflow": false,
+    "h1": "This page doesn't exist",
+    "bodyHead": "Skip to content Manhar Nexus Working location All locations Search or jump to… Alerts 404 This page doesn't exist Use the navigation to get back on track. H",
+    "console": [],
+    "pageErrors": [],
+    "http": [],
+    "axe": [],
+    "explored": []
+  }
+]

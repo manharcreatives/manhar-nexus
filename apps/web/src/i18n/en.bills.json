@@ -25,7 +25,10 @@
     "showing": "Showing {{from}}-{{to}} of {{total}}",
     "prev": "Previous",
     "next": "Next",
-    "day": { "today": "Today", "yesterday": "Yesterday" },
+    "day": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
     "summary": {
       "bills": "Bills",
       "billed": "Billed",
@@ -139,6 +142,7 @@
       "paidCannotVoid": "A paid bill cannot be voided. Refund its payment instead.",
       "versionConflict": "This bill was changed by someone else. The latest details are shown, please review and try again.",
       "generic": "Something went wrong. Check the refunds listed on this bill before trying again."
-    }
+    },
+    "openBillPrefix": "Open bill"
   }
 }

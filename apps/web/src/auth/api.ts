@@ -7,6 +7,30 @@
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000';
 
 let accessToken: string | null = null;
+
+/**
+ * Non-sensitive "a session may exist" hint (a bare flag, never a token). It is set at
+ * login and cleared at logout / when the refresh is refused, so a visitor with no
+ * session never fires a doomed POST /auth/refresh (a guaranteed 401 console error on
+ * every first load). Security is unchanged (ADR-024): the access token stays in memory
+ * and the refresh token stays in the httpOnly cookie; the flag grants nothing.
+ */
+const SESSION_HINT_KEY = 'nx.session';
+export function hasSessionHint(): boolean {
+  try {
+    return window.localStorage.getItem(SESSION_HINT_KEY) === '1';
+  } catch {
+    return true; // storage blocked: we cannot tell, so fall back to attempting the silent refresh
+  }
+}
+export function setSessionHint(on: boolean): void {
+  try {
+    if (on) window.localStorage.setItem(SESSION_HINT_KEY, '1');
+    else window.localStorage.removeItem(SESSION_HINT_KEY);
+  } catch {
+    /* storage unavailable: the hint is only an optimisation */
+  }
+}
 /** Called when the session can no longer be refreshed (forces re-login). */
 let onAuthLost: (() => void) | null = null;
 
@@ -58,10 +82,14 @@ export async function tryRefresh(): Promise<boolean> {
         headers: { 'content-type': 'application/json' },
         body: '{}',
       });
-      if (!res.ok) return false;
+      if (!res.ok) {
+        if (res.status === 401) setSessionHint(false);
+        return false;
+      }
       const data = (await res.json()) as { accessToken?: string };
       if (!data.accessToken) return false;
       accessToken = data.accessToken;
+      setSessionHint(true);
       return true;
     } finally {
       refreshInFlight = null;
@@ -78,6 +106,7 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
       res = await raw(path, init);
     } else {
       accessToken = null;
+      setSessionHint(false);
       onAuthLost?.();
     }
   }
@@ -102,5 +131,6 @@ export async function login(
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw makeError(res.status, body);
   accessToken = (body as { accessToken: string }).accessToken;
+  setSessionHint(true);
   return body as never;
 }

@@ -16,7 +16,7 @@ packages/
 infra/
   scripts/  Portable local infrastructure (PostgreSQL without Docker)
 deploy/     Caddyfile (public edge) + compose env template
-scripts/    backup / restore / smoke (PowerShell + bash)
+scripts/    backup / restore / smoke (PowerShell + bash); scripts/qa/ = dev-only per-role browser sweep (see scripts/qa/README.md)
 Dockerfile.api, Dockerfile.web, docker-compose.prod.yml   Production images + stack
 docs/
   MASTER_IMPLEMENTATION_ROADMAP.md   Living phase tracker — start here
