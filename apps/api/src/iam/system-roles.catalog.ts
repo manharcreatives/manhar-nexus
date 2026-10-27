@@ -132,6 +132,8 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'restaurant.session.manage',
       'restaurant.order.view',
       'restaurant.order.manage',
+      // Read-only kitchen queue: waiters see when their tickets are ready.
+      'restaurant.kitchen.view',
     ],
   },
   {

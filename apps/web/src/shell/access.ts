@@ -9,9 +9,9 @@ const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 
 const BILLS_ROLES = new Set(['owner', 'location-manager', 'checkout-associate']);
 // Roles holding core.user.view (owner via wildcard).
 const TEAM_ROLES = new Set(['owner', 'location-manager']);
-// Roles holding restaurant.kitchen.view. service-team (waiters) do not: they take and track orders
-// from the floor, not the kitchen queue, and the API refuses them.
-const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team']);
+// restaurant.kitchen.view: waiters get a read-only queue; only these roles hold .manage and may advance tickets.
+const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
+const KITCHEN_MANAGE_ROLES = new Set(['owner', 'location-manager', 'kitchen-team']);
 
 export interface Access {
   isPlatform: boolean;
@@ -20,6 +20,8 @@ export interface Access {
   isTenantAdmin: boolean;
   canSeeTables: boolean;
   canSeeKitchen: boolean;
+  /** Can advance kitchen tickets (Accept / Start preparing / Mark ready). View-only roles see the queue without buttons. */
+  canManageKitchen: boolean;
   canSeeBills: boolean;
   canSeeCosts: boolean;
   canSeeTeam: boolean;
@@ -44,6 +46,7 @@ export function computeAccess(user: AccessUser | null): Access {
     isTenantAdmin: isFullAccess && !isPlatform,
     canSeeTables: !isPlatform && hasAnyRole(roles, TABLE_ROLES),
     canSeeKitchen: !isPlatform && hasAnyRole(roles, KITCHEN_ROLES),
+    canManageKitchen: !isPlatform && hasAnyRole(roles, KITCHEN_MANAGE_ROLES),
     canSeeBills: !isPlatform && hasAnyRole(roles, BILLS_ROLES),
     canSeeCosts: !isPlatform && isFullAccess,
     canSeeTeam: !isPlatform && hasAnyRole(roles, TEAM_ROLES),

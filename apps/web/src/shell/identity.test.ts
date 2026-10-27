@@ -37,8 +37,8 @@ describe('page access (single definition)', () => {
   it('keeps the platform realm out of tenant pages', () => {
     expect(visible('PLATFORM', 'platform-admin')).toEqual(['/', '/commercial', '/onboarding']);
   });
-  it('does not offer waiters the kitchen queue (the API refuses service-team)', () => {
-    expect(visible('BUSINESS', 'service-team')).toEqual(['/', '/tables']);
+  it('gives waiters a read-only kitchen queue', () => {
+    expect(visible('BUSINESS', 'service-team')).toEqual(['/', '/tables', '/kitchen']);
   });
   it('limits kitchen staff to Home and Kitchen', () => {
     expect(visible('BUSINESS', 'kitchen-team')).toEqual(['/', '/kitchen']);
