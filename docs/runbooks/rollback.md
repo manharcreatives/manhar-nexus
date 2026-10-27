@@ -36,6 +36,8 @@ $COMPOSE up -d --wait api web           # images for <previous-tag> must still e
 # smoke: deploy.md §6
 ```
 
+Open realtime streams drop when the containers restart and reconnect by themselves. If the rollback target sits behind a different proxy configuration, re-check the SSE requirements (`deploy.md`, "Realtime stream": no buffering, no compression, idle timeout of at least 60 s). The latest additive migration (`20261025120000_refund_idempotency`: one nullable column and a unique index) is safe to leave in place when rolling back one tag.
+
 Keep at least the last three tags' images on the host (`docker image ls nexus/*`) or in the registry. `docker image prune` must not delete them.
 
 ## B. Rollback with a destructive or incompatible migration

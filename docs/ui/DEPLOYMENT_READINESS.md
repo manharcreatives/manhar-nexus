@@ -1,18 +1,20 @@
 # Deployment Readiness — Operator Checklist
 
-**Updated:** 2026-10-25. **Status:** deployable from documentation. Every artifact that can be checked without a Docker host has been checked (see *Evidence*). The items under **PENDING — needs host** can only be closed on the target machine.
+**Updated:** 2026-10-27. **Status:** deployable from documentation. Every artifact that can be checked without a Docker host has been checked (see *Evidence*). The items under **PENDING — needs host** can only be closed on the target machine.
 
 Detailed procedure: `docs/runbooks/deploy.md`. Backups: `backup-restore.md`. Rollback: `rollback.md`. Incidents: `incident-response.md`.
 
 ---
 
-## 0. Blockers to clear before the first deploy
+## 0. Blockers (all resolved)
 
-| # | Blocker | Owner action |
+| # | Blocker | Status |
 |---|---|---|
-| B1 | **The committed migration chain fails on an empty database.** `20260824122126_npm_run_dev_api` renames `module_activation_status_idx`, but that index is created by `20260824130000_module_engine`, which sorts *later*. `prisma migrate deploy` stops with P3018 / 42P01. The owner's uncommitted working-tree edits fix this: they delete that migration and create the index under its final name in `module_engine`. With them, all 17 migrations apply cleanly to an empty DB. | Commit the two migration edits. CI's `verify` job fails until you do. Databases that already applied the old file keep a harmless extra `_prisma_migrations` row. |
-| B2 | `.gitignore` contains `.github/workflows/` ("temporarily not tracked"), so `.github/workflows/ci.yml` cannot be committed. | Remove those two lines when you want CI enabled. |
-| B3 | `apps/api/.env` (development values) is tracked by git. It holds dev-only credentials and is excluded from images by `.dockerignore`. | Optionally `git rm --cached apps/api/.env`. `.env` is now gitignored for new files. |
+| B1 | The migration chain failed on an empty database (an index was renamed before it was created). | **Resolved.** The squash is committed. The committed tree applies 17/17 migrations to an empty database and `migrate status` reports up to date (see *Evidence*). Databases that applied the old file keep a harmless extra `_prisma_migrations` row. |
+| B2 | `.github/workflows/` was gitignored, so CI could not be committed. | **Resolved.** `.github/workflows/ci.yml` is tracked (`git ls-files .github`). |
+| B3 | `apps/api/.env` (dev values) was tracked. | **Resolved.** It is untracked and ignored (`.gitignore:10 .env`); `.dockerignore` also keeps it out of images. |
+
+Open follow-up (not a blocker): `schema.prisma` does not declare the DB-side defaults, 7 indexes and several constraint names that the SQL migrations create, so `migrate diff` is not empty (details in *Evidence*). Do not use `db push`.
 
 ## 1. Prerequisites
 
@@ -20,7 +22,8 @@ Detailed procedure: `docs/runbooks/deploy.md`. Backups: `backup-restore.md`. Rol
 - [ ] DNS for `NEXUS_DOMAIN` → host; TCP 80 + 443 (and UDP 443) open
 - [ ] Off-host backup storage; PostgreSQL client tools ≥ the server version (or use the in-container backup)
 - [ ] Secret store holding `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `PLATFORM_BOOTSTRAP_PASSWORD`
-- [ ] Blockers B1–B3 resolved; CI green on the release commit
+- [x] Blockers B1–B3 resolved (section 0)
+- [ ] CI green on the release commit
 
 ## 2. Environment
 
@@ -91,6 +94,7 @@ NEXUS_BASE_URL=https://<domain>/api NEXUS_SMOKE_EMAIL=<smoke user> NEXUS_SMOKE_P
 NEXUS_SMOKE_EXPECT_COOKIE_PATH=/api/auth NEXUS_SMOKE_READ_PATH=/admin/dining/tables scripts/smoke.sh
 ```
 - [ ] All checks pass (health, login + httpOnly cookie at `/api/auth`, `/auth/me`, a business read)
+- [ ] Realtime: a business-user token on `GET /api/admin/realtime/stream` prints `event: hello` immediately (not after a delay) and the browser shows the "Live" badge
 - [ ] An uptime monitor is configured on `https://<domain>/api/health`; logs are shipped; alerts are set for `level>=50` (`deploy.md` §7)
 
 ## 7. Backups and rollback
@@ -103,30 +107,69 @@ NEXUS_SMOKE_EXPECT_COOKIE_PATH=/api/auth NEXUS_SMOKE_READ_PATH=/admin/dining/tab
 
 ## PENDING — needs host
 
-These cannot be done on the development machine (no Docker, no public DNS). Each needs the target host or a CI run.
+These cannot be closed on the development machine (no Docker daemon, no public DNS). Each needs the target host or a CI run.
 
 | Item | Why pending | Closed by |
 |---|---|---|
-| Build and run the three images; healthchecks go green | Docker not installed locally | First CI run of the `images` job (builds, boots compose, smoke through Caddy), then the first host deploy |
-| Public TLS issuance and renewal; HTTP→HTTPS on 80/443 | Needs a domain and open ports | First deploy (§5) |
-| Rollback drill (tag N+1 with migration → tag N + restore → smoke) | Needs a host with two image tags | Staging drill; record timings in `rollback.md` |
-| Restore drill on production-shaped storage and RTO measurement | Local drill done on dev cluster only | Staging drill (`backup-restore.md`) |
-| Browser CSP pass on the real domain | Headers verified with curl only | Manual pass after first deploy |
-| Monitoring wiring (uptime, log shipping, error tracking DSN) | Provider not chosen | Operator choice (`deploy.md` §7) |
+| Build and run the three images; container healthchecks go green | Docker is not installed locally. The Dockerfiles and compose file were reviewed and their commands run natively, not as containers. | First CI run of the `images` job (builds, boots compose, smoke through Caddy), then the first host deploy |
+| Public TLS issuance and renewal; HTTP to HTTPS on 80/443 | Needs a domain and open ports. The drill used Caddy's internal CA on port 8443. | First deploy (section 5) |
+| Rollback drill (tag N+1 with a migration, back to tag N plus restore, smoke) | Needs a host with two image tags | Staging drill; record timings in `rollback.md` |
+| Restore drill on production-shaped storage and RTO measurement | The local drill used the dev cluster | Staging drill (`backup-restore.md`) |
+| SSE through the real edge (cloud load balancer or CDN, if any) | Verified only through Caddy on localhost; intermediaries may add buffering or idle timeouts | Smoke the stream after the first deploy (`deploy.md`, "Realtime stream") |
+| Realtime with more than one API replica | The bus is in-process | Redis pub/sub adapter before scaling out (ADR-032) |
+| Monitoring wiring (uptime, log shipping, error tracking DSN) | Provider not chosen | Operator choice (`deploy.md` section 7) |
 | Physical ESC/POS printer validation, card-payment decision | Unchanged roadmap conditions | Pilot preparation |
 
 ---
 
-## Evidence (2026-10-25, development machine)
+## Evidence (2026-10-27, development machine, commit `db0c51f`)
 
-- **Config validator:** 19 Jest tests (`apps/api/src/config/configuration.spec.ts`). The built API with `NODE_ENV=production` exits 1 with a named list for each of these: nothing set; the `.env.example` dev JWT secret, `ChangeMe!Dev12345` and `http://localhost:5173`; a 32-char secret and an `http://` origin. It boots with generated secrets.
-- **Runtime image layout:** `npm ci --omit=dev --ignore-scripts --workspace @nexus/api` + `dist` + the generated Prisma client (exactly the `runtime` stage) started on :3100 against a restored DB in production mode. Health, login, `/admin/dining/tables` and both smoke scripts passed.
-- **Backup/restore drill:** source and restored DB counts are identical for all 58 tables (`backup-restore.md`). The drill DB was dropped.
-- **Migrations from empty:** committed `HEAD` fails (B1); the working-tree chain applies 17/17, and `prisma db seed` in production mode refuses dev credentials and accepts generated ones.
-- **Caddy 2.10.2 (checksum-verified binary, run locally):** `caddy validate` and `caddy fmt` are clean. In front of the dev API it served `/tables` → index.html (no-cache, zstd), hashed JS → immutable, a missing asset → 404, `/api/health` → API (no-store). Login cookie rewritten to `Path=/api/auth`, and `POST /api/auth/refresh` with only that cookie returned 200 (401 without it).
-- **Vite preview** (`--port 4174`): `/tables` and `/reports/daily` → 200 `text/html`; the hashed asset → 200 `text/javascript`.
-- **YAML:** `ci.yml` and `docker-compose.prod.yml` parse with js-yaml and PyYAML.
-- **Suite:** `npm run typecheck`, `npm run lint`, `npm run test -w @nexus/api`, `npm run test:e2e -w @nexus/api` and `npm run build` are all green.
+Everything below ran on the Windows dev box with no Docker. Throwaway secrets were generated per drill; all scratch databases, processes and dumps were removed afterwards. Screenshots: `docs/ui/screens/deploy/`.
+
+### Migrations from an empty database (committed tree)
+
+- `git archive HEAD apps/api/prisma` into a temp folder, then `prisma migrate deploy` against a new empty database: `17 migrations found`, all applied, ending with `All migrations have been successfully applied.` This includes `20261025120000_refund_idempotency` (`refund_businessId_idempotencyKey_key` exists).
+- `NODE_ENV=production` with generated `PLATFORM_BOOTSTRAP_*`: `ts-node prisma/seed.ts` printed `Seed complete: 10 business types, 9 system roles, 1 user(s).` A second run (`prisma db seed`) printed `Platform admin already exists ...; leaving password untouched.` (idempotent).
+- `prisma migrate status`: `Database schema is up to date!`.
+- Drift check (`migrate diff --from-migrations ... --to-schema-datamodel ... --exit-code`, shadow DB created and dropped): **exit 2, pre-existing and cosmetic; nothing from the refund migration or the realtime work.** The 455-line script contains only: (a) `ALTER COLUMN ... DROP DEFAULT` for `gen_random_uuid()` and `now()` defaults that the SQL migrations set in the database but `schema.prisma` does not declare (70 columns); (b) renamed indexes, unique constraints and foreign keys (hand-written names versus Prisma's default names; FKs are dropped and re-added with the same rules); (c) 7 indexes that exist in the migrations but not in the schema (`invoice` paidAt/voidedAt, `payment` capturedAt, `audit_event` action/resourceType, and two `alert_notification` indexes that exist under other names). **Consequence:** never use `db push` or accept a generated `migrate dev` migration against production; they would drop those reporting indexes and the DB-side defaults. Fix-forward task: declare the defaults and `@@index` entries in `schema.prisma` (or `map:` the names) so the diff is empty.
+
+### Production-mode stack (no Docker)
+
+Setup: `npm run build` (web built with `VITE_API_URL=/api`). The dev DB was copied with `scripts/backup.ps1` + `scripts/restore.ps1` (sha256 OK, 58 tables) into a scratch DB; the refund migration was then rolled back on that copy and `prisma migrate deploy` re-applied it on populated data (upgrade path). The API ran from `dist` with `NODE_ENV=production`, `TRUST_PROXY=1`, a generated 64-char JWT secret and `CORS_ORIGIN=https://nexus-drill.localhost:8443` (production refuses `localhost` itself). Caddy 2.10.2 used the repo `deploy/Caddyfile` unchanged except one drill-only global option (`skip_install_trust`, so Caddy does not touch the Windows trust store), with `NEXUS_DOMAIN=nexus-drill.localhost:8443`, `NEXUS_TLS=internal`, `API_UPSTREAM` and `SITE_ROOT` through the placeholders the file already supports.
+
+| Check | Result |
+|---|---|
+| `caddy validate` | `Valid configuration` |
+| `/` and deep link `/tables` | 200, `Cache-Control: no-cache`, HSTS, CSP, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, COOP; SPA shell served for `/tables` |
+| Hashed asset | `Cache-Control: public, max-age=31536000, immutable`, gzip when requested |
+| Missing asset `/assets/nope-123.js` | 404 (no SPA fallback) |
+| Container health endpoint `127.0.0.1:8081/healthz` | `ok`, 200 |
+| Login via `/api/auth/login` | 200, `Cache-Control: no-store`, `Set-Cookie: nexus_refresh=...; Path=/api/auth; HttpOnly; Secure; SameSite=Strict` |
+| `POST /api/auth/refresh` with only that cookie (body `{}`) | 200 with a new access token and rotated cookie; without the cookie 401 |
+| `scripts/smoke.sh` through the proxy | 6 PASS including `refresh cookie path /api/auth` and `GET /admin/dining/tables`; exit 0 |
+| `scripts/smoke.ps1` through the proxy | 6 PASS including `GET /admin/dining/tables  HTTP 200 (13 items)`; exit 0 |
+| SSE `GET /api/admin/realtime/stream` through Caddy | `Content-Type: text/event-stream`; `event: hello` 56 ms after connect (not buffered); an expense created through the proxy produced `event: change` (topic `expenses`) 36 ms later; `: ping` at 20 s; no `Content-Encoding` even with `Accept-Encoding: gzip, zstd, br` (a normal JSON response is gzipped) |
+| Realtime auth gate | no token 401; platform-admin token 403 |
+| Headless Edge over HTTPS, two contexts (demo.waiter, demo.kitchen) | The waiter opened a free table, added an item and pressed Send. The ticket appeared on the kitchen display with no reload **268 ms and 232 ms** after the click (two runs). Zero console errors or warnings, zero failed requests, zero HTTP 4xx/5xx, zero CSP violations (a `securitypolicyviolation` listener was installed). The shipped CSP (`connect-src 'self'`) already covers the same-origin stream. |
+
+Notes from the drill:
+
+- Building the web bundle from Git Bash on Windows rewrites `VITE_API_URL=/api` into `C:/Program Files/Git/api` (MSYS path conversion) and the browser then blocks every request with a CSP error. Use `MSYS_NO_PATHCONV=1` or build from PowerShell or CI. The Docker build is unaffected.
+- `curl` on Windows (schannel) needs `--ssl-no-revoke` for Caddy's local CA (no OCSP/CRL); Linux curl does not.
+- No production bug was found: `deploy/Caddyfile`, the API config and the Dockerfiles needed no change.
+
+### Static artifact review
+
+- `Dockerfile.api`: the build stage runs `npm ci` (root postinstall builds `@nexus/shared` and generates the Prisma client). `runtime` copies prod-only dependencies, `node_modules/.prisma`, `packages/shared/dist` and `apps/api/dist`, runs as `node`, and has a healthcheck on `GET /health` at `$PORT`. The `migrate` target runs `prisma migrate deploy` then `prisma db seed` (both commands verified locally on an empty and a populated DB). The realtime stream uses the API port; no extra port is needed.
+- `Dockerfile.web`: Caddy 2.10 as a non-root user with `cap_net_bind_service`, `/data` and `/config` owned by `caddy`, healthcheck on `127.0.0.1:8081/healthz` (verified locally).
+- `docker-compose.prod.yml`: parses with js-yaml. `api` is on `backend` (internal) and `edge`; `web` is only on `edge` and reaches `api:3000`; `migrate` is in the `release` profile; env names match `validateEnv`.
+- `.github/workflows/ci.yml`: parses with js-yaml. The `verify` job runs `prisma migrate deploy` and `prisma db seed` before `test:e2e`, with `DATABASE_URL`, `CORS_ORIGIN`, `PLATFORM_BOOTSTRAP_EMAIL` and `PLATFORM_BOOTSTRAP_PASSWORD` (the names the API validates). The `images` job now also checks through Caddy that `/api/admin/realtime/stream` answers 401 anonymously and 403 to the platform admin (verified against the drill stack). CI has no business user, so the event flow itself is covered by this local drill only.
+
+### Earlier evidence (2026-10-25, still valid)
+
+- Config validator: Jest tests in `apps/api/src/config/configuration.spec.ts` (production refuses the dev JWT secret, `ChangeMe!Dev12345`, localhost or http CORS, short secrets).
+- Backup/restore drill: source and restored counts identical for all tables (`backup-restore.md`).
+- Vite preview served `/tables` and `/reports/daily` with `text/html`.
 
 ## Web notes (unchanged)
 

@@ -39,7 +39,9 @@ browser ──https──▶ web (Caddy :443) ──┬── /assets/*, /, /tab
 - Caddy (shipped): `flush_interval -1` on the `/api/*` reverse proxy, and `encode` excludes `/api/admin/realtime/*`. No response timeout is set. `caddy validate` passes.
 - nginx equivalent, for the API location: `proxy_buffering off; proxy_cache off; proxy_http_version 1.1; proxy_set_header Connection ""; proxy_read_timeout 1h; gzip off;` (the API also sends `X-Accel-Buffering: no`).
 - Cloud load balancers: set the idle timeout above 60 s (the API heartbeats every 20 s, so any value over about 30 s works).
-- The bus is in-process. Run ONE API instance, or replace `RealtimeBus` with a Redis pub/sub adapter before scaling out (ADR-032).
+- Verified locally (2026-10-27, Caddy 2.10.2 with `tls internal`): `event: hello` arrives 56 ms after connect, a `change` event 36 ms after the mutation that caused it, `: ping` at 20 s, and no `Content-Encoding` even when the client sends `Accept-Encoding: gzip, zstd`. Smoke the stream after any proxy change: `curl -N -H "Authorization: Bearer <business user token>" https://<domain>/api/admin/realtime/stream` must print `event: hello` at once (a platform-admin token gets 403: streams are business-only).
+- Restarting the API or the edge drops every open stream; the web client reconnects with backoff and refetches, so no operator action is needed.
+- The bus is in-process (single instance). Run ONE API instance, or replace `RealtimeBus` with a Redis pub/sub adapter (the adapter point is the `RealtimeBus` provider in `apps/api/src/realtime`) before scaling out (ADR-032). Behind a second replica without that adapter, a change made on replica A never reaches clients connected to replica B.
 
 ### Alternative: cross-origin (not the default)
 

@@ -179,6 +179,23 @@ jobs:
             bash scripts/smoke.sh
           curl -fsS --cacert caddy-root.crt -o /dev/null -w 'SPA deep link: HTTP %{http_code}\n' https://nexus.ci.test/tables
 
+      - name: Realtime route reachable through Caddy (auth-gated)
+        # CI has no business user (the demo seed refuses production), so the
+        # event flow itself is not exercised here; the streaming/flush proof is
+        # the local drill in docs/ui/DEPLOYMENT_READINESS.md. This guards the
+        # proxy path (/api/admin/realtime/stream) and the auth gate.
+        run: |
+          set -eu
+          base=https://nexus.ci.test/api
+          code="$(curl -sS --cacert caddy-root.crt -o /dev/null -w '%{http_code}' "$base/admin/realtime/stream")"
+          [ "$code" = 401 ] || { echo "expected 401 without a token, got $code"; exit 1; }
+          token="$(curl -fsS --cacert caddy-root.crt -H 'content-type: application/json' \
+            -d "{\"email\":\"ci-admin@example.com\",\"password\":\"$SMOKE_PASS\"}" "$base/auth/login" \
+            | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')"
+          code="$(curl -sS --cacert caddy-root.crt -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $token" "$base/admin/realtime/stream")"
+          [ "$code" = 403 ] || { echo "expected 403 for a platform (non-business) token, got $code"; exit 1; }
+          echo "realtime route: 401 anonymous, 403 platform realm"
+
       - name: Compose logs on failure
         if: failure()
         run: $COMPOSE logs --no-color --tail 200
