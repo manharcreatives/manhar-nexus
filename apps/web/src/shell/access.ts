@@ -9,7 +9,9 @@ const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 
 const BILLS_ROLES = new Set(['owner', 'location-manager', 'checkout-associate']);
 // Roles holding core.user.view (owner via wildcard).
 const TEAM_ROLES = new Set(['owner', 'location-manager']);
-const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
+// Roles holding restaurant.kitchen.view. service-team (waiters) do not: they take and track orders
+// from the floor, not the kitchen queue, and the API refuses them.
+const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team']);
 
 export interface Access {
   isPlatform: boolean;
