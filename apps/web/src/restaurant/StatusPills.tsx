@@ -57,7 +57,7 @@ function StatusGlyph({ status }: { status: DiningTable['status'] }) {
 export function TableStatusLabel({ status, className }: { status: DiningTable['status']; className?: string }) {
   const { t } = useTranslation();
   return (
-    <span className={cn('inline-flex items-center gap-1.5 text-[0.6875rem] leading-none font-semibold tracking-[0.1em] uppercase', LABEL_TONE[status], className)}>
+    <span className={cn('inline-flex min-w-0 items-center gap-1.5 text-[0.6875rem] leading-none font-semibold tracking-[0.08em] whitespace-nowrap uppercase', LABEL_TONE[status], className)}>
       <StatusGlyph status={status} />
       {t(`restaurant.tableStatus.${status}`)}
     </span>

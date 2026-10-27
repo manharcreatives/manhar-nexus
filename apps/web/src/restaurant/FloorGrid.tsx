@@ -21,10 +21,10 @@ function TileBody({ table, session }: { table: DiningTable; session?: GuestSessi
   const pct = Math.min(100, (mins / METER_FULL_MIN) * 100);
   return (
     <>
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-2">
         <span className="font-display text-[1.75rem] leading-none font-semibold tracking-[-0.02em]">{table.code}</span>
         {table.isActive ? (
-          <TableStatusLabel status={table.status} className="mt-1" />
+          <TableStatusLabel status={table.status} className="mt-1 max-w-full" />
         ) : (
           <StatusPill>{t('restaurant.tables.inactive')}</StatusPill>
         )}
@@ -60,7 +60,7 @@ export function FloorGrid({
 }) {
   const { t } = useTranslation();
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
       {tables.map((table) => {
         const session = sessionByTable.get(table.id);
         const tile = cn(

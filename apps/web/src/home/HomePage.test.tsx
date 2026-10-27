@@ -22,18 +22,33 @@ const point = (date: string, net: number, count: number) => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe('RevenueHero', () => {
-  it('shows today, the comparison with the same weekday last week, and the 7-day strip', async () => {
+  const stub = (lastWeekNet: number, todayNet: number) => {
     const today = todayIso();
-    const days = Array.from({ length: 8 }, (_, i) => point(addDaysIso(today, i - 7), i === 0 ? 100000 : i === 7 ? 150000 : 50000, 3));
+    const days = Array.from({ length: 8 }, (_, i) => point(addDaysIso(today, i - 7), i === 0 ? lastWeekNet : i === 7 ? todayNet : 50000, 3));
     vi.stubGlobal(
       'fetch',
       vi.fn(() => json({ from: days[0].date, to: today, businessId: 'b', timezone: 'UTC', days })),
     );
+  };
+
+  it('shows today beside the full total of the same weekday last week as a neutral reference, never as up or down', async () => {
+    stub(400000, 100000);
     render(<RevenueHero withSeries locationId={null} />);
     // Hero figure plus the strip's table cell for today.
-    expect((await screen.findAllByText('₹1,500.00')).length).toBe(2);
-    expect(screen.getByText(/Up ₹500\.00 \(\+50%\)/)).toBeTruthy();
+    expect((await screen.findAllByText('₹1,000.00')).length).toBe(2);
+    expect(screen.getByText(/total$/)).toBeTruthy();
+    expect(screen.getByText('₹4,000.00')).toBeTruthy();
+    expect(screen.getAllByText('Today is 25% of that so far').length).toBeGreaterThan(0);
+    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('25');
+    expect(screen.queryByText(/^(Up|Down) /)).toBeNull();
     expect(screen.getAllByRole('img')).toHaveLength(7);
+  });
+
+  it('says plainly when the reference day had no sales instead of inventing a percentage', async () => {
+    stub(0, 100000);
+    render(<RevenueHero withSeries locationId={null} />);
+    expect(await screen.findByText('Nothing was sold that day to measure against.')).toBeTruthy();
+    expect(screen.queryByRole('meter')).toBeNull();
   });
 });
 

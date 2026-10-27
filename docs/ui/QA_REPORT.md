@@ -49,3 +49,33 @@ Each was found by driving the real UI, not by the existing tests:
 - API/Redis/storage outage behaviour end to end; printing hardware.
 - Onboarding go-live and commercial dialogs were built and type-checked but not driven in a browser.
 - Double-click protection was implemented and unit-structured but not stress-tested with a real double click.
+
+
+---
+
+## Update — final pass (2026-10-27)
+
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | pass |
+| `npm run lint` | pass, 0 errors, 0 warnings |
+| `npm run test` | API 46/46, web 137/137 |
+| `npm run test:e2e` | 24 suites, **659/659** |
+| `npm run build` | pass; entry JS **174.75 kB gzip** (budget 250), CSS ~13 kB gzip |
+| `/admin/audit/verify` on the seeded demo | `valid: true`, 129 events |
+
+Added since the first pass: Team page, working location switcher, user menu, command palette and shortcuts, owner dashboard with SVG trend charts, daily-series endpoint, server-side modifier validation, refund idempotency, 14-day two-location demo history, deployment artifacts (backup/restore drilled locally), aesthetic pass with brand assets, and fixes from the independent critique (see `CRITIQUE_LOG.md`). Evidence screenshots: `screens/design-before/`, `design-after/`, `design-after-2/`.
+
+### Defects found and fixed in this round
+- Invoices charged priced modifiers twice (pre-existing); regression E2E added.
+- Seed history and live scenario were stale on later days; the seed now retires old live sessions through the services and recreates them relative to now.
+- Tile status labels overflowed at 1024 px.
+- Home showed a misleading red "Down 77%" (partial day vs full day); now a neutral reference with a progress meter.
+- Settings and Activity leaked internal terms, keys and UUIDs.
+
+### Known gaps (unchanged or new)
+- **Home vs Bills totals differ for "today"** (Home counts by paid time, Bills filters by invoice creation time). Needs one agreed definition.
+- Reports split days at UTC, not the location timezone.
+- Platform Home "Prospect" counts include dev-DB test fixtures.
+- Receipts print the bare invoice number while the UI shows the `ML-`/`RV-` prefix.
+- Not verified: real touch hardware, screen reader, keyboard-only walkthrough, Lighthouse on authenticated routes, onboarding/commercial dialogs in a browser, container run and TLS (needs a host).

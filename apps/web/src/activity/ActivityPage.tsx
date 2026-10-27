@@ -10,43 +10,51 @@ import { Button } from '../ui/Button';
 import { StatusPill } from '../ui/StatusPill';
 import { Table, Th, Td } from '../ui/Table';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
+import { Select } from '../ui/Select';
+import { isUuid, labelForKey } from '../lib/humanize';
 
 const PAGE_SIZE = 25;
 
 interface Filters {
-  action: string;
-  resourceType: string;
+  /** Area key: a plain-language group that maps onto an "action contains" search. */
+  area: string;
   from: string;
   to: string;
 }
-const NO_FILTERS: Filters = { action: '', resourceType: '', from: '', to: '' };
+const NO_FILTERS: Filters = { area: '', from: '', to: '' };
+
+/** Plain-language areas and the action text each one searches for. */
+const AREAS: Array<{ key: string; search: string }> = [
+  { key: 'payments', search: 'payment' },
+  { key: 'bills', search: 'invoice' },
+  { key: 'orders', search: 'service_request' },
+  { key: 'sessions', search: 'guest_session' },
+  { key: 'people', search: 'user' },
+  { key: 'settings', search: 'setting' },
+];
 
 function EventRow({ event }: { event: AuditEvent }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const hasMeta = Object.keys(event.metadata).length > 0;
-  const who = event.actorLabel ?? event.actorId ?? event.actorType;
+  const who = event.actorLabel && !isUuid(event.actorLabel) ? event.actorLabel : event.actorId ? t('activity.systemActor') : event.actorType;
+  const what = labelForKey(t, 'activity.actions', event.action);
+  const record = labelForKey(t, 'activity.records', event.resourceType);
   return (
     <Fragment>
       <tr>
         <Td className="whitespace-nowrap text-muted">{formatDateTime(event.createdAt)}</Td>
         <Td>{who}</Td>
         <Td>
-          <code className="rounded-control bg-sunken px-1.5 py-0.5 font-mono text-xs">{event.action}</code>
-        </Td>
-        <Td>
-          {event.resourceType}
-          {event.resourceId && <span className="block max-w-40 truncate font-mono text-xs text-muted" title={event.resourceId}>{event.resourceId}</span>}
-        </Td>
-        <Td numeric className="font-mono text-xs text-muted">
-          {event.sequence}
+          <span className="font-medium">{what}</span>
+          <span className="block text-xs text-muted">{record}</span>
         </Td>
         <Td className="text-right">
           <Button
             variant="ghost"
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
-            aria-label={`${open ? t('activity.hideDetails') : t('activity.showDetails')}: ${event.action} #${event.sequence}`}
+            aria-label={`${open ? t('activity.hideDetails') : t('activity.showDetails')}: ${what}`}
           >
             {open ? t('activity.hideDetails') : t('activity.showDetails')}
           </Button>
@@ -54,8 +62,18 @@ function EventRow({ event }: { event: AuditEvent }) {
       </tr>
       {open && (
         <tr>
-          <td colSpan={6} className="border-b border-line/60 bg-sunken/50 px-4 py-3">
-            <dl className="grid gap-x-6 gap-y-2 text-xs sm:grid-cols-[auto_1fr]">
+          <td colSpan={4} className="border-b border-line/60 bg-sunken/50 px-4 py-3">
+            <p className="eyebrow">{t('activity.technical')}</p>
+            <dl className="mt-2 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-[auto_1fr]">
+              <dt className="text-muted">{t('activity.actionCode')}</dt>
+              <dd className="font-mono break-all">{event.action}</dd>
+              <dt className="text-muted">{t('activity.recordLabel')}</dt>
+              <dd className="font-mono break-all">
+                {event.resourceType}
+                {event.resourceId ? ` · ${event.resourceId}` : ''}
+              </dd>
+              <dt className="text-muted">{t('activity.sequence')}</dt>
+              <dd className="font-mono">#{event.sequence}</dd>
               <dt className="text-muted">{t('activity.hash')}</dt>
               <dd className="break-all font-mono">{event.hash}</dd>
               <dt className="text-muted">{t('activity.prevHash')}</dt>
@@ -139,8 +157,7 @@ export function ActivityPage() {
       activityApi.list({
         take: PAGE_SIZE,
         skip,
-        action: applied.action || undefined,
-        resourceType: applied.resourceType || undefined,
+        action: AREAS.find((a) => a.key === applied.area)?.search,
         from: applied.from || undefined,
         to: applied.to || undefined,
       }),
@@ -152,7 +169,7 @@ export function ActivityPage() {
     e.preventDefault();
     if (dateError) return;
     setSkip(0);
-    setApplied({ ...draft, action: draft.action.trim(), resourceType: draft.resourceType.trim() });
+    setApplied(draft);
   };
   const clear = () => {
     setDraft(NO_FILTERS);
@@ -174,8 +191,14 @@ export function ActivityPage() {
         <Panel>
           <form onSubmit={search} noValidate aria-label={t('activity.filters')} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label={t('activity.filterAction')} value={draft.action} onChange={(e) => setDraft((d) => ({ ...d, action: e.target.value }))} placeholder={t('activity.actionPh')} />
-              <Field label={t('activity.filterResourceType')} value={draft.resourceType} onChange={(e) => setDraft((d) => ({ ...d, resourceType: e.target.value }))} placeholder={t('activity.resourcePh')} />
+              <Select label={t('activity.areaLabel')} value={draft.area} onChange={(e) => setDraft((d) => ({ ...d, area: e.target.value }))}>
+                <option value="">{t('activity.areaAll')}</option>
+                {AREAS.map((a) => (
+                  <option key={a.key} value={a.key}>
+                    {t(`activity.areas.${a.key}`)}
+                  </option>
+                ))}
+              </Select>
               <Field label={t('activity.filterFrom')} type="date" value={draft.from} onChange={(e) => setDraft((d) => ({ ...d, from: e.target.value }))} />
               <Field label={t('activity.filterTo')} type="date" value={draft.to} onChange={(e) => setDraft((d) => ({ ...d, to: e.target.value }))} error={dateError} />
             </div>
@@ -213,9 +236,7 @@ export function ActivityPage() {
                 <tr>
                   <Th>{t('activity.colTime')}</Th>
                   <Th>{t('activity.colActor')}</Th>
-                  <Th>{t('activity.colAction')}</Th>
-                  <Th>{t('activity.colResource')}</Th>
-                  <Th numeric>{t('activity.colSeq')}</Th>
+                  <Th>{t('activity.colWhat')}</Th>
                   <Th>
                     <span className="sr-only">{t('activity.colDetails')}</span>
                   </Th>

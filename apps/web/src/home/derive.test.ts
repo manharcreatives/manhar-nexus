@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { averageBill, kitchenLoad, pendingApprovals, tableLoad } from './derive';
+import { averageBill, clientsByStatus, isOpenActivation, kitchenLoad, onboardingInProgress, pendingApprovals, shareOfTotal, tableLoad } from './derive';
 import { homeAccess } from './access';
 
 describe('kitchenLoad', () => {
@@ -62,5 +62,33 @@ describe('homeAccess', () => {
   });
   it('shows nothing tenant-scoped to the platform realm', () => {
     expect(Object.values(homeAccess({ realm: 'PLATFORM', roles: [{ key: 'platform-admin' }] })).some(Boolean)).toBe(false);
+  });
+});
+
+describe('shareOfTotal', () => {
+  it('is how far a part-day has got toward a full day, never a change', () => {
+    expect(shareOfTotal(1086650, 4544440)).toBe(24);
+    expect(shareOfTotal(0, 4544440)).toBe(0);
+  });
+  it('may pass 100 when today already beat the reference day', () => {
+    expect(shareOfTotal(6000, 4000)).toBe(150);
+  });
+  it('has nothing to measure against when the reference day had no revenue', () => {
+    expect(shareOfTotal(5000, 0)).toBeNull();
+  });
+});
+
+describe('platform home reducers', () => {
+  it('counts clients per commercial status, keeping empty statuses at zero', () => {
+    const r = clientsByStatus([{ commercialStatus: 'PROSPECT' }, { commercialStatus: 'PROSPECT' }, { commercialStatus: 'TRIAL' }]);
+    expect(r.total).toBe(3);
+    expect(r.counts).toEqual({ PROSPECT: 2, TRIAL: 1, ACTIVE: 0, SUSPENDED: 0, CHURNED: 0 });
+  });
+  it('treats only unfinished activation requests as waiting', () => {
+    expect(['REQUESTED', 'QUOTED', 'APPROVED', 'PENDING_SETUP'].every(isOpenActivation)).toBe(true);
+    expect(['ACTIVE', 'SUSPENDED', 'REMOVED'].some(isOpenActivation)).toBe(false);
+  });
+  it('counts onboardings still open', () => {
+    expect(onboardingInProgress([{ completedAt: null }, { completedAt: '2026-10-01T00:00:00Z' }, { completedAt: null }])).toEqual({ open: 2, started: 3 });
   });
 });

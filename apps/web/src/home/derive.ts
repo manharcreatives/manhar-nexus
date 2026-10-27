@@ -68,3 +68,30 @@ export function pendingApprovals(expenses: { status: string; amountMinorUnits: n
   const pending = expenses.filter((e) => e.status === 'PENDING_APPROVAL');
   return { count: pending.length, totalMinor: pending.reduce((s, e) => s + e.amountMinorUnits, 0) };
 }
+
+/**
+ * How far today's figure has got toward a comparison day's FULL total, as a whole
+ * percent (may exceed 100). Null when the comparison day has no revenue to measure
+ * against. Deliberately not a "change": a part-day cannot be compared like for like.
+ */
+export function shareOfTotal(currentMinor: number, baseMinor: number): number | null {
+  if (baseMinor <= 0) return null;
+  return Math.max(0, Math.round((currentMinor / baseMinor) * 100));
+}
+
+/** Client accounts counted per commercial status, in the order an owner reads them (pipeline first). */
+export const COMMERCIAL_ORDER = ['PROSPECT', 'TRIAL', 'ACTIVE', 'SUSPENDED', 'CHURNED'] as const;
+
+export function clientsByStatus(clients: { commercialStatus: string }[]): { total: number; counts: Record<string, number> } {
+  const counts: Record<string, number> = Object.fromEntries(COMMERCIAL_ORDER.map((s) => [s, 0]));
+  for (const c of clients) counts[c.commercialStatus] = (counts[c.commercialStatus] ?? 0) + 1;
+  return { total: clients.length, counts };
+}
+
+/** An activation request still waiting on someone: not live, paused or removed. */
+const OPEN_ACTIVATION = new Set(['REQUESTED', 'QUOTED', 'APPROVED', 'PENDING_SETUP']);
+export const isOpenActivation = (status: string): boolean => OPEN_ACTIVATION.has(status);
+
+export function onboardingInProgress(rows: { completedAt: string | null }[]): { open: number; started: number } {
+  return { open: rows.filter((r) => r.completedAt === null).length, started: rows.length };
+}

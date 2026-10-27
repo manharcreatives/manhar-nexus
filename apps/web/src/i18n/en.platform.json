@@ -1,4 +1,27 @@
 {
+  "platformHome": {
+    "loadError": "This didn't load",
+    "clients": {
+      "title": "Client accounts",
+      "link": "Open clients",
+      "unit_one": "client",
+      "unit_other": "clients",
+      "partial": "Showing the first {{count}} clients; there are more."
+    },
+    "onboarding": {
+      "title": "Onboarding in progress",
+      "link": "Open onboarding",
+      "none": "Nobody is being onboarded right now.",
+      "of": "Of {{started}} onboardings started, {{open}} are still open."
+    },
+    "pending": {
+      "title": "Waiting on a decision",
+      "link": "Open requests",
+      "none": "No module requests are waiting.",
+      "waiting": "Module requests waiting for: {{names}}",
+      "partial": "Checked the first {{count}} clients that have requests."
+    }
+  },
   "commercial": {
     "title": "Commercial",
     "subtitle": "Clients, what you sell, what it costs, and the requests to switch modules on for each client.",

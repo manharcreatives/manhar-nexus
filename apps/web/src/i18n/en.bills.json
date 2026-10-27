@@ -25,6 +25,13 @@
     "showing": "Showing {{from}}-{{to}} of {{total}}",
     "prev": "Previous",
     "next": "Next",
+    "day": { "today": "Today", "yesterday": "Yesterday" },
+    "summary": {
+      "bills": "Bills",
+      "billed": "Billed",
+      "voidedLeftOut_one": "{{count}} voided bill left out",
+      "voidedLeftOut_other": "{{count}} voided bills left out"
+    },
     "empty": {
       "title": "No bills found",
       "body": "Try a different status or date range."
@@ -36,6 +43,9 @@
       "to": "To date",
       "presets": "Quick date ranges",
       "today": "Today",
+      "yesterday": "Yesterday",
+      "allDates": "All dates",
+      "pickDates": "Pick dates",
       "last7": "Last 7 days",
       "month": "This month",
       "clearDates": "Clear dates",

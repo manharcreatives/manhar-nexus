@@ -193,14 +193,14 @@ export function AppShell() {
             aria-keyshortcuts="Control+K Meta+K /"
             className={cn(
               'grid size-11 place-items-center rounded-control text-muted transition-colors duration-(--duration-micro) hover:bg-sunken hover:text-ink',
-              'md:flex md:h-10 md:w-60 md:items-center md:justify-between md:gap-2 md:border md:border-line md:bg-paper md:px-3 md:text-sm',
+              'lg:flex lg:h-10 lg:w-60 lg:items-center lg:justify-between lg:gap-2 lg:border lg:border-line lg:bg-paper lg:px-3 lg:text-sm',
             )}
           >
             <span className="flex items-center gap-2">
-              <Icons.Search className="size-[1.125rem] md:size-4" aria-hidden />
-              <span className="hidden md:inline">{t('shell.search')}</span>
+              <Icons.Search className="size-[1.125rem] lg:size-4" aria-hidden />
+              <span className="hidden lg:inline">{t('shell.search')}</span>
             </span>
-            <span className="hidden items-center gap-1 md:inline-flex" aria-hidden>
+            <span className="hidden items-center gap-1 lg:inline-flex" aria-hidden>
               <Kbd>{mod}</Kbd>
               <Kbd>K</Kbd>
             </span>

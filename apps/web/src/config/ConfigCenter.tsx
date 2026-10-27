@@ -12,6 +12,7 @@ import { StatusPill } from '../ui/StatusPill';
 import { Tabs } from '../ui/Tabs';
 import { Textarea } from '../ui/Textarea';
 import { useToast } from '../ui/Toast';
+import { friendlyValue, groupLabel, settingText } from './display';
 import { configApi, type AlertRule, type EffectiveSetting, type SettingSchema, type SettingSource } from './api';
 
 // Settings tab
@@ -133,16 +134,17 @@ function SettingRow({
     }
   }
 
-  const name = def.key;
+  const { title: name, hint } = settingText(t, def.namespace, def.key, def.description);
+  const shown = def.sensitive ? null : friendlyValue(t, def.namespace, def.key, displayValue);
 
   return (
     <li className="rounded-panel border border-line bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium break-words">{def.description || def.key}</p>
-          {def.description && <p className="mt-0.5 text-xs text-muted break-all">{def.key}</p>}
+          <p className="text-sm font-medium break-words">{name}</p>
+          {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
         </div>
-        <StatusPill tone={SOURCE_TONE[source]}>{t(`config.source.${source}`)}</StatusPill>
+        {source !== 'default' && <StatusPill tone={SOURCE_TONE[source]}>{t(`config.source.${source}`)}</StatusPill>}
       </div>
 
       {editing ? (
@@ -196,7 +198,7 @@ function SettingRow({
       ) : (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="tabular min-w-0 break-all text-base">
-            {def.sensitive ? <span className="text-muted">{t('config.sensitiveValue')}</span> : displayText(displayValue, t)}
+            {def.sensitive ? <span className="text-muted">{t('config.sensitiveValue')}</span> : (shown ?? displayText(displayValue, t))}
           </p>
           <Button variant="secondary" aria-label={t('config.editLabel', { name })} onClick={startEdit}>
             {t('config.edit')}
@@ -283,17 +285,12 @@ function SettingsTab() {
 
   return (
     <div className="space-y-5">
-      <Panel className="bg-sunken/40">
-        <h2 className="text-base font-semibold">{t('config.precedenceTitle')}</h2>
-        <p className="mt-1 max-w-prose text-sm text-muted">{t('config.precedenceBody')}</p>
-      </Panel>
-
       {namespaces.length > 1 && (
         <div className="sm:max-w-xs">
           <Select label={t('config.groupLabel')} value={state.ns} onChange={(e) => void load(e.target.value)}>
             {namespaces.map((ns) => (
               <option key={ns} value={ns}>
-                {ns}
+                {groupLabel(t, ns)}
               </option>
             ))}
           </Select>
@@ -314,6 +311,11 @@ function SettingsTab() {
           ))}
         </ul>
       )}
+
+      <Panel className="bg-sunken/40">
+        <h2 className="text-base font-semibold">{t('config.precedenceTitle')}</h2>
+        <p className="mt-1 max-w-prose text-sm text-muted">{t('config.precedenceBody')}</p>
+      </Panel>
     </div>
   );
 }

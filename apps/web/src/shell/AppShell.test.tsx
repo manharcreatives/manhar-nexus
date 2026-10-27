@@ -25,17 +25,20 @@ const me = {
   businessId: 'b-1',
   roles: [{ key: 'owner', name: 'Owner' }],
 };
-const locations = [
+const allLocations = [
   { id: 'l-1', name: 'Bandra', code: 'BND', timezone: null, status: 'ACTIVE' },
   { id: 'l-2', name: 'Colaba', code: null, timezone: null, status: 'ACTIVE' },
   { id: 'l-3', name: 'Closed one', code: null, timezone: null, status: 'INACTIVE' },
 ];
+
+let locations = [...allLocations];
 
 function json(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }));
 }
 
 beforeEach(() => {
+  locations = [...allLocations];
   window.localStorage.clear();
   window.history.pushState({}, '', '/');
   vi.stubGlobal(
@@ -81,6 +84,14 @@ describe('AppShell header', () => {
     expect(switcher.textContent).toContain('Colaba');
     expect(document.activeElement).toBe(switcher);
     expect(window.localStorage.getItem('nexus.workLocation.v1:u-1')).toBe('l-2');
+  });
+
+  it('shows no switcher (and no chevron) when the business has a single location', async () => {
+    locations = [allLocations[0]];
+    render(<App />);
+    expect(await screen.findByText('Bandra')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Working location/ })).toBeNull();
+    expect(screen.queryByRole('listbox')).toBeNull();
   });
 
   it('closes the switcher on Escape and returns focus', async () => {

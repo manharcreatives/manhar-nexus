@@ -9,6 +9,7 @@ import { Skeleton } from '../ui/states';
 import { homeAccess } from './access';
 import { RevenueHero } from './RevenueHero';
 import { OpsWidgets } from './OpsWidgets';
+import { PlatformHome } from './PlatformHome';
 
 function todayHeading(): string {
   return new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -72,7 +73,9 @@ export function HomePage() {
         }
       />
 
-      {locStatus === 'loading' ? (
+      {nav.isPlatform ? (
+        <PlatformHome />
+      ) : locStatus === 'loading' ? (
         <div aria-hidden className="space-y-4">
           <Skeleton className="h-16 w-3/4 max-w-sm" />
           <Skeleton className="h-40" />

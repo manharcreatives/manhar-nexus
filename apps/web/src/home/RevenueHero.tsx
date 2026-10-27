@@ -2,13 +2,12 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { reportsApi, type DailyClosingReport, type DailySeriesPoint } from '../reports/api';
 import { addDaysIso, axisDayLabel, formatDayLong, todayIso, weekdayName } from '../reports/dates';
-import { compare } from '../reports/series';
 import { formatMoney, formatMoneyCompact } from '../lib/money';
 import { BarTrend } from '../charts/BarTrend';
 import { Skeleton } from '../ui/states';
 import { cn } from '../lib/cn';
 import { LedgerFigure } from '../ui/LedgerFigure';
-import { averageBill, type DayFigures, type RevenueToday } from './derive';
+import { averageBill, shareOfTotal, type DayFigures, type RevenueToday } from './derive';
 import { useWidget } from './useWidget';
 import { InlineError } from './InlineError';
 import { SectionHeader } from '../ui/SectionHeader';
@@ -51,22 +50,38 @@ async function loadRevenue(withSeries: boolean, locationId?: string): Promise<Re
 
 type Basis = 'lastWeek' | 'yesterday';
 
-function Delta({ current, base, baseLabel }: { current: number; base: number; baseLabel: string }) {
+/**
+ * Today is a part-day, so it is never ranked against a full day (no up/down, no red).
+ * We show the comparison day's full total as a neutral reference and how far today
+ * has got toward it.
+ */
+function Reference({ current, base, baseLabel }: { current: number; base: number; baseLabel: string }) {
   const { t } = useTranslation();
-  const c = compare(current, base);
-  const tone = c.direction === 'up' ? 'text-ok' : c.direction === 'down' ? 'text-bad' : 'text-muted';
-  const arrow = c.direction === 'up' ? '↑' : c.direction === 'down' ? '↓' : '→';
-  const amount = formatMoney(Math.abs(c.delta));
-  const word = t(`home.delta.${c.direction}`);
+  const share = shareOfTotal(current, base);
   return (
-    <p className="text-sm">
-      <span className={cn('tabular font-semibold', tone)}>
-        <span aria-hidden>{arrow} </span>
-        {c.direction === 'flat' ? word : `${word} ${amount}`}
-        {c.pct !== null && c.direction !== 'flat' && ` (${c.pct > 0 ? '+' : ''}${c.pct}%)`}
-      </span>{' '}
-      <span className="text-muted">{t('home.delta.vs', { label: baseLabel, amount: formatMoney(base) })}</span>
-    </p>
+    <div className="max-w-md">
+      <p className="text-sm text-muted">
+        {t('home.reference.total', { label: baseLabel })} <span className="tabular font-semibold text-ink">{formatMoney(base)}</span>
+      </p>
+      {share !== null ? (
+        <>
+          <div
+            role="meter"
+            aria-label={t('home.reference.meter', { label: baseLabel })}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(share, 100)}
+            aria-valuetext={t('home.reference.progress', { pct: share })}
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-line"
+          >
+            <div className="h-full rounded-full bg-ink/60" style={{ width: `${Math.min(share, 100)}%` }} />
+          </div>
+          <p className="mt-1.5 text-xs text-muted">{t('home.reference.progress', { pct: share })}</p>
+        </>
+      ) : (
+        <p className="mt-1 text-xs text-muted">{t('home.reference.none')}</p>
+      )}
+    </div>
   );
 }
 
@@ -94,8 +109,8 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
   const base = r ? (basis === 'lastWeek' ? r.lastWeek : r.yesterday) : null;
   const baseLabel = r
     ? basis === 'lastWeek'
-      ? t('home.basis.lastWeekdayFull', { weekday: weekdayName(r.lastWeek.date) })
-      : t('home.basis.yesterdayFull')
+      ? t('home.basis.lastWeekday', { weekday: weekdayName(r.lastWeek.date) })
+      : t('home.basis.yesterday')
     : '';
   const avg = r ? averageBill(r.today) : null;
 
@@ -115,7 +130,7 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
                 onClick={() => setBasis(b)}
                 className={cn(
                   'min-h-8 rounded-[0.375rem] px-2.5 font-medium transition-colors duration-(--duration-micro)',
-                  basis === b ? 'bg-ink text-surface' : 'text-muted hover:text-ink',
+                  basis === b ? 'bg-sunken font-semibold text-ink' : 'text-muted hover:text-ink',
                 )}
               >
                 {b === 'lastWeek' ? t('home.basis.lastWeekday', { weekday: weekdayName(r.lastWeek.date) }) : t('home.basis.yesterday')}
@@ -144,8 +159,8 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
             <LedgerFigure minor={r.today.netMinor} rule="double" reveal className="text-[3.25rem] sm:text-[4.5rem] lg:text-[5.5rem]" />
           </p>
           <div className="mt-4">
-            <Delta current={r.today.netMinor} base={base.netMinor} baseLabel={baseLabel} />
-            <p className="mt-0.5 text-xs text-muted">{t('home.soFarNote')}</p>
+            <Reference current={r.today.netMinor} base={base.netMinor} baseLabel={baseLabel} />
+            <p className="mt-3 text-xs text-muted">{t('home.soFarNote')}</p>
           </div>
 
           <dl className="mt-8 grid grid-cols-2 border-t border-line sm:max-w-md">

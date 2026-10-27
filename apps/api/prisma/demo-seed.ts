@@ -22,8 +22,17 @@
  *              change) and UPI (with reference), 3 partial cash refunds, 1
  *              voided-and-reissued bill - see prisma/demo/history.ts
  *   Expenses:  2 weeks per location: approved, pending, and 1 rejected
- *   Live:      2 Riverside tables occupied with kitchen tickets at SENT /
- *              PREPARING / READY (real services, audited) - prisma/demo/live.ts
+ *   Live:      3 tables (2 Riverside, 1 Main) occupied with kitchen tickets at
+ *              SENT / ACCEPTED / PREPARING / READY: seated 12-50 min ago, tickets
+ *              3-14 min old - always relative to the moment the seed runs.
+ *              SELF-HEALING: on every run, (1) any live-scenario session from an
+ *              earlier run (GuestSession.notes = 'demo:live-scenario') and (2)
+ *              any other session OPEN for more than 6 hours is closed through the
+ *              real services (cancel/serve rounds, void unpaid bill, close or
+ *              void the session, reset the table - audited, never deleted), then
+ *              the scenario is recreated. Open sessions younger than 6h that are
+ *              not live-scenario sessions are left alone.
+ *              See prisma/demo/live.ts
  *
  * Location access: all four demo users hold allLocations=true role grants, so
  * every demo user (owner, cashier, kitchen, waiter) can switch between
@@ -52,7 +61,7 @@ import { Algorithm, hash } from '@node-rs/argon2';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { loadCatalog, seedHistory, type DemoLocation } from './demo/history';
 import { seedExpenses } from './demo/expenses';
-import { buildServices, closePaidOpenSessions, ensureSeries, openLiveTables, userScope } from './demo/live';
+import { buildServices, closePaidOpenSessions, ensureSeries, openLiveTables, retireStaleSessions, userScope } from './demo/live';
 
 if (process.env.NEXUS_DEMO_SEED !== 'true') {
   console.error('[demo-seed] Aborted: NEXUS_DEMO_SEED must be "true" to run this script.');
@@ -543,8 +552,10 @@ async function main(): Promise<void> {
   }
 
   // ── 16. Live tables at Riverside (real services) ──────────────────────────────
-  const live = await openLiveTables(prisma, svc, waiterScope, kitchenScope, demoLocations[1]);
-  console.log(`[16] Live Riverside tables: ${live.length ? live.join('; ') : 'skipped (location already has open tables)'}`);
+  const retired = await retireStaleSessions(prisma, svc, ownerScope, NOW);
+  console.log(`[16a] Retired stale / previous live-scenario sessions: ${retired.length ? retired.join(', ') : 'none'}`);
+  const live = await openLiveTables(prisma, svc, waiterScope, kitchenScope, { main: demoLocations[0], riverside: demoLocations[1] }, NOW);
+  console.log(`[16b] Live tables (relative to now): ${live.length ? live.join('; ') : 'none (tables busy)'}`);
 
   // ── 17. Integrity check ───────────────────────────────────────────────────────
   const chain = await svc.audit.verifyChain(ownerScope);

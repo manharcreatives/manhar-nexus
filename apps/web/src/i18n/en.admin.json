@@ -13,7 +13,7 @@
     "loadErrorBody": "Check your connection and try again. Nothing was changed.",
     "retry": "Try again",
     "groupLabel": "Settings group",
-    "precedenceTitle": "How settings are chosen",
+    "precedenceTitle": "Which setting wins",
     "precedenceBody": "A setting set for a location wins over one set for the whole business, which wins over the built-in default. Changes you save here apply to the whole business.",
     "noSettings": "There are no settings in this group.",
     "sensitiveValue": "Hidden for security",
@@ -26,7 +26,23 @@
     "saved": "Saved {{name}}.",
     "saveFailed": "We could not save this setting.",
     "conflict": "Someone else changed this setting. Reload to see the latest value, then try again.",
-    "valueLabel": "Value for {{name}}",
+    "valueLabel": "{{name}}",
+    "groups": {
+      "core": "General"
+    },
+    "settings": {
+      "core_locale": { "title": "Language", "hint": "The language and regional style used across the app." },
+      "core_date_format": { "title": "Date format", "hint": "How dates are written on bills, reports and lists." },
+      "core_time_format": { "title": "Clock", "hint": "Whether times show on a 24-hour or 12-hour clock." },
+      "core_rounding_mode": { "title": "Rounding", "hint": "How amounts are rounded when a calculation ends between two paise." }
+    },
+    "values": {
+      "example": "e.g. {{example}}",
+      "rounding_nearest": "Round to the nearest paisa",
+      "rounding_up": "Always round up",
+      "rounding_down": "Always round down",
+      "rounding_half_even": "Round half to even (banker's rounding)"
+    },
     "yes": "On",
     "no": "Off",
     "emptyValue": "Not set",

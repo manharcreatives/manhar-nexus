@@ -24,6 +24,8 @@ import { useToast } from '../ui/Toast';
 
 interface Props {
   invoiceId: string | null;
+  /** Display form of the bill number (location prefix applied); falls back to the stored number. */
+  numberLabel?: string;
   onClose: () => void;
   /** Called after a refund or void so the list can refresh. */
   onChanged: () => void;
@@ -33,7 +35,7 @@ type Mode = { kind: 'view' } | { kind: 'refund'; paymentId: string; confirming: 
 
 const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '');
 
-export function BillDetailDialog({ invoiceId, onClose, onChanged }: Props) {
+export function BillDetailDialog({ invoiceId, numberLabel, onClose, onChanged }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
   const [mode, setMode] = useState<Mode>({ kind: 'view' });
@@ -168,7 +170,7 @@ export function BillDetailDialog({ invoiceId, onClose, onChanged }: Props) {
 
   const title = invoice
     ? invoice.invoiceNumber
-      ? t('bills.detail.title', { number: invoice.invoiceNumber })
+      ? t('bills.detail.title', { number: numberLabel ?? invoice.invoiceNumber })
       : t('bills.detail.titleDraft')
     : t('bills.detail.titleLoading');
 

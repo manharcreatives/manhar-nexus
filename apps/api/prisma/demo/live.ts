@@ -14,6 +14,7 @@ import { NumberingService } from '../../src/core/numbering/numbering.service';
 import { SessionService } from '../../src/restaurant/session/session.service';
 import { OrderService } from '../../src/restaurant/order/order.service';
 import { CostsService } from '../../src/costs/costs.service';
+import { InvoiceService } from '../../src/checkout/invoice/invoice.service';
 import type { TenantScope } from '../../src/common/tenant-scope';
 import { closeSessionSchema, openSessionSchema } from '../../src/restaurant/session/session.dto';
 import { createDraftSchema } from '../../src/restaurant/order/order.dto';
@@ -25,6 +26,7 @@ export interface DemoServices {
   sessions: SessionService;
   orders: OrderService;
   costs: CostsService;
+  invoices: InvoiceService;
 }
 
 export function buildServices(db: PrismaService): DemoServices {
@@ -36,6 +38,7 @@ export function buildServices(db: PrismaService): DemoServices {
     sessions: new SessionService(db, audit),
     orders: new OrderService(db, audit, numbering),
     costs: new CostsService(db, audit),
+    invoices: new InvoiceService(db, audit, numbering),
   };
 }
 
@@ -129,31 +132,95 @@ async function resolveLines(db: PrismaService, businessId: string, lines: LiveLi
 
 type Stage = 'SENT' | 'ACCEPTED' | 'PREPARING' | 'READY';
 
+/** Marker stored in GuestSession.notes: this session belongs to the "live now" scenario. */
+export const LIVE_MARKER = 'demo:live-scenario';
+/** Any open session older than this that is NOT a live-scenario session is stale. */
+export const STALE_AFTER_MS = 6 * 60 * 60 * 1000;
+
+const minutesAgo = (now: Date, m: number) => new Date(now.getTime() - m * 60_000);
+
 /**
- * Open two Riverside tables with kitchen tickets at different stages.
- * Idempotent: skipped while the location already has any OPEN session.
- * Only zero-priced modifiers are used here (see report: priced modifiers are
- * double-counted by OrderService.resolveLineSnapshots + computeTotals).
+ * Retire open sessions through the real services (audited, never deleted):
+ *   - live-scenario sessions (LIVE_MARKER): always, so the scenario is rebuilt
+ *     relative to NOW on every run;
+ *   - any other session OPEN for more than 6 hours (forgotten test sessions).
+ * Per session: cancel unsent/unaccepted rounds, serve cooking/ready rounds,
+ * void a non-paid invoice, close the session and reset its table. Sessions
+ * younger than 6h that are not live-scenario sessions are left untouched.
+ */
+export async function retireStaleSessions(
+  db: PrismaService,
+  svc: DemoServices,
+  scope: TenantScope,
+  now: Date,
+): Promise<string[]> {
+  const open = await db.guestSession.findMany({
+    where: { businessId: scope.businessId, status: 'OPEN' },
+    include: {
+      diningTable: { select: { code: true } },
+      serviceRequests: { select: { id: true, status: true } },
+      invoices: { where: { status: { notIn: ['VOIDED', 'PAID'] } }, select: { id: true } },
+    },
+  });
+  const retired: string[] = [];
+  for (const s of open) {
+    const isLive = s.notes === LIVE_MARKER;
+    const stale = now.getTime() - s.openedAt.getTime() > STALE_AFTER_MS;
+    if (!isLive && !stale) continue;
+    const reason = isLive ? 'Demo live scenario refreshed' : 'Stale demo session cleaned up';
+    for (const r of s.serviceRequests) {
+      if (r.status === 'DRAFT' || r.status === 'SENT' || r.status === 'ACCEPTED') {
+        await svc.orders.cancelRequest(scope, r.id, { reason });
+      } else if (r.status === 'PREPARING') {
+        await svc.orders.markReady(scope, r.id);
+        await svc.orders.markServed(scope, r.id);
+      } else if (r.status === 'READY') {
+        await svc.orders.markServed(scope, r.id);
+      }
+    }
+    for (const inv of s.invoices) {
+      await svc.invoices.voidInvoice(scope, inv.id, { reason });
+    }
+    const hasServed = s.serviceRequests.some((r) => r.status === 'PREPARING' || r.status === 'READY' || r.status === 'SERVED');
+    const hasPaid = (await db.invoice.count({ where: { sessionId: s.id, status: 'PAID' } })) > 0;
+    if (!hasServed && !hasPaid) {
+      // Nothing was served: a void is the accurate record (cancelled rounds are allowed).
+      await svc.sessions.voidSession(scope, s.id, { reason });
+    } else {
+      await svc.sessions.closeSession(scope, s.id, closeSessionSchema.parse({}));
+      await svc.sessions.resetTable(scope, s.diningTableId);
+    }
+    retired.push(`${s.diningTable.code}${isLive ? ' (live)' : ' (stale)'}`);
+  }
+  return retired;
+}
+
+/**
+ * Seat three tables with kitchen tickets at different stages, timed relative
+ * to NOW: seated 12-50 minutes ago, tickets 3-14 minutes old. Real services do
+ * the work; afterwards the timestamps are shifted back (the services stamp "now").
+ * Call retireStaleSessions() first - it clears the previous run's scenario.
  */
 export async function openLiveTables(
   db: PrismaService,
   svc: DemoServices,
   waiter: TenantScope,
   kitchen: TenantScope,
-  loc: DemoLocation,
+  locs: { main: DemoLocation; riverside: DemoLocation },
+  now: Date,
 ): Promise<string[]> {
-  const openCount = await db.guestSession.count({
-    where: { businessId: waiter.businessId, locationId: loc.id, status: 'OPEN' },
-  });
-  if (openCount > 0) return [];
-
-  const plan: Array<{ table: string; party: number; rounds: Array<{ stage: Stage; lines: LiveLine[] }> }> = [
+  interface Round { stage: Stage; ageMin: number; lines: LiveLine[] }
+  interface Plan { loc: DemoLocation; table: string; party: number; seatedMin: number; rounds: Round[] }
+  const plan: Plan[] = [
     {
+      loc: locs.riverside,
       table: 'R3',
       party: 4,
+      seatedMin: 50,
       rounds: [
         {
           stage: 'PREPARING',
+          ageMin: 14,
           lines: [
             { item: 'Paneer Tikka', variant: 'Full (8 pcs)', modifiers: ['Medium', 'Chopped onion'], quantity: 1 },
             { item: 'Dal Makhani', variant: 'Full', modifiers: ['Mild'], quantity: 1 },
@@ -162,15 +229,18 @@ export async function openLiveTables(
             { item: 'Lassi', quantity: 2 },
           ],
         },
-        { stage: 'SENT', lines: [{ item: 'Jeera Rice', quantity: 1 }, { item: 'Cold Coffee', variant: 'Regular', modifiers: ['Less sugar'], quantity: 2 }] },
+        { stage: 'SENT', ageMin: 3, lines: [{ item: 'Jeera Rice', quantity: 1 }, { item: 'Cold Coffee', variant: 'Regular', modifiers: ['Less sugar'], quantity: 2 }] },
       ],
     },
     {
+      loc: locs.riverside,
       table: 'G1',
       party: 2,
+      seatedMin: 31,
       rounds: [
         {
           stage: 'READY',
+          ageMin: 9,
           lines: [
             { item: 'Spring Rolls', quantity: 1 },
             { item: 'Paneer Butter Masala', modifiers: ['Medium'], quantity: 1 },
@@ -179,19 +249,29 @@ export async function openLiveTables(
         },
       ],
     },
+    {
+      loc: locs.main,
+      table: 'T3',
+      party: 3,
+      seatedMin: 12,
+      rounds: [{ stage: 'ACCEPTED', ageMin: 6, lines: [{ item: 'Spring Rolls', quantity: 2 }, { item: 'Lassi', quantity: 3 }] }],
+    },
   ];
 
   const opened: string[] = [];
   for (const p of plan) {
-    const table = loc.tables.find((t) => t.code === p.table);
+    const table = p.loc.tables.find((t) => t.code === p.table);
     if (!table) continue;
     const tableRow = await db.diningTable.findUnique({ where: { id: table.id } });
-    if (tableRow?.status !== 'AVAILABLE') continue;
+    if (tableRow?.status !== 'AVAILABLE') continue; // a real, fresher session is using it
 
     const session = await svc.sessions.openSession(
       waiter,
-      openSessionSchema.parse({ locationId: loc.id, diningTableId: table.id, partySize: p.party }),
+      openSessionSchema.parse({ locationId: p.loc.id, diningTableId: table.id, partySize: p.party, notes: LIVE_MARKER }),
     );
+    const seatedAt = minutesAgo(now, p.seatedMin);
+    await db.guestSession.update({ where: { id: session.id }, data: { openedAt: seatedAt, createdAt: seatedAt } });
+
     for (const r of p.rounds) {
       // Same zod schema the HTTP controller validates with.
       const draft = await svc.orders.createDraft(
@@ -203,14 +283,25 @@ export async function openLiveTables(
         }),
       );
       await svc.orders.sendToKitchen(waiter, draft.id, {});
-      if (r.stage === 'SENT') continue;
-      await svc.orders.acceptRequest(kitchen, draft.id);
-      if (r.stage === 'ACCEPTED') continue;
-      await svc.orders.startPreparation(kitchen, draft.id);
-      if (r.stage === 'PREPARING') continue;
-      await svc.orders.markReady(kitchen, draft.id);
+      if (r.stage !== 'SENT') await svc.orders.acceptRequest(kitchen, draft.id);
+      if (r.stage === 'PREPARING' || r.stage === 'READY') await svc.orders.startPreparation(kitchen, draft.id);
+      if (r.stage === 'READY') await svc.orders.markReady(kitchen, draft.id);
+
+      // Spread the stage timestamps over the ticket's age (sent -> accepted -> cooking -> ready).
+      const sentAt = minutesAgo(now, r.ageMin);
+      const step = (r.ageMin * 60_000) / 4;
+      const at = (n: number) => new Date(sentAt.getTime() + step * n);
+      await db.serviceRequest.update({
+        where: { id: draft.id },
+        data: {
+          createdAt: new Date(sentAt.getTime() - 60_000),
+          sentAt,
+          ...(r.stage !== 'SENT' ? { acceptedAt: at(1) } : {}),
+          ...(r.stage === 'READY' ? { preparedAt: at(3) } : {}),
+        },
+      });
     }
-    opened.push(`${p.table} (${p.rounds.map((r) => r.stage).join(' + ')})`);
+    opened.push(`${p.loc.name} ${p.table} (${p.rounds.map((r) => r.stage).join(' + ')}, seated ${p.seatedMin}m ago)`);
   }
   return opened;
 }
