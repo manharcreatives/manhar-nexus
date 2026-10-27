@@ -4,7 +4,7 @@ import { billsApi, type BillList, type BillListItem, type InvoiceStatus } from '
 import { BillDetailDialog } from './BillDetailDialog';
 import { StatusBadge } from './StatusBadge';
 import { dayEndIso, dayStartIso } from './helpers';
-import { useAsync } from '../reports/useAsync';
+import { useLiveAsync } from '../realtime/useLiveAsync';
 import { useWorkLocation } from '../context/LocationContext';
 import { formatDayLong, presetRange, toIsoDate, todayIso, type PresetKey } from '../reports/dates';
 import { formatMoney } from '../lib/money';
@@ -21,6 +21,7 @@ import { EmptyBillsArt } from '../brand/illustrations';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 
 const PAGE_SIZE = 25;
+const BILL_TOPICS = ['invoices', 'payments'] as const;
 type StatusFilter = '' | InvoiceStatus;
 type RangeKey = PresetKey | 'all' | 'custom';
 const PRESETS: PresetKey[] = ['today', 'yesterday', 'last7', 'month'];
@@ -52,7 +53,7 @@ export function BillsPage() {
       }),
     [status, from, to, skip, locationId],
   );
-  const { data, loading, error, reload } = useAsync<BillList>(fn);
+  const { data, loading, error, reload } = useLiveAsync<BillList>(fn, BILL_TOPICS);
 
   const activeRange: RangeKey = (() => {
     if (!from && !to) return 'all';
@@ -224,9 +225,9 @@ export function BillsPage() {
                       <button
                         type="button"
                         onClick={() => setOpenId(b.id)}
-                        aria-label={t('bills.openBill', { number: numberOf(b) })}
                         className="grid min-h-14 w-full cursor-pointer grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition-colors duration-(--duration-micro) hover:bg-sunken focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent md:grid-cols-[8rem_1fr_auto_7.5rem_1.25rem]"
                       >
+                        <span className="sr-only">{t('bills.openBillPrefix')} </span>
                         <span className="ticket-no col-start-1 row-start-1 font-medium whitespace-nowrap md:col-auto md:row-auto">{numberOf(b)}</span>
                         <span className="col-start-1 row-start-2 min-w-0 truncate text-sm text-muted md:col-auto md:row-auto">{detail}</span>
                         <span className="col-start-2 row-start-2 justify-self-end md:col-auto md:row-auto md:justify-self-start">

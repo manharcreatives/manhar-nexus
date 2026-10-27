@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ApiError } from '../auth/api';
+import type { Topic } from '../realtime/client';
+import { useLiveRefresh } from '../realtime/RealtimeProvider';
 
 export interface WidgetState<T> {
   data: T | null;
@@ -12,11 +14,12 @@ export interface WidgetState<T> {
 }
 
 /**
- * Loads one Home widget independently. `fn` must be memoized. When enabled and
- * `refreshMs` is set, it refreshes while the tab is visible. A 403 hides the
+ * Loads one Home widget independently. `fn` must be memoized. With `topics` it
+ * refetches quietly on those realtime events (plus a slow safety-net poll);
+ * otherwise, when `refreshMs` is set, it refreshes while the tab is visible. A 403 hides the
  * widget instead of showing an error; a 404 (endpoint/module absent) too.
  */
-export function useWidget<T>(fn: (() => Promise<T>) | null, refreshMs?: number): WidgetState<T> {
+export function useWidget<T>(fn: (() => Promise<T>) | null, refreshMs?: number, topics?: readonly Topic[]): WidgetState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(fn !== null);
   const [error, setError] = useState<string | null>(null);
@@ -69,12 +72,14 @@ export function useWidget<T>(fn: (() => Promise<T>) | null, refreshMs?: number):
     setData(null);
     setHidden(false);
     run();
-    if (!refreshMs) return;
+    if (!refreshMs || topics) return;
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') run(true);
     }, refreshMs);
     return () => window.clearInterval(timer);
-  }, [fn, run, refreshMs]);
+  }, [fn, run, refreshMs, topics]);
+
+  useLiveRefresh(topics ?? [], () => run(true), fn !== null && topics !== undefined);
 
   const reload = useCallback(() => run(false), [run]);
   return { data, loading, error, hidden, reload };

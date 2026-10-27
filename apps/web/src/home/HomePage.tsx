@@ -34,7 +34,7 @@ export function HomePage() {
     { to: '/bills', label: t('home.action.bills'), show: nav.canSeeBills },
     { to: '/kitchen', label: t('home.action.kitchen'), show: nav.canSeeKitchen },
     { to: '/costs', label: t('home.action.costs'), show: nav.canSeeCosts },
-    { to: '/reports', label: t('home.action.reports'), show: nav.isTenantAdmin },
+    { to: '/reports', label: t('home.action.reports'), show: nav.canSeeReports },
   ].filter((a) => a.show);
 
   const opsAccess = {

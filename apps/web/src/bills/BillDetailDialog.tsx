@@ -12,7 +12,7 @@ import {
   type RefundAttempt,
 } from './helpers';
 import { StatusBadge } from './StatusBadge';
-import { useAsync } from '../reports/useAsync';
+import { useLiveAsync } from '../realtime/useLiveAsync';
 import { formatMoney } from '../lib/money';
 import { Dialog } from '../ui/Dialog';
 import { Button } from '../ui/Button';
@@ -35,6 +35,8 @@ type Mode = { kind: 'view' } | { kind: 'refund'; paymentId: string; confirming: 
 
 const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '');
 
+const DETAIL_TOPICS = ['invoices', 'payments'] as const;
+
 export function BillDetailDialog({ invoiceId, numberLabel, onClose, onChanged }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -55,7 +57,7 @@ export function BillDetailDialog({ invoiceId, numberLabel, onClose, onChanged }:
     () => (invoiceId ? Promise.all([billsApi.invoice(invoiceId), billsApi.payments(invoiceId)]) : Promise.reject(new Error('no id'))),
     [invoiceId],
   );
-  const { data, loading, error, reload } = useAsync<[InvoiceDetail, Payment[]]>(invoiceId ? load : null);
+  const { data, loading, error, reload } = useLiveAsync<[InvoiceDetail, Payment[]]>(invoiceId ? load : null, DETAIL_TOPICS);
   const invoice = data?.[0];
   const payments = data?.[1] ?? [];
 

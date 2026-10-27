@@ -1,0 +1,15 @@
+{
+  "realtime": {
+    "status": {
+      "live": "Live",
+      "connecting": "Connecting…",
+      "reconnecting": "Reconnecting…",
+      "offline": "Offline — retrying"
+    }
+  },
+  "restaurant": {
+    "kitchen": {
+      "viewOnly": "View only. Kitchen staff move tickets along; you can follow their progress here."
+    }
+  }
+}

@@ -11,6 +11,9 @@ import { AllClearArt } from '../brand/illustrations';
 import { useToast } from '../ui/Toast';
 import { describeError } from './errors';
 import { useNow, useSingleFlight } from './hooks';
+import { useRestaurantCaps } from './permissions';
+import { LiveBadge } from '../realtime/LiveBadge';
+import { useLiveRefresh } from '../realtime/RealtimeProvider';
 import { formatElapsed, minutesSince } from './time';
 import { type ServiceRequest, diningApi, kitchenApi, sessionApi } from './api';
 
@@ -18,7 +21,6 @@ type KitchenStatus = 'SENT' | 'ACCEPTED' | 'PREPARING' | 'READY';
 type Action = 'accept' | 'prepare' | 'ready';
 
 const COLUMNS: KitchenStatus[] = ['SENT', 'ACCEPTED', 'PREPARING', 'READY'];
-const POLL_MS = 15_000;
 const LATE_AFTER_MIN = 15;
 
 const NEXT_ACTION: Partial<Record<KitchenStatus, Action>> = {
@@ -43,12 +45,15 @@ function KitchenTicket({
   tableCode,
   now,
   arriving,
+  canAct,
   onAction,
 }: {
   order: ServiceRequest;
   tableCode: string | undefined;
   now: number;
   arriving: boolean;
+  /** False for view-only roles (waiters): they follow tickets but cannot move them. */
+  canAct: boolean;
   onAction: (order: ServiceRequest, action: Action) => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -114,7 +119,7 @@ function KitchenTicket({
       )}
 
       <div className="mt-auto px-5 pb-5">
-        {action ? (
+        {action && !canAct ? null : action ? (
           <Button
             size="lg"
             className="min-h-14 w-full text-lg"
@@ -150,11 +155,16 @@ export function KitchenPage() {
   const seen = useRef<Set<string> | null>(null);
   const [arriving, setArriving] = useState<ReadonlySet<string>>(new Set());
   const loadInFlight = useRef(false);
+  // An event that lands while a load is running must not be lost: run once more afterwards.
+  const rerun = useRef(false);
   const now = useNow(30_000);
+  const { canManageKitchen } = useRestaurantCaps();
 
   // Table names are best effort: a kitchen-only role may not be allowed to
   // list sessions/tables, in which case tickets fall back to their number.
+  const namesDenied = useRef(false);
   const loadTableNames = useCallback(async () => {
+    if (namesDenied.current) return; // this role cannot list tables/sessions: do not ask again on every event
     try {
       if (!tableCodes.current) {
         const tables = await diningApi.listTables();
@@ -168,15 +178,19 @@ export function KitchenPage() {
         if (code) map.set(s.id, code);
       }
       setTableBySession(map);
-    } catch {
+    } catch (err) {
+      if ((err as { status?: number }).status === 403) namesDenied.current = true;
       /* optional enrichment */
     }
   }, []);
 
   const { locationId } = useWorkLocation();
 
-  const load = useCallback(async () => {
-    if (loadInFlight.current) return;
+  const load = useCallback(async function run(): Promise<void> {
+    if (loadInFlight.current) {
+      rerun.current = true;
+      return;
+    }
     loadInFlight.current = true;
     setRefreshing(true);
     try {
@@ -202,6 +216,10 @@ export function KitchenPage() {
     } finally {
       loadInFlight.current = false;
       setRefreshing(false);
+      if (rerun.current) {
+        rerun.current = false;
+        await run();
+      }
     }
   }, [t, loadTableNames, locationId]);
 
@@ -213,9 +231,10 @@ export function KitchenPage() {
 
   useEffect(() => {
     void load();
-    const id = setInterval(() => void load(), POLL_MS);
-    return () => clearInterval(id);
   }, [load]);
+
+  // Live: refetch on order/kitchen events; the hook also keeps a slow safety-net poll.
+  useLiveRefresh(['orders', 'kitchen'], load);
 
   useEffect(() => {
     if (arriving.size === 0) return;
@@ -245,13 +264,16 @@ export function KitchenPage() {
       title={t('restaurant.kitchen.title')}
       description={
         loaded
-          ? `${t('restaurant.kitchen.summary', { count: queue.length })} - ${t('restaurant.kitchen.autoRefresh')}${lastRefresh ? ` - ${t('restaurant.common.updatedAt', { time: lastRefresh.toLocaleTimeString() })}` : ''}`
+          ? `${t('restaurant.kitchen.summary', { count: queue.length })}${lastRefresh ? ` - ${t('restaurant.common.updatedAt', { time: lastRefresh.toLocaleTimeString() })}` : ''}`
           : undefined
       }
       actions={
-        <Button variant="secondary" size="lg" loading={refreshing} onClick={() => void load()}>
-          {refreshing ? t('restaurant.common.refreshing') : t('restaurant.common.refresh')}
-        </Button>
+        <>
+          <LiveBadge />
+          <Button variant="secondary" size="lg" loading={refreshing} onClick={() => void load()}>
+            {refreshing ? t('restaurant.common.refreshing') : t('restaurant.common.refresh')}
+          </Button>
+        </>
       }
     />
   );
@@ -290,6 +312,8 @@ export function KitchenPage() {
         {announce}
       </p>
 
+      {!canManageKitchen && <p className="mb-4 text-sm text-muted">{t('restaurant.kitchen.viewOnly')}</p>}
+
       <p role="alert" className={error ? 'mb-4 rounded-control bg-warn-soft px-4 py-3 text-base text-warn' : 'sr-only'}>
         {error && `${t('restaurant.kitchen.staleError')} ${error}`}
       </p>
@@ -321,6 +345,7 @@ export function KitchenPage() {
                       tableCode={tableBySession.get(order.sessionId)}
                       now={now}
                       arriving={arriving.has(order.id)}
+                      canAct={canManageKitchen}
                       onAction={handleAction}
                     />
                   ))}

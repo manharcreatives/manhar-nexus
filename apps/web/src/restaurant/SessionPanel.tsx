@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
@@ -12,6 +12,8 @@ import { OrderBuilder } from './OrderBuilder';
 import { OrderStatusPill } from './StatusPills';
 import { describeError } from './errors';
 import { useSingleFlight } from './hooks';
+import { useRestaurantCaps } from './permissions';
+import { useLiveRefresh } from '../realtime/RealtimeProvider';
 import {
   type CatalogCategory,
   type CatalogItem,
@@ -33,17 +35,20 @@ function orderTitle(order: ServiceRequest, t: (k: string, o?: Record<string, unk
 
 function OrderCard({
   order,
+  canManage,
   onChanged,
   onRequestCancel,
 }: {
   order: ServiceRequest;
+  /** restaurant.order.manage: cancel and serve are hidden for roles that would get a 403. */
+  canManage: boolean;
   onChanged: (o: ServiceRequest) => void;
   onRequestCancel: (o: ServiceRequest) => void;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
   const serving = useSingleFlight();
-  const canCancel = order.status === 'DRAFT' || order.status === 'SENT';
+  const canCancel = canManage && (order.status === 'DRAFT' || order.status === 'SENT');
 
   async function serve() {
     await serving.run(async () => {
@@ -79,14 +84,14 @@ function OrderCard({
             </li>
           ))}
       </ul>
-      {(canCancel || order.status === 'READY') && (
+      {(canCancel || (canManage && order.status === 'READY')) && (
         <div className="flex flex-wrap justify-end gap-2 px-4 pb-4">
           {canCancel && (
             <Button variant="secondary" onClick={() => onRequestCancel(order)} className="min-h-11">
               {t('restaurant.session.cancelOrder')}
             </Button>
           )}
-          {order.status === 'READY' && (
+          {canManage && order.status === 'READY' && (
             <Button loading={serving.busy} onClick={() => void serve()} className="min-h-11">
               {t('restaurant.session.markServed')}
             </Button>
@@ -126,19 +131,32 @@ export function SessionPanel({
   const closer = useSingleFlight();
   const canceller = useSingleFlight();
 
+  const caps = useRestaurantCaps();
   const sessionId = session.id;
+  const loadSeq = useRef(0);
+  const haveOrders = useRef(false);
   const loadOrders = useCallback(async () => {
+    const id = ++loadSeq.current; // the latest request wins, whatever order responses arrive in
     try {
-      setOrders(await orderApi.list({ sessionId }));
+      const data = await orderApi.list({ sessionId });
+      if (id !== loadSeq.current) return;
+      haveOrders.current = true;
+      setOrders(data);
       setLoadError('');
     } catch (err) {
-      setLoadError(describeError(err, t, 'restaurant.errors.loadOrders'));
+      if (id !== loadSeq.current) return;
+      // A failed refresh keeps the orders already on screen.
+      if (!haveOrders.current) setLoadError(describeError(err, t, 'restaurant.errors.loadOrders'));
     }
   }, [sessionId, t]);
 
   useEffect(() => {
+    haveOrders.current = false;
     void loadOrders();
   }, [loadOrders]);
+
+  // Live: a ticket moving through the kitchen (or another waiter's change) updates the list in place.
+  useLiveRefresh(['orders', 'kitchen'], loadOrders);
 
   const replaceOrder = (updated: ServiceRequest) =>
     setOrders((prev) => (prev ? prev.map((o) => (o.id === updated.id ? updated : o)) : prev));
@@ -191,17 +209,25 @@ export function SessionPanel({
         title={t('restaurant.session.title', { code: table.code })}
         className="w-[min(40rem,calc(100vw-1rem))]!"
         footer={
+          caps.canManageSessions || caps.canCheckout || caps.canManageOrders ? (
           <>
-            <Button variant="secondary" size="lg" disabled={hasActiveOrders || closer.busy} onClick={() => setShowClose(true)}>
-              {t('restaurant.session.closeSession')}
-            </Button>
-            <Button variant="secondary" size="lg" disabled={!hasBillable} onClick={() => setShowCheckout(true)}>
-              {t('restaurant.session.checkout')}
-            </Button>
-            <Button size="lg" data-autofocus onClick={() => setShowOrder(true)}>
-              {t('restaurant.session.newOrder')}
-            </Button>
+            {caps.canManageSessions && (
+              <Button variant="secondary" size="lg" disabled={hasActiveOrders || closer.busy} onClick={() => setShowClose(true)}>
+                {t('restaurant.session.closeSession')}
+              </Button>
+            )}
+            {caps.canCheckout && (
+              <Button variant="secondary" size="lg" disabled={!hasBillable} onClick={() => setShowCheckout(true)}>
+                {t('restaurant.session.checkout')}
+              </Button>
+            )}
+            {caps.canManageOrders && (
+              <Button size="lg" data-autofocus onClick={() => setShowOrder(true)}>
+                {t('restaurant.session.newOrder')}
+              </Button>
+            )}
           </>
+          ) : undefined
         }
       >
         <p className="-mt-2 mb-4 text-sm text-muted">{t('restaurant.session.meta', { guests, time: timeAgo(session.openedAt) })}</p>
@@ -225,7 +251,7 @@ export function SessionPanel({
             <EmptyState illustration={<EmptyOrderArt />} title={t('restaurant.session.noOrdersTitle')} body={t('restaurant.session.noOrdersBody')} />
           )}
           {list.map((order) => (
-            <OrderCard key={order.id} order={order} onChanged={replaceOrder} onRequestCancel={(o) => setCancelTarget(o)} />
+            <OrderCard key={order.id} order={order} canManage={caps.canManageOrders} onChanged={replaceOrder} onRequestCancel={(o) => setCancelTarget(o)} />
           ))}
         </div>
 

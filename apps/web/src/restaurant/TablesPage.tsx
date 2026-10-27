@@ -12,6 +12,9 @@ import { FloorGrid } from './FloorGrid';
 import { OpenSessionDialog } from './OpenSessionDialog';
 import { SessionPanel } from './SessionPanel';
 import { describeError } from './errors';
+import { useRestaurantCaps } from './permissions';
+import { LiveBadge } from '../realtime/LiveBadge';
+import { useLiveRefresh } from '../realtime/RealtimeProvider';
 import {
   type CatalogCategory,
   type CatalogItem,
@@ -23,7 +26,8 @@ import {
   sessionApi,
 } from './api';
 
-const POLL_MS = 30_000;
+/** The menu rarely changes; live refreshes reuse it for this long. */
+const CATALOG_TTL_MS = 5 * 60_000;
 const OTHER_AREA = '__other';
 
 export function TablesPage() {
@@ -43,26 +47,36 @@ export function TablesPage() {
   const [resetting, setResetting] = useState<ReadonlySet<string>>(new Set());
   const resetInFlight = useRef(new Set<string>());
   const loadInFlight = useRef(false);
+  // An event that lands while a load is running must not be lost: run once more afterwards.
+  const rerun = useRef(false);
+  const catalogAt = useRef(0);
+  const caps = useRestaurantCaps();
   const { locationId } = useWorkLocation();
 
-  const load = useCallback(async () => {
-    if (loadInFlight.current) return;
+  const load = useCallback(async function run(opts?: { forceCatalog?: boolean }): Promise<void> {
+    if (loadInFlight.current) {
+      rerun.current = true;
+      return;
+    }
     loadInFlight.current = true;
     setRefreshing(true);
     try {
-      const [areasData, tablesData, sessionsData, catsData, itemsData] = await Promise.all([
+      const needCatalog = opts?.forceCatalog === true || Date.now() - catalogAt.current > CATALOG_TTL_MS;
+      const [areasData, tablesData, sessionsData, catalog] = await Promise.all([
         diningApi.listAreas(locationId ?? undefined),
         diningApi.listTables(),
         sessionApi.list({ status: 'OPEN', locationId: locationId ?? undefined }),
-        catalogApi.listCategories(),
-        catalogApi.listItems(),
+        needCatalog ? Promise.all([catalogApi.listCategories(), catalogApi.listItems()]) : Promise.resolve(null),
       ]);
       setAreas(areasData);
       // The tables endpoint filters by area only, so scope to the working location here.
       setTables(locationId ? tablesData.filter((tb) => tb.locationId === locationId) : tablesData);
       setSessions(sessionsData);
-      setCategories(catsData);
-      setCatalogItems(itemsData);
+      if (catalog) {
+        setCategories(catalog[0]);
+        setCatalogItems(catalog[1]);
+        catalogAt.current = Date.now();
+      }
       setError('');
       setLoaded(true);
     } catch (err) {
@@ -70,14 +84,19 @@ export function TablesPage() {
     } finally {
       loadInFlight.current = false;
       setRefreshing(false);
+      if (rerun.current) {
+        rerun.current = false;
+        await run();
+      }
     }
   }, [t, locationId]);
 
   useEffect(() => {
     void load();
-    const id = setInterval(() => void load(), POLL_MS);
-    return () => clearInterval(id);
   }, [load]);
+
+  // Live: any change to the floor, its guests, their orders or bills refetches the snapshot.
+  useLiveRefresh(['tables', 'sessions', 'orders', 'kitchen', 'invoices'], load);
 
   const resetTable = useCallback(
     async (table: DiningTable) => {
@@ -104,7 +123,7 @@ export function TablesPage() {
   function handleTableClick(table: DiningTable) {
     if (!table.isActive) return;
     if (table.status === 'AVAILABLE') {
-      setOpeningTable(table);
+      if (caps.canManageSessions) setOpeningTable(table);
     } else if (table.status === 'OCCUPIED') {
       const session = sessionByTable.get(table.id);
       if (session) setActiveSession({ session, table });
@@ -129,9 +148,12 @@ export function TablesPage() {
       title={t('restaurant.tables.title')}
       description={t('restaurant.tables.description')}
       actions={
-        <Button variant="secondary" size="lg" loading={refreshing} onClick={() => void load()}>
-          {refreshing ? t('restaurant.common.refreshing') : t('restaurant.common.refresh')}
-        </Button>
+        <>
+          <LiveBadge />
+          <Button variant="secondary" size="lg" loading={refreshing} onClick={() => void load({ forceCatalog: true })}>
+            {refreshing ? t('restaurant.common.refreshing') : t('restaurant.common.refresh')}
+          </Button>
+        </>
       }
     />
   );
@@ -194,6 +216,8 @@ export function TablesPage() {
                   tables={g.tables}
                   sessionByTable={sessionByTable}
                   resetting={resetting}
+                  canOpen={caps.canManageSessions}
+                  canReset={caps.canResetTable}
                   onTableClick={handleTableClick}
                   onResetTable={(tb) => void resetTable(tb)}
                 />

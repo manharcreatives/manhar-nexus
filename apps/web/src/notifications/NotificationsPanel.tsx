@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/states';
 import { notificationsApi, type AlertNotification } from './api';
+import { useLiveRefresh } from '../realtime/RealtimeProvider';
 
 const ROUTES = ['tables', 'kitchen', 'reports', 'activity', 'costs', 'config', 'modules'];
 
@@ -89,22 +90,38 @@ export function NotificationsPanel() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setLoadFailed(false);
+  const loadSeq = useRef(0);
+  const hasData = useRef(false);
+  const load = useCallback((background = false) => {
+    const id = ++loadSeq.current;
+    if (!background) {
+      setLoading(true);
+      setLoadFailed(false);
+    }
     notificationsApi
       .list({ take: 20 })
       .then((r) => {
+        if (id !== loadSeq.current) return;
+        hasData.current = true;
         setNotifications(r.notifications);
         setTotalUnread(r.totalUnread);
+        setLoadFailed(false);
       })
-      .catch(() => setLoadFailed(true))
-      .finally(() => setLoading(false));
+      // A failed live refresh keeps the last good list instead of showing an error.
+      .catch(() => {
+        if (id === loadSeq.current && (!background || !hasData.current)) setLoadFailed(true);
+      })
+      .finally(() => {
+        if (id === loadSeq.current) setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Live: a new notification updates the bell without a refresh (plus a slow safety-net poll).
+  useLiveRefresh(['notifications'], () => load(true));
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen(false);
@@ -235,7 +252,7 @@ export function NotificationsPanel() {
             {loadFailed && !loading && (
               <div role="alert" className="px-4 py-6 text-center">
                 <p className="text-sm text-bad">{t('notifications.loadError')}</p>
-                <Button variant="secondary" className="mt-3" onClick={load}>
+                <Button variant="secondary" className="mt-3" onClick={() => load()}>
                   {t('notifications.retry')}
                 </Button>
               </div>

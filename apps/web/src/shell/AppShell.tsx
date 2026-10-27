@@ -7,8 +7,8 @@ import { brand } from '../lib/brand';
 import { Wordmark } from '../brand/Wordmark';
 import { cn } from '../lib/cn';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
+import { ConnectionIndicator } from '../realtime/LiveBadge';
 import { PageHeader } from '../ui/PageHeader';
-import { EmptyState } from '../ui/states';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { KeyCombo, Kbd } from '../ui/Kbd';
 import * as Icons from '../ui/icons';
@@ -189,7 +189,6 @@ export function AppShell() {
           <button
             type="button"
             onClick={openPalette}
-            aria-label={t('shell.openPalette')}
             aria-keyshortcuts="Control+K Meta+K /"
             className={cn(
               'grid size-11 place-items-center rounded-control text-muted transition-colors duration-(--duration-micro) hover:bg-sunken hover:text-ink',
@@ -198,7 +197,7 @@ export function AppShell() {
           >
             <span className="flex items-center gap-2">
               <Icons.Search className="size-[1.125rem] lg:size-4" aria-hidden />
-              <span className="hidden lg:inline">{t('shell.search')}</span>
+              <span className="sr-only lg:not-sr-only">{t('shell.search')}</span>
             </span>
             <span className="hidden items-center gap-1 lg:inline-flex" aria-hidden>
               <Kbd>{mod}</Kbd>
@@ -206,6 +205,7 @@ export function AppShell() {
             </span>
           </button>
           <span className="hidden sm:inline-flex"><EnvBadge /></span>
+          {!access.isPlatform && <ConnectionIndicator />}
           {!access.isPlatform && <NotificationsPanel />}
           {user && (
             <UserMenu user={user} onOpenPalette={openPalette} onOpenShortcuts={() => setHelpOpen(true)} onSignOut={doSignOut} />
@@ -245,7 +245,7 @@ export function AppShell() {
                   key={path}
                   path={path}
                   // UI gating is a convenience (the API is the real boundary); this explains a denied deep link.
-                  element={can(access) ? <Component /> : <EmptyState title={t('shell.noAccessTitle')} body={t('shell.noAccessBody')} />}
+                  element={can(access) ? <Component /> : <PageHeader eyebrow="403" title={t('shell.noAccessTitle')} description={t('shell.noAccessBody')} />}
                 />
               ))}
               <Route path="/home" element={<Navigate to="/" replace />} />

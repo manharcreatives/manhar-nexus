@@ -26,6 +26,8 @@ const fromDaily = (r: DailyClosingReport): DayFigures => ({
 });
 
 /** One series request (8 days) when allowed; otherwise three daily reports. */
+const REVENUE_TOPICS = ['invoices', 'payments'] as const;
+
 async function loadRevenue(withSeries: boolean, locationId?: string): Promise<RevenueToday> {
   const today = todayIso();
   const lastWeekDate = addDaysIso(today, -7);
@@ -88,7 +90,7 @@ function Reference({ current, base, baseLabel }: { current: number; base: number
 export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; locationId: string | null }) {
   const { t } = useTranslation();
   const fn = useCallback(() => loadRevenue(withSeries, locationId ?? undefined), [withSeries, locationId]);
-  const w = useWidget(fn, 5 * 60_000);
+  const w = useWidget(fn, undefined, REVENUE_TOPICS);
   const [basis, setBasis] = useState<Basis>('lastWeek');
   const r = w.data;
 

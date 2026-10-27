@@ -75,6 +75,12 @@ function useNow(intervalMs = 30_000): number {
   return now;
 }
 
+// Stable arrays: the topic list is a hook dependency.
+const TABLES_TOPICS = ['tables', 'sessions'] as const;
+const KITCHEN_TOPICS = ['orders', 'kitchen'] as const;
+const EXPENSE_TOPICS = ['expenses'] as const;
+const ALERT_TOPICS = ['notifications'] as const;
+
 export interface OpsAccess {
   tables: boolean;
   kitchen: boolean;
@@ -100,10 +106,10 @@ export function OpsWidgets({ access, locationId, className }: { access: OpsAcces
   );
   const alertsFn = useCallback(() => notificationsApi.list({ unreadOnly: true, take: 3 }), []);
 
-  const tables = useWidget(access.tables ? tablesFn : null, 60_000);
-  const kitchen = useWidget(access.kitchen ? kitchenFn : null, 30_000);
-  const expenses = useWidget(access.expenses ? expensesFn : null, 5 * 60_000);
-  const alerts = useWidget(access.alerts ? alertsFn : null, 60_000);
+  const tables = useWidget(access.tables ? tablesFn : null, undefined, TABLES_TOPICS);
+  const kitchen = useWidget(access.kitchen ? kitchenFn : null, undefined, KITCHEN_TOPICS);
+  const expenses = useWidget(access.expenses ? expensesFn : null, undefined, EXPENSE_TOPICS);
+  const alerts = useWidget(access.alerts ? alertsFn : null, undefined, ALERT_TOPICS);
 
   const anyVisible = [tables, kitchen, expenses, alerts].some((w) => !w.hidden);
   if (!anyVisible) return null;

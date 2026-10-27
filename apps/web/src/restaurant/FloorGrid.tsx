@@ -49,12 +49,18 @@ export function FloorGrid({
   tables,
   sessionByTable,
   resetting,
+  canOpen,
+  canReset,
   onTableClick,
   onResetTable,
 }: {
   tables: DiningTable[];
   sessionByTable: Map<string, GuestSession>;
   resetting: ReadonlySet<string>;
+  /** May seat guests at a free table (restaurant.session.manage). */
+  canOpen: boolean;
+  /** May mark a cleaned table available (restaurant.dining.manage). */
+  canReset: boolean;
   onTableClick: (table: DiningTable) => void;
   onResetTable: (table: DiningTable) => void;
 }) {
@@ -67,7 +73,7 @@ export function FloorGrid({
           'nx-tile flex h-full min-h-32 w-full flex-col rounded-panel border bg-surface p-4 text-left',
           table.isActive ? EDGE[table.status] : 'border-dashed border-line bg-sunken opacity-60',
         );
-        const interactive = table.isActive && table.status !== 'CLEANING';
+        const interactive = table.isActive && table.status !== 'CLEANING' && (table.status !== 'AVAILABLE' || canOpen);
         return (
           <li key={table.id} className="min-w-0">
             {interactive ? (
@@ -82,12 +88,12 @@ export function FloorGrid({
             ) : (
               <div className={tile} data-status={table.isActive ? table.status : undefined}>
                 <TileBody table={table} session={session} />
-                {table.isActive && table.status === 'CLEANING' && (
+                {table.isActive && table.status === 'CLEANING' && canReset && (
                   <Button
                     variant="secondary"
                     className="mt-3 w-full"
                     loading={resetting.has(table.id)}
-                    aria-label={t('restaurant.tables.markAvailable', { code: table.code })}
+                    aria-label={`${t('restaurant.tables.markAvailableShort')} - ${table.code}`}
                     onClick={() => onResetTable(table)}
                   >
                     {t('restaurant.tables.markAvailableShort')}
