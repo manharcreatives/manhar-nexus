@@ -4,6 +4,7 @@ import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'reac
 import { useAuth } from '../auth/AuthContext';
 import { useWorkLocation } from '../context/LocationContext';
 import { brand } from '../lib/brand';
+import { Wordmark } from '../brand/Wordmark';
 import { cn } from '../lib/cn';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { PageHeader } from '../ui/PageHeader';
@@ -23,16 +24,8 @@ import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 function BrandMark() {
   return (
-    <NavLink to="/" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-control pr-1" aria-label={brand.name}>
-      <span
-        aria-hidden
-        className="grid size-8 place-items-center rounded-control bg-accent font-display text-lg font-semibold text-surface"
-      >
-        {brand.name.charAt(0)}
-      </span>
-      <span aria-hidden className="hidden font-display text-lg font-semibold tracking-tight md:inline">
-        {brand.name}
-      </span>
+    <NavLink to="/" className="flex min-h-11 shrink-0 items-center rounded-control pr-1" aria-label={brand.name}>
+      <Wordmark nameClassName="hidden md:inline" />
     </NavLink>
   );
 }
@@ -136,7 +129,7 @@ export function AppShell() {
         return (
           <div key={id}>
             {headingKey && (
-              <p className="mb-1.5 px-3 text-xs font-medium tracking-wider text-muted uppercase">{t(headingKey)}</p>
+              <p className="eyebrow mb-1.5 px-3">{t(headingKey)}</p>
             )}
             <ul className="space-y-0.5">
               {items.map(({ path, labelKey, icon: Icon }) => (
@@ -146,8 +139,11 @@ export function AppShell() {
                     end={path === '/'}
                     className={({ isActive }) =>
                       cn(
-                        'flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-(--duration-micro)',
-                        isActive ? 'bg-accent-soft text-accent-strong' : 'text-ink hover:bg-sunken',
+                        'group relative flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-(--duration-micro)',
+                        'before:absolute before:inset-y-2.5 before:left-0 before:w-[3px] before:rounded-full before:transition-colors',
+                        isActive
+                          ? 'bg-sunken/70 text-ink before:bg-accent [&_svg]:text-accent'
+                          : 'text-ink/80 before:bg-transparent hover:bg-sunken/45 hover:text-ink [&_svg]:text-muted',
                       )
                     }
                   >
@@ -209,7 +205,7 @@ export function AppShell() {
               <Kbd>K</Kbd>
             </span>
           </button>
-          <EnvBadge className="hidden sm:inline-flex" />
+          <span className="hidden sm:inline-flex"><EnvBadge /></span>
           {!access.isPlatform && <NotificationsPanel />}
           {user && (
             <UserMenu user={user} onOpenPalette={openPalette} onOpenShortcuts={() => setHelpOpen(true)} onSignOut={doSignOut} />
@@ -220,13 +216,13 @@ export function AppShell() {
       <div className="relative flex min-h-0 flex-1">
         <aside
           className={cn(
-            'z-30 w-64 shrink-0 overflow-y-auto border-r border-line bg-surface p-4',
+            'z-30 flex w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface p-4',
             'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:transition-[transform,visibility] max-lg:duration-(--duration-surface)',
             navOpen ? 'max-lg:translate-x-0' : 'max-lg:invisible max-lg:-translate-x-full',
           )}
         >
           {nav}
-          <p className="mt-6 hidden items-center gap-1.5 px-3 text-xs text-muted lg:flex">
+          <p className="mt-auto hidden items-center gap-1.5 border-t border-line px-3 pt-4 text-xs text-muted lg:flex">
             <Kbd>?</Kbd>
             {t('shell.help.title')}
           </p>
@@ -240,8 +236,9 @@ export function AppShell() {
           />
         )}
 
-        <main id="main" tabIndex={-1} className="min-w-0 flex-1 overflow-auto p-4 sm:p-8">
+        <main id="main" tabIndex={-1} className="min-w-0 flex-1 overflow-auto p-4 focus:outline-none sm:p-8 xl:px-12">
           <ErrorBoundary key={location.pathname} title={t('shell.crashTitle')} body={t('shell.crashBody')} retry={t('modules.retry')}>
+            <div className="nx-page mx-auto max-w-[88rem]">
             <Routes>
               {PAGES.map(({ path, can, Component }) => (
                 <Route
@@ -252,8 +249,20 @@ export function AppShell() {
                 />
               ))}
               <Route path="/home" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<PageHeader title={t('shell.notFoundTitle')} description={t('shell.notFoundBody')} />} />
+              <Route
+                path="*"
+                element={
+                  <div>
+                    <PageHeader eyebrow="404" title={t('shell.notFoundTitle')} description={t('shell.notFoundBody')} />
+                    <NavLink to="/" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent hover:text-accent-strong">
+                      {t('shell.nav.home')}
+                      <Icons.ChevronRight className="size-4" aria-hidden />
+                    </NavLink>
+                  </div>
+                }
+              />
             </Routes>
+            </div>
           </ErrorBoundary>
         </main>
       </div>

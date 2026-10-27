@@ -17,7 +17,17 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (open && !el.open) el.showModal();
+    if (open && !el.open) {
+      el.showModal();
+      // A dialog can name its safest primary action: <Button data-autofocus>.
+      el.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+      // Chromium can auto-focus a scrollable container (e.g. a tab strip);
+      // in that case start from the dialog itself so focus lands somewhere meaningful.
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && el.contains(active) && !active.matches('input, select, textarea, button, a[href], [tabindex]')) {
+        el.focus();
+      }
+    }
     if (!open && el.open) el.close();
   }, [open]);
 
@@ -25,20 +35,25 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
     <dialog
       ref={ref}
       aria-label={title}
+      tabIndex={-1}
       onClose={onClose}
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        'm-auto w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-line bg-surface p-0 text-ink backdrop:bg-ink/40',
+        'nx-dialog m-auto focus:outline-none w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-line bg-surface p-0 text-ink shadow-[0_24px_60px_-24px_rgb(27_26_23/0.45)]',
         className,
       )}
     >
       {open && (
-        <div className="p-6">
-          <h2 className="text-xl font-semibold">{title}</h2>
-          <div className="mt-4">{children}</div>
-          {footer && <div className="mt-6 flex flex-wrap justify-end gap-2">{footer}</div>}
+        <div className="[--stub-bg:var(--color-surface)]">
+          <div className="px-6 pt-6">
+            <h2 className="rule-tick pb-3 text-[1.375rem] leading-tight font-semibold">{title}</h2>
+          </div>
+          <div className="px-6 pt-4 pb-6">{children}</div>
+          {footer && (
+            <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-panel border-t border-line bg-paper/60 px-6 py-4">{footer}</div>
+          )}
         </div>
       )}
     </dialog>

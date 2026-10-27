@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
 import { Skeleton, ErrorState } from '../ui/states';
-import { Table, Td, Th } from '../ui/Table';
+import { LedgerFigure } from '../ui/LedgerFigure';
+import { Stamp } from '../ui/Stamp';
 import { useToast } from '../ui/Toast';
 import { cn } from '../lib/cn';
 import { describeError } from './errors';
@@ -181,56 +182,55 @@ export function CheckoutDialog({
         )}
 
         {phase === 'paid' && invoice && (
-          <div className="rounded-panel bg-ok-soft px-6 py-8 text-center">
-            <p className="font-display text-2xl font-semibold text-ok">{t('restaurant.checkout.paidTitle')}</p>
-            <p className="tabular mt-2 font-display text-3xl font-semibold">{formatMinorUnits(invoice.grandTotalMinorUnits)}</p>
-            <p className="mt-2 text-sm text-ink">{t('restaurant.checkout.paidBody')}</p>
+          <div className="relative overflow-hidden rounded-panel border border-ok/25 bg-ok-soft/55 px-6 pt-9 pb-8 text-center">
+            <Stamp size="lg" label={t('restaurant.checkout.paidStamp')} className="bg-surface/70" />
+            <p className="mt-5 font-display text-2xl font-semibold text-ok">{t('restaurant.checkout.paidTitle')}</p>
+            <p className="mt-3">
+              <LedgerFigure minor={invoice.grandTotalMinorUnits} rule="double" className="text-[2.75rem]" />
+            </p>
+            <p className="mx-auto mt-4 max-w-xs text-sm text-ink">{t('restaurant.checkout.paidBody')}</p>
             {changeDue > 0 && (
-              <p className="tabular mt-2 text-lg font-semibold">{t('restaurant.checkout.changeGiven', { amount: formatMinorUnits(changeDue) })}</p>
+              <p className="tabular mt-3 inline-block rounded-control bg-surface px-3 py-1.5 text-lg font-semibold">
+                {t('restaurant.checkout.changeGiven', { amount: formatMinorUnits(changeDue) })}
+              </p>
             )}
           </div>
         )}
 
         {phase === 'review' && invoice && (
           <div className="space-y-5">
-            <div className="max-h-[32dvh] overflow-y-auto">
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>{t('restaurant.checkout.item')}</Th>
-                    <Th numeric>{t('restaurant.checkout.qty')}</Th>
-                    <Th numeric>{t('restaurant.checkout.total')}</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoice.lines.map((line) => (
-                    <tr key={line.id}>
-                      <Td>
-                        {line.itemNameSnapshot}
-                        {line.variantNameSnapshot && <span className="block text-xs text-muted">{line.variantNameSnapshot}</span>}
-                      </Td>
-                      <Td numeric>{line.quantity}</Td>
-                      <Td numeric>{formatMinorUnits(line.lineTotalMinorUnits)}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+            <div className="nx-stub rounded-panel border border-line bg-paper/50 [--stub-bg:var(--color-surface)]">
+              <ul aria-label={t('restaurant.checkout.item')} className="max-h-[30dvh] space-y-2 overflow-y-auto px-4 pt-4 pb-3">
+                {invoice.lines.map((line) => (
+                  <li key={line.id} className="flex items-baseline gap-2 text-base">
+                    <span className="tabular w-7 shrink-0 font-semibold">{line.quantity}×</span>
+                    <span className="min-w-0">
+                      {line.itemNameSnapshot}
+                      {line.variantNameSnapshot && <span className="block text-xs text-muted">{line.variantNameSnapshot}</span>}
+                    </span>
+                    <span aria-hidden className="mb-1 min-w-4 flex-1 self-end border-b border-dotted border-muted/45" />
+                    <span className="tabular shrink-0">{formatMinorUnits(line.lineTotalMinorUnits)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="nx-tear" />
+              <dl className="tabular space-y-1 px-4 pt-3 pb-4 text-sm">
+                <div className="flex justify-between text-muted">
+                  <dt>{t('restaurant.checkout.subtotal')}</dt>
+                  <dd>{formatMinorUnits(invoice.subtotalMinorUnits)}</dd>
+                </div>
+                <div className="flex justify-between text-muted">
+                  <dt>{t('restaurant.checkout.tax')}</dt>
+                  <dd>{formatMinorUnits(invoice.totalTaxMinorUnits)}</dd>
+                </div>
+                <div className="flex items-end justify-between gap-4 pt-3">
+                  <dt className="eyebrow pb-1.5">{t('restaurant.checkout.grandTotal')}</dt>
+                  <dd>
+                    <LedgerFigure minor={invoice.grandTotalMinorUnits} rule="double" className="text-[2.5rem]" />
+                  </dd>
+                </div>
+              </dl>
             </div>
-
-            <dl className="tabular space-y-1 text-sm">
-              <div className="flex justify-between text-muted">
-                <dt>{t('restaurant.checkout.subtotal')}</dt>
-                <dd>{formatMinorUnits(invoice.subtotalMinorUnits)}</dd>
-              </div>
-              <div className="flex justify-between text-muted">
-                <dt>{t('restaurant.checkout.tax')}</dt>
-                <dd>{formatMinorUnits(invoice.totalTaxMinorUnits)}</dd>
-              </div>
-              <div className="flex items-baseline justify-between border-t border-line pt-2">
-                <dt className="font-medium">{t('restaurant.checkout.grandTotal')}</dt>
-                <dd className="font-display text-3xl font-semibold">{formatMinorUnits(invoice.grandTotalMinorUnits)}</dd>
-              </div>
-            </dl>
 
             <fieldset disabled={payer.busy || pending !== null}>
               <legend className="mb-2 text-sm font-medium">{t('restaurant.checkout.method')}</legend>
@@ -242,10 +242,13 @@ export function CheckoutDialog({
                     aria-pressed={method === m}
                     onClick={() => chooseMethod(m)}
                     className={cn(
-                      'min-h-12 rounded-control border-2 text-base font-medium transition-colors disabled:opacity-50',
-                      method === m ? 'border-accent bg-accent-soft text-accent-strong' : 'border-line bg-surface hover:bg-sunken',
+                      'nx-press flex min-h-12 items-center justify-center gap-2 rounded-control border text-base font-medium disabled:opacity-50',
+                      method === m
+                        ? 'border-accent bg-accent-soft text-accent-strong shadow-[inset_0_0_0_1px_var(--color-accent)]'
+                        : 'border-line bg-surface hover:border-ink/25',
                     )}
                   >
+                    <span aria-hidden className={cn('size-2 rounded-full border-2 border-current', method === m && 'bg-current')} />
                     {t(`restaurant.checkout.methods.${m}`)}
                   </button>
                 ))}

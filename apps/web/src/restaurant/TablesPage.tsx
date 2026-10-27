@@ -5,6 +5,8 @@ import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { Tabs } from '../ui/Tabs';
+import { SectionHeader } from '../ui/SectionHeader';
+import { EmptyFloorArt } from '../brand/illustrations';
 import { useToast } from '../ui/Toast';
 import { FloorGrid } from './FloorGrid';
 import { OpenSessionDialog } from './OpenSessionDialog';
@@ -140,7 +142,7 @@ export function TablesPage() {
         {header}
         <div role="status" aria-label={t('restaurant.common.refreshing')} className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {Array.from({ length: 10 }, (_, i) => (
-            <Skeleton key={i} className="h-28" />
+            <Skeleton key={i} className="h-32" />
           ))}
         </div>
       </div>
@@ -165,17 +167,29 @@ export function TablesPage() {
       </p>
 
       {tables.length === 0 ? (
-        <EmptyState title={t('restaurant.tables.emptyTitle')} body={t('restaurant.tables.emptyBody')} />
+        <EmptyState illustration={<EmptyFloorArt />} title={t('restaurant.tables.emptyTitle')} body={t('restaurant.tables.emptyBody')} />
       ) : (
         <>
           {groups.length > 1 && (
             <Tabs items={tabItems} active={selectedArea} onChange={setSelectedArea} label={t('restaurant.tables.areaTabs')} />
           )}
-          <div role={groups.length > 1 ? 'tabpanel' : undefined} className="space-y-8">
+          <div role={groups.length > 1 ? 'tabpanel' : undefined} className="space-y-10">
             {visibleGroups.length === 0 && <EmptyState title={t('restaurant.tables.emptyAreaTitle')} />}
             {visibleGroups.map((g) => (
               <section key={g.key} aria-label={t('restaurant.tables.floorLabel', { area: g.name })}>
-                <h2 className="mb-3 text-lg font-semibold">{g.name}</h2>
+                <SectionHeader
+                  title={g.name}
+                  size="sm"
+                  className="mb-4"
+                  action={
+                    <span className="tabular text-sm text-muted">
+                      {t('restaurant.tables.areaCount', {
+                        occupied: g.tables.filter((tb) => tb.status === 'OCCUPIED').length,
+                        total: g.tables.length,
+                      })}
+                    </span>
+                  }
+                />
                 <FloorGrid
                   tables={g.tables}
                   sessionByTable={sessionByTable}

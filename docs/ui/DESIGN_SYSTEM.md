@@ -25,8 +25,19 @@ Source of truth: `apps/web/src/styles.css` (tokens) and `apps/web/src/ui/` (prim
 | Toast (`useToast`) | `aria-live="polite"`, auto-dismiss 4.5s |
 | ErrorBoundary | Wraps the routed page area in the shell |
 
+## Signature components
+| Component | Notes |
+|---|---|
+| `LedgerFigure` | Money as a ledger figure; `rule="single\|double"`, `reveal` for the one-time digit rise. Currency and minor units are raised and tinted. |
+| `SectionHeader` | Eyebrow + serif heading + the ember-tick hairline. Replaces ad hoc `h2` styling. |
+| `Stamp` / `StampCheck` | `size="md\|lg"`; the label is real text. Lands once, reduced-motion aware. |
+| `Monogram`, `Wordmark` (`src/brand/`) | The tile + drawn N; wordmark in Fraunces. Rebrand takes the initial from `VITE_BRAND_NAME`. |
+| Empty-state art (`src/brand/illustrations.tsx`) | `EmptyFloorArt`, `EmptyBillsArt`, `AllClearArt`, `EmptyTeamArt`, `EmptyOrderArt`. Pass via `EmptyState illustration={...}`; decorative, aria-hidden. |
+| CSS utilities | `.nx-ledger`, `.nx-stub` + `.nx-tear`, `.nx-tile` + `.nx-meter`, `.nx-arrive`/`.nx-arriving` (kitchen), `rule-tick`, `eyebrow`, `ticket-no`, `.nx-ledger-paper` (ink panel texture), `.nx-stamp`. |
+| `Dialog` | A child with `data-autofocus` receives initial focus (used so New order, not Close session, is focused on the table session). |
+
 ## Not built (deliberately)
-Combobox, DataGrid, Sheet/Drawer, Tooltip, Popover, Menu, Command palette, Avatar, Kbd, Timeline, Breadcrumb, a `/_ui` showcase page. They were not needed by any in-scope screen; add them when a screen demands one.
+Combobox, DataGrid, Sheet/Drawer, Tooltip, Popover, Avatar, Timeline, Breadcrumb, a `/_ui` showcase page. (Command palette, Kbd, the location switcher and the user menu live in `shell/`.) They were not needed by any in-scope screen; add them when a screen demands one.
 
 ## Dev verification used
 - `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`.

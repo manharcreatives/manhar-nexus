@@ -61,7 +61,18 @@
     "capsLock": "Caps Lock is on.",
     "heroLine": "From the first order to the last report.",
     "heroBody": "One calm place to run the floor, the kitchen and the books.",
-    "heroFootnote": "A Manhar Creatives product"
+    "heroFootnote": "A Manhar Creatives product",
+    "heroEyebrow": "Restaurant operations",
+    "formEyebrow": "Staff sign-in",
+    "vignette": {
+      "table": "Table T4 · Round 2",
+      "ticket": "No. 0347",
+      "line1": "Paneer Tikka",
+      "line2": "Butter Naan",
+      "line3": "Sweet Lassi",
+      "total": "Total",
+      "paid": "Paid"
+    }
   },
   "home": {
     "greeting": "Good to see you, {{name}}",

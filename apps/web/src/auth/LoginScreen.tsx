@@ -2,10 +2,13 @@ import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import type { ApiError } from './api';
-import { brand } from '../lib/brand';
+import { Wordmark } from '../brand/Wordmark';
+import { LedgerFigure } from '../ui/LedgerFigure';
+import { Stamp } from '../ui/Stamp';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import * as Icons from '../ui/icons';
+import { formatMoney } from '../lib/money';
 
 /** Maps an auth error to a user-facing i18n key (no server text leakage). */
 function messageKey(err: ApiError): string {
@@ -15,6 +18,60 @@ function messageKey(err: ApiError): string {
     return /locked/i.test(err.message) ? 'auth.accountLocked' : 'auth.invalidCredentials';
   }
   return 'auth.genericError';
+}
+
+/** The hero line with its last word set in the italic, in ember. */
+function HeroLine({ text }: { text: string }) {
+  const cut = text.trimEnd().lastIndexOf(' ');
+  const head = cut > 0 ? text.slice(0, cut) : '';
+  const tail = cut > 0 ? text.slice(cut + 1) : text;
+  return (
+    <p
+      className="max-w-[32rem] font-display text-[3.5rem] leading-[1.02] font-medium tracking-[-0.03em] xl:text-[4.25rem]"
+      style={{ fontVariationSettings: '"opsz" 144' }}
+    >
+      {head} <span className="font-normal text-ember-glow italic">{tail}</span>
+    </p>
+  );
+}
+
+/** Decorative: a paid ticket stub resting on the ledger, in the product's own components. */
+function TicketVignette() {
+  const { t } = useTranslation();
+  const lines: Array<[number, string, number]> = [
+    [2, t('auth.vignette.line1'), 56000],
+    [5, t('auth.vignette.line2'), 37500],
+    [3, t('auth.vignette.line3'), 42100],
+  ];
+  return (
+    <div aria-hidden className="pointer-events-none absolute right-14 bottom-14 hidden w-72 rotate-[2.5deg] xl:block">
+      <div
+        data-perforated
+        className="nx-stub rounded-b-[0.75rem] bg-paper px-5 pt-5 pb-6 text-ink shadow-[0_30px_60px_-20px_rgb(0_0_0/0.7)] [--stub-bg:var(--color-ink)]"
+      >
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="font-display text-lg font-semibold">{t('auth.vignette.table')}</p>
+          <p className="ticket-no text-xs text-muted">{t('auth.vignette.ticket')}</p>
+        </div>
+        <div className="nx-tear -mx-5 mt-4 mb-3" />
+        <ul className="space-y-1.5 text-sm">
+          {lines.map(([q, name, minor]) => (
+            <li key={name} className="flex items-baseline gap-2">
+              <span className="tabular w-6 font-semibold">{q}×</span>
+              <span>{name}</span>
+              <span className="mb-1 flex-1 border-b border-dotted border-muted/50" />
+              <span className="tabular text-muted">{formatMoney(minor)}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 flex items-end justify-between border-t border-line pt-3">
+          <span className="eyebrow">{t('auth.vignette.total')}</span>
+          <LedgerFigure minor={135600} rule="double" className="text-[1.75rem]" />
+        </div>
+      </div>
+      <Stamp label={t('auth.vignette.paid')} className="absolute -bottom-4 -left-7 bg-paper text-ok [animation:none]" />
+    </div>
+  );
 }
 
 export function LoginScreen({ notice }: { notice?: string | null }) {
@@ -45,36 +102,29 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
 
   return (
     <div className="grid min-h-screen w-full bg-paper lg:grid-cols-[1.1fr_1fr]">
-      <aside className="hidden flex-col justify-between bg-ink p-12 text-paper lg:flex">
-        <div className="flex items-center gap-2.5">
-          <span
-            aria-hidden
-            className="grid size-9 place-items-center rounded-control bg-accent font-display text-xl font-semibold text-surface"
-          >
-            {brand.name.charAt(0)}
-          </span>
-          <span className="font-display text-xl font-semibold">{brand.name}</span>
+      <aside className="nx-ledger-paper relative hidden overflow-hidden text-paper lg:flex lg:flex-col lg:justify-between lg:py-12 lg:pr-12 lg:pl-20">
+        {/* The ledger's margin: a double ember rule down the page. */}
+        <span aria-hidden className="absolute inset-y-0 left-10 w-[5px] border-x border-ember-glow/45" />
+        <Wordmark on="ink" size="md" />
+        <div className="relative">
+          <p className="eyebrow mb-5 text-ember-glow!">{t('auth.heroEyebrow')}</p>
+          <HeroLine text={t('auth.heroLine')} />
+          <p className="mt-6 max-w-sm text-base leading-relaxed text-paper/72">{t('auth.heroBody')}</p>
         </div>
-        <div>
-          <p className="max-w-md font-display text-5xl font-semibold leading-[1.05]">{t('auth.heroLine')}</p>
-          <p className="mt-5 max-w-sm text-base text-paper/70">{t('auth.heroBody')}</p>
+        <div className="flex items-end justify-between gap-6">
+          <p className="text-sm text-paper/55">{t('auth.heroFootnote')}</p>
         </div>
-        <p className="text-sm text-paper/50">{t('auth.heroFootnote')}</p>
+        <TicketVignette />
       </aside>
 
       <main className="flex items-center justify-center px-5 py-10">
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <span
-              aria-hidden
-              className="grid size-8 place-items-center rounded-control bg-accent font-display text-lg font-semibold text-surface"
-            >
-              {brand.name.charAt(0)}
-            </span>
-            <span className="font-display text-lg font-semibold">{brand.name}</span>
+          <div className="mb-10 lg:hidden">
+            <Wordmark size="md" />
           </div>
-          <h1 className="text-3xl font-semibold">{t('auth.signInTitle')}</h1>
-          <p className="mt-1.5 text-sm text-muted">{t('auth.signInSubtitle')}</p>
+          <p className="eyebrow mb-2">{t('auth.formEyebrow')}</p>
+          <h1 className="text-[2rem] leading-tight font-semibold tracking-[-0.025em]">{t('auth.signInTitle')}</h1>
+          <p className="mt-2 text-sm text-muted">{t('auth.signInSubtitle')}</p>
 
           {notice && (
             <p role="status" className="mt-5 rounded-control bg-warn-soft px-3 py-2 text-sm text-warn">

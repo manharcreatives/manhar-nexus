@@ -36,6 +36,7 @@
       "allAreas": "All areas",
       "otherArea": "Other",
       "floorLabel": "Tables in {{area}}",
+      "areaCount": "{{occupied}} of {{total}} seated",
       "seats_one": "{{count}} seat",
       "seats_other": "{{count}} seats",
       "guests_one": "{{count}} guest",
@@ -155,6 +156,7 @@
       "collect": "Collect {{amount}}",
       "processing": "Processing",
       "paidTitle": "Payment received",
+      "paidStamp": "Paid",
       "paidBody": "The bill is settled. You can now close the table.",
       "closeTable": "Close table",
       "later": "Keep table open",
@@ -220,7 +222,9 @@
       },
       "actionLabel": "{{action}} - {{ticket}}",
       "waitingPickup": "Waiting for pickup",
-      "ticketUpdated": "{{ticket}} moved to {{status}}."
+      "ticketUpdated": "{{ticket}} moved to {{status}}.",
+      "newTickets_one": "{{count}} new ticket arrived.",
+      "newTickets_other": "{{count}} new tickets arrived."
     }
   }
 }

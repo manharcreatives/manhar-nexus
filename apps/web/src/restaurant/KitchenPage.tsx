@@ -6,6 +6,8 @@ import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { StatusPill } from '../ui/StatusPill';
+import { StampCheck } from '../ui/Stamp';
+import { AllClearArt } from '../brand/illustrations';
 import { useToast } from '../ui/Toast';
 import { describeError } from './errors';
 import { useNow, useSingleFlight } from './hooks';
@@ -32,16 +34,21 @@ const EDGE: Record<KitchenStatus, string> = {
   READY: 'border-l-ok',
 };
 const PILL_TONE = { SENT: 'info', ACCEPTED: 'accent', PREPARING: 'warn', READY: 'ok' } as const;
+/** How long a newly arrived ticket keeps its ember wash. */
+const ARRIVE_MS = 2_000;
 
+/** Signature: the ticket stub — perforated top, a tear line with notches, monospaced ticket number. */
 function KitchenTicket({
   order,
   tableCode,
   now,
+  arriving,
   onAction,
 }: {
   order: ServiceRequest;
   tableCode: string | undefined;
   now: number;
+  arriving: boolean;
   onAction: (order: ServiceRequest, action: Action) => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -56,30 +63,38 @@ function KitchenTicket({
   return (
     <article
       aria-label={`${heading} - ${t(`restaurant.kitchen.columns.${status}`)}`}
-      className={cn('flex flex-col gap-4 rounded-panel border border-line border-l-8 bg-surface p-5', EDGE[status])}
+      data-perforated
+      className={cn(
+        'nx-stub flex flex-col rounded-b-panel border border-l-[6px] border-line bg-surface [--tear-edge:5px]',
+        EDGE[status],
+        arriving && 'nx-arrive nx-arriving',
+      )}
     >
-      <header className="flex flex-col gap-2">
-        <div className="min-w-0">
-          <h3 className="font-display text-3xl font-semibold leading-tight">{heading}</h3>
-          {tableCode && <p className="text-base text-muted">{ticket}</p>}
+      <header className="flex flex-col gap-2 px-5 pt-5 pb-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p className="ticket-no min-w-0 text-sm break-all text-muted">{tableCode ? ticket : '\u00a0'}</p>
+          <p className={cn('tabular shrink-0 text-xl font-semibold', late && 'text-bad')}>{formatElapsed(mins, t)}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h3 className="font-display text-[2rem] leading-[1.05] font-semibold tracking-[-0.02em]">{heading}</h3>
+        <div className="flex flex-wrap items-center gap-2">
           <StatusPill tone={PILL_TONE[status]}>{t(`restaurant.kitchen.columns.${status}`)}</StatusPill>
-          <p className={cn('tabular text-xl font-semibold', late && 'text-bad')}>
-            {formatElapsed(mins, t)}
-          </p>
           {late && <StatusPill tone="bad">{t('restaurant.kitchen.late')}</StatusPill>}
         </div>
       </header>
 
-      <ul className="space-y-2">
+      <div className="nx-tear" />
+
+      <ul className="space-y-2.5 px-5 pt-4 pb-5">
         {order.lines
           .filter((l) => l.status !== 'CANCELLED')
           .map((line) => (
             <li key={line.id} className="flex items-baseline gap-3">
-              <span className="tabular min-w-10 font-display text-3xl font-semibold">{line.quantity}x</span>
+              <span className="tabular min-w-11 font-display text-[1.75rem] leading-none font-semibold">
+                {line.quantity}
+                <span className="text-[0.7em] text-muted">×</span>
+              </span>
               <div className="min-w-0">
-                <p className="text-xl font-semibold leading-snug">{line.itemNameSnapshot}</p>
+                <p className="text-xl leading-snug font-semibold">{line.itemNameSnapshot}</p>
                 {line.variantNameSnapshot && <p className="text-base text-muted">{line.variantNameSnapshot}</p>}
                 {line.modifiers.map((m) => (
                   <p key={m.id} className="text-base text-muted">
@@ -93,24 +108,29 @@ function KitchenTicket({
       </ul>
 
       {order.notes && (
-        <p className="rounded-control border border-warn/40 bg-warn-soft px-3 py-2 text-base font-medium">
+        <p className="mx-5 mb-5 rounded-control border border-warn/40 bg-warn-soft px-3 py-2 text-base font-medium">
           <span className="font-semibold">{t('restaurant.kitchen.note')}:</span> {order.notes}
         </p>
       )}
 
-      {action ? (
-        <Button
-          size="lg"
-          className="min-h-14 w-full text-lg"
-          loading={busy}
-          aria-label={t('restaurant.kitchen.actionLabel', { action: t(`restaurant.kitchen.actions.${action}`), ticket: heading })}
-          onClick={() => void run(() => onAction(order, action))}
-        >
-          {t(`restaurant.kitchen.actions.${action}`)}
-        </Button>
-      ) : (
-        <p className="text-lg font-semibold text-ok">{t('restaurant.kitchen.waitingPickup')}</p>
-      )}
+      <div className="mt-auto px-5 pb-5">
+        {action ? (
+          <Button
+            size="lg"
+            className="min-h-14 w-full text-lg"
+            loading={busy}
+            aria-label={t('restaurant.kitchen.actionLabel', { action: t(`restaurant.kitchen.actions.${action}`), ticket: heading })}
+            onClick={() => void run(() => onAction(order, action))}
+          >
+            {t(`restaurant.kitchen.actions.${action}`)}
+          </Button>
+        ) : (
+          <p className="flex min-h-14 items-center justify-center gap-2 rounded-control border border-dashed border-ok/40 text-lg font-semibold text-ok">
+            <StampCheck className="size-5" />
+            {t('restaurant.kitchen.waitingPickup')}
+          </p>
+        )}
+      </div>
     </article>
   );
 }
@@ -126,6 +146,9 @@ export function KitchenPage() {
   const [tableBySession, setTableBySession] = useState<Map<string, string>>(new Map());
   const [announce, setAnnounce] = useState('');
   const tableCodes = useRef<Map<string, string> | null>(null);
+  // Ticket ids already on screen; anything new after the first load gets the arrival wash.
+  const seen = useRef<Set<string> | null>(null);
+  const [arriving, setArriving] = useState<ReadonlySet<string>>(new Set());
   const loadInFlight = useRef(false);
   const now = useNow(30_000);
 
@@ -158,6 +181,17 @@ export function KitchenPage() {
     setRefreshing(true);
     try {
       const data = await kitchenApi.queue(locationId ?? undefined);
+      if (seen.current === null) {
+        seen.current = new Set(data.map((o) => o.id));
+      } else {
+        const known = seen.current;
+        const fresh = data.filter((o) => !known.has(o.id)).map((o) => o.id);
+        fresh.forEach((id) => known.add(id));
+        if (fresh.length > 0) {
+          setArriving(new Set(fresh));
+          setAnnounce(t('restaurant.kitchen.newTickets', { count: fresh.length }));
+        }
+      }
       setQueue(data);
       setLastRefresh(new Date());
       setError('');
@@ -171,11 +205,23 @@ export function KitchenPage() {
     }
   }, [t, loadTableNames, locationId]);
 
+  // A new working location is a new queue: nothing on it counts as "arriving".
+  // (Declared before the polling effect so the reset runs before the first load.)
+  useEffect(() => {
+    seen.current = null;
+  }, [locationId]);
+
   useEffect(() => {
     void load();
     const id = setInterval(() => void load(), POLL_MS);
     return () => clearInterval(id);
   }, [load]);
+
+  useEffect(() => {
+    if (arriving.size === 0) return;
+    const id = window.setTimeout(() => setArriving(new Set()), ARRIVE_MS);
+    return () => window.clearTimeout(id);
+  }, [arriving]);
 
   const handleAction = useCallback(
     async (order: ServiceRequest, action: Action) => {
@@ -249,23 +295,37 @@ export function KitchenPage() {
       </p>
 
       {queue.length === 0 ? (
-        <EmptyState title={t('restaurant.kitchen.allClearTitle')} body={t('restaurant.kitchen.allClearBody')} />
+        <EmptyState illustration={<AllClearArt />} title={t('restaurant.kitchen.allClearTitle')} body={t('restaurant.kitchen.allClearBody')} />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((status) => {
             const tickets = byStatus(status);
             return (
               <section key={status} aria-label={t(`restaurant.kitchen.columns.${status}`)} className="min-w-0">
-                <div className="mb-3 flex items-center justify-between border-b-2 border-ink pb-2">
+                <div className="mb-4 flex items-center justify-between border-b-2 border-ink pb-2.5">
                   <h2 className="text-xl font-semibold">{t(`restaurant.kitchen.columns.${status}`)}</h2>
-                  <span className="tabular font-display text-2xl font-semibold">{tickets.length}</span>
+                  <span
+                    className={cn(
+                      'ticket-no grid h-8 min-w-8 place-items-center rounded-control px-2 text-base font-semibold',
+                      tickets.length > 0 ? 'bg-ink text-paper' : 'bg-sunken text-muted',
+                    )}
+                  >
+                    {tickets.length}
+                  </span>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {tickets.map((order) => (
-                    <KitchenTicket key={order.id} order={order} tableCode={tableBySession.get(order.sessionId)} now={now} onAction={handleAction} />
+                    <KitchenTicket
+                      key={order.id}
+                      order={order}
+                      tableCode={tableBySession.get(order.sessionId)}
+                      now={now}
+                      arriving={arriving.has(order.id)}
+                      onAction={handleAction}
+                    />
                   ))}
                   {tickets.length === 0 && (
-                    <p className="rounded-panel border border-dashed border-line py-8 text-center text-base text-muted">{t('restaurant.kitchen.columnEmpty')}</p>
+                    <p className="rounded-panel border border-dashed border-line py-10 text-center text-base text-muted">{t('restaurant.kitchen.columnEmpty')}</p>
                   )}
                 </div>
               </section>

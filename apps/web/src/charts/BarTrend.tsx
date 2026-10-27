@@ -172,7 +172,7 @@ export function BarTrend({
                   )}
                   <path
                     d={barPath(geo.x(i), top, geo.band, h, 4)}
-                    className={cn('nx-grow-y', isHi ? 'fill-accent' : isShown ? 'fill-ink/70' : 'fill-ink/35')}
+                    className={cn('nx-grow-y', isHi ? 'fill-accent' : isShown ? 'fill-ink/70' : 'fill-muted/60')}
                   />
                   {v === 0 && (
                     <line

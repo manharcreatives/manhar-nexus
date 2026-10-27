@@ -14,6 +14,7 @@ import { Field } from '../ui/Field';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Table, Td, Th } from '../ui/Table';
+import { EmptyBillsArt } from '../brand/illustrations';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 
 const PAGE_SIZE = 25;
@@ -112,7 +113,7 @@ export function BillsPage() {
           {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-12" />)}
         </div>
       ) : items.length === 0 ? (
-        <EmptyState title={t('bills.empty.title')} body={t('bills.empty.body')} />
+        <EmptyState illustration={<EmptyBillsArt />} title={t('bills.empty.title')} body={t('bills.empty.body')} />
       ) : (
         <div className={loading ? 'opacity-60 transition-opacity' : undefined}>
           {error && (
@@ -135,11 +136,11 @@ export function BillsPage() {
             <tbody>
               {items.map((b) => (
                 <tr key={b.id}>
-                  <Td className="whitespace-nowrap font-medium">{b.invoiceNumber ?? t('bills.draft')}</Td>
+                  <Td className="ticket-no whitespace-nowrap">{b.invoiceNumber ?? t('bills.draft')}</Td>
                   <Td className="whitespace-nowrap">{b.tableCode ?? t('bills.noTable')}</Td>
                   <Td numeric className="whitespace-nowrap">{formatMoney(b.grandTotalMinorUnits, b.currencyCode)}</Td>
                   <Td><StatusBadge status={b.status} /></Td>
-                  <Td className="whitespace-nowrap">{b.paidAt ? new Date(b.paidAt).toLocaleString() : t('bills.notPaid')}</Td>
+                  <Td className="tabular whitespace-nowrap">{b.paidAt ? new Date(b.paidAt).toLocaleString() : t('bills.notPaid')}</Td>
                   <Td>{methodsOf(b)}</Td>
                   <Td className="text-right">
                     <Button variant="secondary" onClick={() => setOpenId(b.id)} aria-label={t('bills.openBill', { number: b.invoiceNumber ?? t('bills.draft') })}>

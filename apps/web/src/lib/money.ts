@@ -19,6 +19,36 @@ export function formatMoney(minorUnits: number, currency: string = DEFAULT_CURRE
   return formatterFor(currency).format(minorUnits / 100);
 }
 
+export interface MoneyParts {
+  /** Leading sign ("-") or "". */
+  sign: string;
+  /** Currency symbol as the locale prints it ("₹"). */
+  currency: string;
+  /** Whole units with grouping ("25,052"). */
+  whole: string;
+  /** Decimal separator plus fraction (".50"), or "". */
+  fraction: string;
+  /** The exact text formatMoney returns, for screen readers and tests. */
+  text: string;
+}
+
+/** The same text as formatMoney, split for typographic setting (ledger figures). */
+export function moneyParts(minorUnits: number, currency: string = DEFAULT_CURRENCY): MoneyParts {
+  const f = formatterFor(currency);
+  const parts = f.formatToParts(minorUnits / 100);
+  let sign = '';
+  let cur = '';
+  let whole = '';
+  let fraction = '';
+  for (const p of parts) {
+    if (p.type === 'minusSign') sign += p.value;
+    else if (p.type === 'currency') cur += p.value;
+    else if (p.type === 'integer' || p.type === 'group') whole += p.value;
+    else if (p.type === 'decimal' || p.type === 'fraction') fraction += p.value;
+  }
+  return { sign, currency: cur, whole, fraction, text: f.format(minorUnits / 100) };
+}
+
 const compactFormatters = new Map<string, Intl.NumberFormat>();
 
 /**

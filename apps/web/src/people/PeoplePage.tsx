@@ -8,6 +8,7 @@ import { Field } from '../ui/Field';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Table, Td, Th } from '../ui/Table';
+import { EmptyTeamArt } from '../brand/illustrations';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { peopleApi, type Directory, type LocationOption, type Person, type Role, type UserStatus, type ViewerCapabilities } from './api';
 import { AddPersonDialog } from './AddPersonDialog';
@@ -167,6 +168,7 @@ export function PeoplePage() {
           />
         ) : (
           <EmptyState
+            illustration={<EmptyTeamArt />}
             title={t('people.empty.teamTitle')}
             body={t('people.empty.teamBody')}
             action={viewer.canCreate ? <Button onClick={() => setAdding(true)}>{t('people.add.action')}</Button> : undefined}

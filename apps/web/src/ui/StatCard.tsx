@@ -1,12 +1,23 @@
 import type { ReactNode } from 'react';
 import { Panel } from './Panel';
 
-export function StatCard({ label, value, note }: { label: string; value: ReactNode; note?: string }) {
+/** A KPI on its own panel. Inside a StatGrid it becomes one ruled cell of a ledger strip. */
+export function StatCard({ label, value, note, cell }: { label: string; value: ReactNode; note?: string; cell?: boolean }) {
+  const body = (
+    <>
+      <p className="eyebrow">{label}</p>
+      <p className="tabular mt-2.5 font-display text-[1.875rem] leading-none font-semibold tracking-[-0.02em]">{value}</p>
+      {note && <p className="mt-1.5 text-sm text-muted">{note}</p>}
+    </>
+  );
+  return cell ? <div className="bg-surface px-5 py-4.5">{body}</div> : <Panel>{body}</Panel>;
+}
+
+/** Ledger strip: KPI cells divided by hairlines inside one panel (pass cell to each StatCard). */
+export function StatGrid({ children, className = 'sm:grid-cols-2 lg:grid-cols-4' }: { children: ReactNode; className?: string }) {
   return (
-    <Panel>
-      <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
-      <p className="tabular mt-2 font-display text-3xl font-semibold">{value}</p>
-      {note && <p className="mt-1 text-sm text-muted">{note}</p>}
-    </Panel>
+    <div className="overflow-hidden rounded-panel border border-line bg-line">
+      <div className={`grid grid-cols-1 gap-px ${className}`}>{children}</div>
+    </div>
   );
 }

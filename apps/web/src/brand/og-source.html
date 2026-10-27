@@ -1,0 +1,65 @@
+<!doctype html>
+<!--
+  Source for apps/web/public/og.png (1200x630). Rendered with a headless
+  browser at a 1200x630 viewport, device scale 1:
+    npm i --no-save puppeteer-core   (then screenshot this file, clip 1200x630)
+  Fonts load from the repo's node_modules (@fontsource-variable), so run it
+  from a checkout with dependencies installed. Colours are the design tokens.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: "Fraunces"; src: url("../../../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-opsz-normal.woff2"); font-weight: 100 900; font-style: normal; }
+  @font-face { font-family: "Fraunces"; src: url("../../../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-opsz-italic.woff2"); font-weight: 100 900; font-style: italic; }
+  @font-face { font-family: "Inter Tight"; src: url("../../../../node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2"); font-weight: 100 900; }
+  :root { --paper:#f6f1e9; --surface:#fffdf9; --line:#ddd4c3; --ink:#1b1a17; --muted:#6b6558; --accent:#b53a0a; --ember:#f08a5d; --ok:#3f6212; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1200px; height: 630px; overflow: hidden; background: var(--ink); color: var(--paper); font-family: "Inter Tight", sans-serif; position: relative;
+    background-image: repeating-linear-gradient(to bottom, transparent 0 39px, rgb(246 241 233 / 0.05) 39px 40px); }
+  .rail { position: absolute; left: 56px; top: 0; bottom: 0; width: 1px; background: color-mix(in srgb, var(--accent) 80%, transparent); }
+  .brand { position: absolute; left: 96px; top: 64px; display: flex; align-items: center; gap: 16px; }
+  .brand svg { width: 56px; height: 56px; }
+  .brand span { font: 600 34px/1 "Fraunces"; letter-spacing: -0.02em; font-variation-settings: "opsz" 72; }
+  .brand em { font-weight: 500; color: var(--ember); }
+  .eyebrow { position: absolute; left: 96px; top: 238px; font: 600 15px/1 "Inter Tight"; letter-spacing: .14em; text-transform: uppercase; color: var(--ember); }
+  h1 { position: absolute; left: 96px; top: 272px; width: 620px; font: 500 84px/1.02 "Fraunces"; letter-spacing: -0.03em; font-variation-settings: "opsz" 144; }
+  h1 em { color: var(--ember); font-weight: 400; }
+  .foot { position: absolute; left: 96px; bottom: 56px; font: 400 20px/1 "Inter Tight"; color: color-mix(in srgb, var(--paper) 70%, transparent); }
+  .ticket { position: absolute; right: 84px; top: 118px; width: 330px; height: 394px; transform: rotate(3deg); background: var(--paper); color: var(--ink); padding: 34px 30px; border-radius: 0 0 14px 14px;
+    -webkit-mask: radial-gradient(circle 6px at 50% 0, #0000 97%, #000) 0 0 / 20px 100% repeat-x; box-shadow: 0 30px 60px -20px #000; }
+  .ticket h2 { font: 600 30px/1.1 "Fraunces"; letter-spacing: -0.02em; }
+  .no { font: 400 14px ui-monospace, Consolas, monospace; color: var(--muted); margin-top: 8px; letter-spacing: .02em; }
+  .tear { border-top: 2px dashed var(--line); margin: 22px -30px 18px; }
+  .row { display: flex; gap: 10px; align-items: baseline; font-size: 19px; margin-top: 13px; }
+  .row b { font: 600 24px "Fraunces"; width: 34px; }
+  .row i { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-4px); }
+  .row u { text-decoration: none; font-variant-numeric: tabular-nums; }
+  .total { position: absolute; left: 30px; right: 30px; bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .total small { font: 600 12px "Inter Tight"; letter-spacing: .14em; color: var(--muted); }
+  .total div { font: 600 58px/1 "Fraunces"; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; border-bottom: 3px double var(--line); padding-bottom: 6px; }
+  .total sup { font-size: 28px; color: var(--muted); font-weight: 500; vertical-align: 24px; }
+  .stamp { position: absolute; right: 330px; top: 468px; transform: rotate(-9deg); border: 4px solid var(--ok); color: var(--ok); background: var(--surface); border-radius: 12px; padding: 10px 22px; font: 700 28px "Inter Tight"; letter-spacing: .16em; display: flex; gap: 12px; align-items: center; box-shadow: 0 0 0 3px var(--surface); }
+</style>
+</head>
+<body>
+  <div class="rail"></div>
+  <div class="brand">
+    <svg viewBox="0 0 32 32"><path fill="#b53a0a" d="M8 0H24A8 8 0 0 1 32 8V13A3 3 0 0 0 32 19V24A8 8 0 0 1 24 32H8A8 8 0 0 1 0 24V19A3 3 0 0 0 0 13V8A8 8 0 0 1 8 0Z"/><path fill="#fffdf9" d="M9.6 7.4h2v14.2h-2zM20.4 7.4h2v14.2h-2zM9.6 7.4h4.3L22.4 21.6h-4.3zM7.6 7.4h6.3v1.35H7.6zM18.4 7.4h6v1.35h-6zM7.6 20.25h6v1.35h-6z"/><path fill="#fffdf9" fill-opacity=".62" d="M7.6 24.6h16.8v1.2H7.6z"/></svg>
+    <span>Manhar <em>Nexus</em></span>
+  </div>
+  <div class="eyebrow">Restaurant operations</div>
+  <h1>From the first order to the last <em>report.</em></h1>
+  <div class="foot">The floor, the kitchen and the books, in one calm place.</div>
+  <div class="ticket">
+    <h2>Table T4 · Round 2</h2>
+    <div class="no">No. 0347</div>
+    <div class="tear"></div>
+    <div class="row"><b>2×</b>Paneer Tikka<i></i><u>560.00</u></div>
+    <div class="row"><b>5×</b>Butter Naan<i></i><u>375.00</u></div>
+    <div class="row"><b>3×</b>Sweet Lassi<i></i><u>421.00</u></div>
+    <div class="total"><small>TOTAL</small><div><span style="font-size:30px;color:var(--muted)">₹</span>1,356<sup>.00</sup></div></div>
+  </div>
+  <div class="stamp"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>PAID</div>
+</body>
+</html>

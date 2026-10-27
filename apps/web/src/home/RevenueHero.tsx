@@ -7,9 +7,11 @@ import { formatMoney, formatMoneyCompact } from '../lib/money';
 import { BarTrend } from '../charts/BarTrend';
 import { Skeleton } from '../ui/states';
 import { cn } from '../lib/cn';
+import { LedgerFigure } from '../ui/LedgerFigure';
 import { averageBill, type DayFigures, type RevenueToday } from './derive';
 import { useWidget } from './useWidget';
 import { InlineError } from './InlineError';
+import { SectionHeader } from '../ui/SectionHeader';
 
 const fromPoint = (p: DailySeriesPoint): DayFigures => ({
   date: p.date,
@@ -100,7 +102,7 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
   return (
     <section aria-labelledby="rev-h" className="min-w-0">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 id="rev-h" className="font-ui text-xs font-medium uppercase tracking-wider text-muted">
+        <h2 id="rev-h" className="eyebrow">
           {t('home.netRevenueToday')}
         </h2>
         {r && (
@@ -138,23 +140,23 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
 
       {r && base && (
         <>
-          <p className="tabular mt-2 font-display text-5xl leading-none font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-            {formatMoney(r.today.netMinor)}
+          <p className="mt-4">
+            <LedgerFigure minor={r.today.netMinor} rule="double" reveal className="text-[3.25rem] sm:text-[4.5rem] lg:text-[5.5rem]" />
           </p>
-          <div className="mt-3">
+          <div className="mt-4">
             <Delta current={r.today.netMinor} base={base.netMinor} baseLabel={baseLabel} />
             <p className="mt-0.5 text-xs text-muted">{t('home.soFarNote')}</p>
           </div>
 
-          <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-4 border-t border-line pt-5">
-            <div>
-              <dt className="text-xs text-muted">{t('home.paidBills')}</dt>
-              <dd className="tabular font-display text-3xl font-semibold">{r.today.paidCount}</dd>
-              <dd className="text-xs text-muted">{t('home.thenCount', { count: base.paidCount })}</dd>
+          <dl className="mt-8 grid grid-cols-2 border-t border-line sm:max-w-md">
+            <div className="py-4 pr-6">
+              <dt className="eyebrow">{t('home.paidBills')}</dt>
+              <dd className="tabular mt-1.5 font-display text-[2rem] leading-none font-semibold">{r.today.paidCount}</dd>
+              <dd className="mt-1 text-xs text-muted">{t('home.thenCount', { count: base.paidCount })}</dd>
             </div>
-            <div>
-              <dt className="text-xs text-muted">{t('home.averageBill')}</dt>
-              <dd className="tabular font-display text-3xl font-semibold">{avg === null ? '—' : formatMoney(avg)}</dd>
+            <div className="border-l border-line py-4 pl-6">
+              <dt className="eyebrow">{t('home.averageBill')}</dt>
+              <dd className="mt-1.5 text-[2rem] leading-none">{avg === null ? '—' : <LedgerFigure minor={avg} />}</dd>
               <dd className="text-xs text-muted">
                 {averageBill(base) === null ? t('home.noBillsThen') : t('home.thenAmount', { amount: formatMoney(averageBill(base) ?? 0) })}
               </dd>
@@ -162,8 +164,8 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
           </dl>
 
           {r.strip && (
-            <div className="mt-8">
-              <h3 className="mb-2 font-ui text-sm font-semibold">{t('home.last7')}</h3>
+            <div className="mt-10">
+              <SectionHeader as="h3" size="sm" title={t('home.last7')} className="mb-4" />
               <BarTrend
                 data={bars}
                 title={t('home.last7Title')}

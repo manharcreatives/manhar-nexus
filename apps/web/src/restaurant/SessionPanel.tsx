@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
-import { Panel } from '../ui/Panel';
+import { cn } from '../lib/cn';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { Textarea } from '../ui/Textarea';
 import { useToast } from '../ui/Toast';
 import { CheckoutDialog } from './CheckoutDialog';
+import { EmptyOrderArt } from '../brand/illustrations';
 import { OrderBuilder } from './OrderBuilder';
 import { OrderStatusPill } from './StatusPills';
 import { describeError } from './errors';
@@ -55,25 +56,31 @@ function OrderCard({
   }
 
   return (
-    <Panel className="p-4">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-display text-lg font-semibold">{orderTitle(order, t)}</h3>
+    <article className={cn('nx-stub rounded-panel border border-line bg-surface', order.status === 'CANCELLED' && 'opacity-70')}>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3.5 pb-3">
+        <h3 className="flex items-baseline gap-2.5">
+          <span className="font-display text-lg font-semibold">{t('restaurant.session.round', { n: order.roundNumber })}</span>
+          {order.requestNumber && (
+            <span className="ticket-no text-xs font-normal text-muted">{t('restaurant.session.ticketNumber', { number: order.requestNumber })}</span>
+          )}
+        </h3>
         <OrderStatusPill status={order.status} />
       </div>
-      <ul className="space-y-1">
+      <div className="nx-tear" />
+      <ul className="space-y-1.5 px-4 pt-3 pb-4">
         {order.lines
           .filter((l) => l.status !== 'CANCELLED')
           .map((line) => (
-            <li key={line.id} className="flex justify-between gap-3 text-base">
-              <span>
-                <span className="tabular font-semibold">{line.quantity}x</span> {line.itemNameSnapshot}
-              </span>
-              <span className="tabular text-muted">{formatMinorUnits(line.unitPriceMinorUnits * line.quantity)}</span>
+            <li key={line.id} className="flex items-baseline gap-2 text-base">
+              <span className="tabular w-7 shrink-0 font-semibold">{line.quantity}×</span>
+              <span className="min-w-0">{line.itemNameSnapshot}</span>
+              <span aria-hidden className="mb-1 min-w-4 flex-1 border-b border-dotted border-muted/45" />
+              <span className="tabular shrink-0 text-muted">{formatMinorUnits(line.unitPriceMinorUnits * line.quantity)}</span>
             </li>
           ))}
       </ul>
       {(canCancel || order.status === 'READY') && (
-        <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2 px-4 pb-4">
           {canCancel && (
             <Button variant="secondary" onClick={() => onRequestCancel(order)} className="min-h-11">
               {t('restaurant.session.cancelOrder')}
@@ -86,7 +93,7 @@ function OrderCard({
           )}
         </div>
       )}
-    </Panel>
+    </article>
   );
 }
 
@@ -191,7 +198,7 @@ export function SessionPanel({
             <Button variant="secondary" size="lg" disabled={!hasBillable} onClick={() => setShowCheckout(true)}>
               {t('restaurant.session.checkout')}
             </Button>
-            <Button size="lg" onClick={() => setShowOrder(true)}>
+            <Button size="lg" data-autofocus onClick={() => setShowOrder(true)}>
               {t('restaurant.session.newOrder')}
             </Button>
           </>
@@ -215,7 +222,7 @@ export function SessionPanel({
             />
           )}
           {orders !== null && list.length === 0 && (
-            <EmptyState title={t('restaurant.session.noOrdersTitle')} body={t('restaurant.session.noOrdersBody')} />
+            <EmptyState illustration={<EmptyOrderArt />} title={t('restaurant.session.noOrdersTitle')} body={t('restaurant.session.noOrdersBody')} />
           )}
           {list.map((order) => (
             <OrderCard key={order.id} order={order} onChanged={replaceOrder} onRequestCancel={(o) => setCancelTarget(o)} />

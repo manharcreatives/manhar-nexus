@@ -20,11 +20,14 @@ import { InlineBar } from '../charts/InlineBar';
 import { useWorkLocation } from '../context/LocationContext';
 import { useAsync } from './useAsync';
 import { PageHeader } from '../ui/PageHeader';
+import { LedgerFigure } from '../ui/LedgerFigure';
+import { SectionHeader } from '../ui/SectionHeader';
+import { EmptyBillsArt } from '../brand/illustrations';
 import { Tabs } from '../ui/Tabs';
 import { Panel } from '../ui/Panel';
 import { Field } from '../ui/Field';
 import { Button } from '../ui/Button';
-import { StatCard } from '../ui/StatCard';
+import { StatCard, StatGrid } from '../ui/StatCard';
 import { Table, Th, Td } from '../ui/Table';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 
@@ -96,10 +99,8 @@ function methodLabel(t: TFunction, method: string): string {
 function PaymentTable({ rows }: { rows: { method: string; capturedCount: number; amountMinorUnits: number }[] }) {
   const { t } = useTranslation();
   return (
-    <section aria-labelledby="pay-h" className="space-y-2">
-      <h2 id="pay-h" className="text-lg font-semibold">
-        {t('reports.paymentBreakdown')}
-      </h2>
+    <section aria-labelledby="pay-h">
+      <SectionHeader id="pay-h" size="sm" title={t('reports.paymentBreakdown')} className="mb-3" />
       <Table>
         <thead>
           <tr>
@@ -162,11 +163,13 @@ function DailyReport() {
 
   return (
     <div className="space-y-6">
-      <Panel className="no-print space-y-4">
-        <PresetBar keys={['today', 'yesterday']} onPick={(k) => setDate(presetRange(k).from)} />
+      <Panel className="no-print p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="w-full sm:w-56">
-            <Field label={t('reports.dateLabel')} type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-full sm:w-56">
+              <Field label={t('reports.dateLabel')} type="date" value={date} max={todayIso()} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <PresetBar keys={['today', 'yesterday']} onPick={(k) => setDate(presetRange(k).from)} />
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={reload} loading={loading}>
@@ -184,25 +187,46 @@ function DailyReport() {
       {r &&
         !error &&
         (noData ? (
-          <EmptyState title={t('reports.noDataTitle')} body={t('reports.noDataBody', { period: formatDate(r.date) })} />
+          <EmptyState illustration={<EmptyBillsArt />} title={t('reports.noDataTitle')} body={t('reports.noDataBody', { period: formatDate(r.date) })} />
         ) : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label={t('reports.netRevenue')} value={formatMinorUnits(r.netRevenueMinorUnits)} />
-              <StatCard label={t('reports.paidInvoices')} value={r.paidInvoiceCount} />
-              <StatCard label={t('reports.grossSales')} value={formatMinorUnits(r.grossSalesMinorUnits)} />
-              <StatCard label={t('reports.totalTax')} value={formatMinorUnits(r.totalTaxMinorUnits)} />
-              <StatCard label={t('reports.totalRevenue')} value={formatMinorUnits(r.totalRevenueMinorUnits)} />
-              <StatCard label={t('reports.refunded')} value={formatMinorUnits(r.totalRefundedMinorUnits)} note={t('reports.refundCount', { count: r.refundCount })} />
-              <StatCard label={t('reports.voids')} value={r.voidedInvoiceCount} />
-              <StatCard label={t('reports.orders')} value={r.servedOrderCount} />
-            </div>
+          <div className="space-y-8">
+            <section aria-labelledby="day-h" className="grid grid-cols-1 items-end gap-x-12 gap-y-6 pt-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <div>
+                <h2 id="day-h" className="eyebrow">
+                  {t('reports.netRevenue')} · {formatDate(r.date)}
+                </h2>
+                <p className="mt-4">
+                  <LedgerFigure minor={r.netRevenueMinorUnits} rule="double" reveal className="text-[3rem] sm:text-[4.25rem]" />
+                </p>
+              </div>
+              <dl className="grid grid-cols-2 border-t border-line lg:border-t-0">
+                <div className="py-3 pr-8 lg:border-l lg:border-line lg:pl-8">
+                  <dt className="eyebrow">{t('reports.paidInvoices')}</dt>
+                  <dd className="tabular mt-1.5 font-display text-[2rem] leading-none font-semibold">{r.paidInvoiceCount}</dd>
+                </div>
+                <div className="border-l border-line py-3 pl-8">
+                  <dt className="eyebrow">{t('reports.orders')}</dt>
+                  <dd className="tabular mt-1.5 font-display text-[2rem] leading-none font-semibold">{r.servedOrderCount}</dd>
+                </div>
+              </dl>
+            </section>
+            <StatGrid className="sm:grid-cols-2 lg:grid-cols-5">
+              <StatCard cell label={t('reports.grossSales')} value={<LedgerFigure minor={r.grossSalesMinorUnits} />} />
+              <StatCard cell label={t('reports.totalTax')} value={<LedgerFigure minor={r.totalTaxMinorUnits} />} />
+              <StatCard cell label={t('reports.totalRevenue')} value={<LedgerFigure minor={r.totalRevenueMinorUnits} />} />
+              <StatCard
+                cell
+                label={t('reports.refunded')}
+                value={<LedgerFigure minor={r.totalRefundedMinorUnits} />}
+                note={t('reports.refundCount', { count: r.refundCount })}
+              />
+              <StatCard cell label={t('reports.voids')} value={r.voidedInvoiceCount} />
+            </StatGrid>
+            <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
             {r.paymentBreakdown.length > 0 && <PaymentTable rows={r.paymentBreakdown} />}
             {r.taxBreakdown.length > 0 && (
-              <section aria-labelledby="tax-h" className="space-y-2">
-                <h2 id="tax-h" className="text-lg font-semibold">
-                  {t('reports.taxBreakdown')}
-                </h2>
+              <section aria-labelledby="tax-h">
+                <SectionHeader id="tax-h" size="sm" title={t('reports.taxBreakdown')} className="mb-3" />
                 <Table>
                   <thead>
                     <tr>
@@ -225,6 +249,7 @@ function DailyReport() {
                 </Table>
               </section>
             )}
+            </div>
           </div>
         ))}
     </div>
@@ -262,7 +287,7 @@ function RangeBar({
 }) {
   const { t } = useTranslation();
   return (
-    <Panel className="no-print space-y-4">
+    <Panel className="no-print space-y-4 p-4">
       <PresetBar
         keys={['today', 'yesterday', 'last7', 'month']}
         onPick={(k) => {
@@ -402,40 +427,43 @@ function SalesReport() {
             <Panel className="p-5 sm:p-7">
               <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted">{t('reports.netRevenue')}</p>
-                  <p className="tabular mt-1 font-display text-4xl font-semibold sm:text-5xl">{formatMinorUnits(r.netRevenueMinorUnits)}</p>
-                  <p className="mt-1 text-sm text-muted">{period}</p>
+                  <p className="eyebrow">
+                    {t('reports.netRevenue')} · {period}
+                  </p>
+                  <p className="mt-4">
+                    <LedgerFigure minor={r.netRevenueMinorUnits} rule="double" reveal className="text-[2.75rem] sm:text-[3.75rem]" />
+                  </p>
                 </div>
                 <dl className="flex flex-wrap gap-x-8 gap-y-3">
                   <div>
-                    <dt className="text-xs text-muted">{t('reports.paidInvoices')}</dt>
-                    <dd className="tabular font-display text-2xl font-semibold">{r.paidInvoiceCount}</dd>
+                    <dt className="eyebrow">{t('reports.paidInvoices')}</dt>
+                    <dd className="tabular mt-1.5 font-display text-[1.75rem] leading-none font-semibold">{r.paidInvoiceCount}</dd>
                   </div>
-                  <div>
-                    <dt className="text-xs text-muted">{t('reports.avgInvoice')}</dt>
-                    <dd className="tabular font-display text-2xl font-semibold">{formatMinorUnits(r.averageInvoiceMinorUnits)}</dd>
+                  <div className="border-l border-line pl-8">
+                    <dt className="eyebrow">{t('reports.avgInvoice')}</dt>
+                    <dd className="mt-1.5 text-[1.75rem] leading-none">
+                      <LedgerFigure minor={r.averageInvoiceMinorUnits} />
+                    </dd>
                   </div>
                 </dl>
               </div>
-              <section aria-labelledby="trend-h" className="mt-6">
+              <section aria-labelledby="trend-h" className="mt-8">
                 <h2 id="trend-h" className="sr-only">
                   {t('reports.trendTitle')}
                 </h2>
                 <SalesTrend series={series.data} loading={series.loading} error={series.error} onRetry={series.reload} tooLong={tooLong} />
               </section>
             </Panel>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <StatCard label={t('reports.grossSales')} value={formatMinorUnits(r.grossSalesMinorUnits)} />
-              <StatCard label={t('reports.totalTax')} value={formatMinorUnits(r.totalTaxMinorUnits)} />
-              <StatCard label={t('reports.totalRevenue')} value={formatMinorUnits(r.totalRevenueMinorUnits)} />
-              <StatCard label={t('reports.refunded')} value={formatMinorUnits(r.totalRefundedMinorUnits)} />
-            </div>
+            <StatGrid className="grid-cols-2! lg:grid-cols-4!">
+              <StatCard cell label={t('reports.grossSales')} value={<LedgerFigure minor={r.grossSalesMinorUnits} />} />
+              <StatCard cell label={t('reports.totalTax')} value={<LedgerFigure minor={r.totalTaxMinorUnits} />} />
+              <StatCard cell label={t('reports.totalRevenue')} value={<LedgerFigure minor={r.totalRevenueMinorUnits} />} />
+              <StatCard cell label={t('reports.refunded')} value={<LedgerFigure minor={r.totalRefundedMinorUnits} />} />
+            </StatGrid>
             {r.paymentBreakdown.length > 0 && (
               <Panel>
                 <section aria-labelledby="pay-share-h">
-                  <h2 id="pay-share-h" className="mb-3 text-lg font-semibold">
-                    {t('reports.paymentBreakdown')}
-                  </h2>
+                  <SectionHeader id="pay-share-h" size="sm" title={t('reports.paymentBreakdown')} className="mb-4" />
                   <ShareBar
                     title={t('reports.paymentBreakdown')}
                     formatValue={(v) => formatMinorUnits(v)}

@@ -20,7 +20,7 @@ export function Select({ label, error, className, children, ...rest }: SelectPro
         {...rest}
         className={cn(
           'min-h-11 w-full rounded-control border bg-surface px-3 text-base',
-          error ? 'border-bad' : 'border-line hover:border-muted',
+          error ? 'border-bad' : 'border-line hover:border-muted/70',
           className,
         )}
       >

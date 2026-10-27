@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
 import { EmptyState } from '../ui/states';
 import { Tabs } from '../ui/Tabs';
+import { LedgerFigure } from '../ui/LedgerFigure';
 import { describeError } from './errors';
 import { useSingleFlight } from './hooks';
 import {
@@ -89,7 +90,7 @@ function ItemRow({
             disabled={locked}
             aria-label={t('restaurant.builder.add', { name: item.name })}
             onClick={() => onAdjust(1)}
-            className="grid size-12 place-items-center rounded-control bg-accent text-xl text-surface hover:bg-accent-strong disabled:opacity-50"
+            className="nx-press grid size-12 place-items-center rounded-control bg-accent text-xl text-surface hover:bg-accent-strong disabled:opacity-50"
           >
             <span aria-hidden>+</span>
           </button>
@@ -271,8 +272,8 @@ export function OrderBuilder({
       footer={
         <>
           <p className="mr-auto" aria-live="polite">
-            <span className="block text-sm text-muted">{t('restaurant.builder.itemsInOrder', { count })}</span>
-            <span className="tabular font-display text-2xl font-semibold">{formatMinorUnits(total)}</span>
+            <span className="eyebrow block">{t('restaurant.builder.itemsInOrder', { count })}</span>
+            <LedgerFigure minor={total} className="mt-1 text-[1.75rem]" />
           </p>
           <Button variant="secondary" size="lg" onClick={onCancel}>
             {t('restaurant.common.cancel')}
@@ -291,7 +292,7 @@ export function OrderBuilder({
           <div role="tabpanel" className="max-h-[50dvh] overflow-y-auto pr-1">
             {visible.map((g) => (
               <section key={g.key} className="mb-4">
-                <h3 className="mb-1 text-lg font-semibold">{g.name}</h3>
+                <h3 className="eyebrow mb-1 pt-1">{g.name}</h3>
                 <ul>
                   {g.items.map((item) => {
                     const configurable = needsConfiguration(item);

@@ -1,26 +1,35 @@
 @import "tailwindcss";
-@import "@fontsource-variable/fraunces/index.css";
+/* Fraunces with the optical-size axis: hairline-contrast display cuts at hero
+   sizes, sturdier text cuts at 14-20px. Italic loads only where it is used. */
+@import "@fontsource-variable/fraunces/opsz.css";
+@import "@fontsource-variable/fraunces/opsz-italic.css";
 @import "@fontsource-variable/inter-tight/index.css";
 
 /*
- * Design tokens — "Ledger & Ember". Single source of styling truth.
- * Rebrand: change --color-accent-* here (or override at runtime via
- * applyBrand() in lib/brand.ts). See docs/ui/OWNERSHIP_AND_WHITE_LABEL.md.
+ * Design tokens — "Ledger & Ember" / personality "warm precision".
+ * Single source of styling truth. Rebrand: change --color-accent-* here (or
+ * override at runtime via applyBrand() in lib/brand.ts).
+ * See docs/ui/ART_DIRECTION.md and docs/ui/DESIGN_SYSTEM.md.
  */
 @theme {
   --font-display: "Fraunces Variable", Georgia, serif;
   --font-ui: "Inter Tight Variable", ui-sans-serif, sans-serif;
+  /* Ticket numbers and codes: the system monospace, never a webfont. */
+  --font-ticket: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
 
   --color-paper: #f6f1e9;
   --color-surface: #fffdf9;
   --color-sunken: #ece5d8;
   --color-line: #ddd4c3;
   --color-ink: #1b1a17;
+  --color-ink-2: #2a2824;
   --color-muted: #6b6558;
 
   --color-accent: #b53a0a;
   --color-accent-strong: #8f2d07;
   --color-accent-soft: #fbe6da;
+  /* Ember on ink (login panel, toasts): AA 6.1:1 on #1b1a17. */
+  --color-ember-glow: #f08a5d;
 
   --color-ok: #3f6212;
   --color-ok-soft: #e7efd4;
@@ -35,7 +44,9 @@
   --radius-panel: 0.875rem;
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-stamp: cubic-bezier(0.34, 1.4, 0.64, 1);
   --duration-micro: 160ms;
+  --duration-enter: 220ms;
   --duration-surface: 280ms;
 }
 
@@ -45,6 +56,9 @@
     background: var(--color-paper);
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01";
+    scrollbar-color: var(--color-line) transparent;
   }
   body {
     margin: 0;
@@ -52,15 +66,47 @@
   }
   h1, h2, h3 {
     font-family: var(--font-display);
+    font-optical-sizing: auto;
     letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
   }
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
+  /* Our own show/hide toggle replaces the browser's. */
+  input::-ms-reveal, input::-ms-clear { display: none; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline-offset: 0;
+    border-color: var(--color-accent);
+  }
+  hr {
+    border: 0;
+    border-top: 1px solid var(--color-line);
+  }
+  * {
+    scrollbar-width: thin;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--color-muted) 60%, transparent); }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
   }
@@ -68,4 +114,239 @@
 
 @utility tabular {
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Small-caps eyebrow: the label above every editorial heading. */
+@utility eyebrow {
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Ticket numbers: monospace, slashed zero, slightly tracked. */
+@utility ticket-no {
+  font-family: var(--font-ticket);
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: 0.02em;
+}
+
+/* ───────────── Signature 1: the hairline with an ember tick ───────────── */
+@utility rule-tick {
+  position: relative;
+  border-bottom: 1px solid var(--color-line);
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 1.5rem;
+    height: 1px;
+    background: var(--color-accent);
+  }
+}
+
+/* ───────────── Signature 2: the ledger figure ───────────── */
+.nx-ledger {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.nx-ledger [data-part="cur"] {
+  font-size: 0.5em;
+  vertical-align: 0.62em;
+  margin-right: 0.08em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+}
+.nx-ledger [data-part="frac"] {
+  font-size: 0.52em;
+  vertical-align: 0.62em;
+  margin-left: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+}
+/* Accountant's totals: single rule (subtotal) or double rule (grand total). */
+.nx-ledger[data-rule="single"] {
+  padding-bottom: 0.14em;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  background-color: transparent;
+}
+.nx-ledger[data-rule="double"] {
+  padding-bottom: 0.18em;
+  background:
+    linear-gradient(var(--color-line), var(--color-line)) 0 100% / 100% 1px no-repeat,
+    linear-gradient(var(--color-line), var(--color-line)) 0 calc(100% - 4px) / 100% 1px no-repeat;
+}
+
+/* ───────────── Signature 3: the ticket stub ───────────── */
+.nx-stub {
+  --stub-bg: var(--color-paper);
+  position: relative;
+}
+/* Perforated top edge, as if torn off the kitchen printer roll. */
+.nx-stub[data-perforated] {
+  -webkit-mask: radial-gradient(circle 3.5px at 50% 0, #0000 97%, #000) 0 0 / 12px 100% repeat-x;
+  mask: radial-gradient(circle 3.5px at 50% 0, #0000 97%, #000) 0 0 / 12px 100% repeat-x;
+}
+/* The tear line: a dashed rule with a half-moon notch at each edge. */
+.nx-tear {
+  position: relative;
+  border-top: 1.5px dashed var(--color-line);
+}
+.nx-tear::before,
+.nx-tear::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--stub-bg);
+  border: 1px solid var(--color-line);
+}
+.nx-tear::before { left: calc(-9px - var(--tear-edge, 0px)); clip-path: inset(0 0 0 50%); }
+.nx-tear::after { right: -9px; clip-path: inset(0 50% 0 0); }
+
+/* ───────────── Signature 4: the table tile ───────────── */
+.nx-tile {
+  position: relative;
+  isolation: isolate;
+  transition:
+    transform var(--duration-micro) var(--ease-out-soft),
+    border-color var(--duration-micro) var(--ease-out-soft),
+    box-shadow var(--duration-micro) var(--ease-out-soft);
+}
+.nx-tile[data-status="OCCUPIED"] {
+  background: color-mix(in srgb, var(--color-accent-soft) 55%, var(--color-surface));
+  box-shadow: inset 0 3px 0 var(--color-accent);
+}
+.nx-tile[data-status="CLEANING"] {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--color-line) 70%, transparent) 7px 8px),
+    var(--color-sunken);
+}
+button.nx-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px -10px rgb(27 26 23 / 0.35);
+}
+button.nx-tile[data-status="OCCUPIED"]:hover {
+  box-shadow: inset 0 3px 0 var(--color-accent), 0 6px 18px -10px rgb(27 26 23 / 0.35);
+}
+button.nx-tile:active {
+  transform: translateY(0) scale(0.985);
+}
+/* Occupancy meter: quiet, 2px, fills over two hours. */
+.nx-meter {
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  overflow: hidden;
+}
+.nx-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: inherit;
+  transform-origin: 0 50%;
+}
+
+/* Ink panel texture (login, OG): ledger ruling + film grain. */
+.nx-ledger-paper {
+  background-color: var(--color-ink);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(to bottom, transparent 0 39px, rgb(246 241 233 / 0.045) 39px 40px);
+}
+
+/* ───────────── Motion ───────────── */
+@keyframes nx-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes nx-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-digits {
+  from { opacity: 0.35; transform: translateY(0.18em); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-stamp {
+  0% { opacity: 0; transform: scale(1.55) rotate(-16deg); }
+  60% { opacity: 1; transform: scale(0.94) rotate(-7deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-8deg); }
+}
+@keyframes nx-check {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes nx-arrive {
+  from { opacity: 0.55; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Page content: fade-up with a short stagger on the first blocks. */
+  .nx-page > *,
+  .nx-page > :only-child > * {
+    animation: nx-rise var(--duration-enter) var(--ease-out-soft) both;
+  }
+  .nx-page > :only-child { animation: none; }
+  .nx-page > :nth-child(2), .nx-page > :only-child > :nth-child(2) { animation-delay: 40ms; }
+  .nx-page > :nth-child(3), .nx-page > :only-child > :nth-child(3) { animation-delay: 80ms; }
+  .nx-page > :nth-child(4), .nx-page > :only-child > :nth-child(4) { animation-delay: 120ms; }
+  .nx-page > :nth-child(n + 5), .nx-page > :only-child > :nth-child(n + 5) { animation-delay: 160ms; }
+
+  dialog.nx-dialog[open] { animation: nx-dialog-in var(--duration-enter) var(--ease-out-soft); }
+  dialog.nx-dialog[open]::backdrop { animation: nx-fade var(--duration-enter) var(--ease-out-soft); }
+  .nx-toast { animation: nx-toast-in var(--duration-enter) var(--ease-out-soft); }
+
+  .nx-ledger[data-reveal] [data-part] {
+    display: inline-block;
+    animation: nx-digits 320ms var(--ease-out-soft) both;
+  }
+  .nx-ledger[data-reveal] [data-part="frac"] { animation-delay: 70ms; }
+
+  .nx-stamp { animation: nx-stamp 280ms var(--ease-stamp) both; }
+  .nx-check-path { stroke-dasharray: 24; animation: nx-check 260ms 90ms var(--ease-out-soft) both; }
+
+  .nx-arrive { animation: nx-arrive 240ms var(--ease-out-soft) both; }
+  .nx-stub { transition: background-color 700ms var(--ease-out-soft); }
+  .nx-live-dot { animation: nx-pulse 2.4s ease-in-out infinite; }
+
+  .nx-press { transition: transform var(--duration-micro) var(--ease-out-soft), background-color var(--duration-micro), border-color var(--duration-micro), color var(--duration-micro); }
+  .nx-press:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+}
+.nx-stamp { transform: rotate(-8deg); }
+/* New kitchen ticket: a static ember wash (no motion, readable at once) that the
+   page clears after two seconds; the 240ms slide above is motion-only. */
+.nx-arriving { background-color: var(--color-accent-soft) !important; }
+
+/* Native <dialog> chrome. */
+dialog.nx-dialog::backdrop {
+  background: rgb(27 26 23 / 0.42);
+  backdrop-filter: blur(2px);
 }

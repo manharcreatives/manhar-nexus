@@ -5,13 +5,16 @@ import { diningApi, kitchenApi } from '../restaurant/api';
 import { costsApi } from '../costs/api';
 import { notificationsApi } from '../notifications/api';
 import { resolveDeepLink } from '../notifications/NotificationsPanel';
-import { formatMoney } from '../lib/money';
 import { InlineBar } from '../charts/InlineBar';
 import { Skeleton } from '../ui/states';
 import { cn } from '../lib/cn';
+import { formatElapsed } from '../restaurant/time';
 import { KITCHEN_LATE_MINS, kitchenLoad, pendingApprovals, tableLoad } from './derive';
 import { useWidget, type WidgetState } from './useWidget';
 import { InlineError } from './InlineError';
+import { SectionHeader } from '../ui/SectionHeader';
+import { LedgerFigure } from '../ui/LedgerFigure';
+import * as Icons from '../ui/icons';
 
 /** One ledger row: label, a figure, a line of context, and an optional way in. */
 function Row<T>({
@@ -30,17 +33,15 @@ function Row<T>({
   const { t } = useTranslation();
   if (state.hidden) return null;
   return (
-    <li className="border-b border-line py-4 last:border-b-0">
+    <li className="border-b border-line py-5 last:border-b-0">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 id={id} className="font-ui text-xs font-medium uppercase tracking-wider text-muted">
+        <h3 id={id} className="eyebrow">
           {label}
         </h3>
         {link && state.data !== null && (
-          <Link to={link.to} className="inline-flex min-h-9 items-center text-sm font-medium text-accent hover:text-accent-strong">
+          <Link to={link.to} className="group -my-2 inline-flex min-h-11 items-center gap-0.5 text-sm font-medium text-accent hover:text-accent-strong">
             {link.label}
-            <span aria-hidden className="ml-1">
-              {'›'}
-            </span>
+            <Icons.ChevronRight aria-hidden className="size-4 transition-transform duration-(--duration-micro) group-hover:translate-x-0.5" />
           </Link>
         )}
       </div>
@@ -58,7 +59,9 @@ function Row<T>({
 }
 
 const Figure = ({ children, tone }: { children: ReactNode; tone?: 'warn' | 'bad' }) => (
-  <p className={cn('tabular font-display text-3xl font-semibold', tone === 'warn' && 'text-warn', tone === 'bad' && 'text-bad')}>{children}</p>
+  <p className={cn('tabular font-display text-[2rem] leading-tight font-semibold tracking-[-0.02em]', tone === 'warn' && 'text-warn', tone === 'bad' && 'text-bad')}>
+    {children}
+  </p>
 );
 const Context = ({ children }: { children: ReactNode }) => <p className="mt-0.5 text-sm text-muted">{children}</p>;
 
@@ -107,9 +110,16 @@ export function OpsWidgets({ access, locationId, className }: { access: OpsAcces
 
   return (
     <section aria-labelledby="ops-h" className={className}>
-      <h2 id="ops-h" className="text-xl font-semibold">
-        {t('home.rightNow')}
-      </h2>
+      <SectionHeader
+        id="ops-h"
+        title={t('home.rightNow')}
+        eyebrow={
+          <>
+            <span aria-hidden className="nx-live-dot size-1.5 rounded-full bg-accent" />
+            {t('home.live')}
+          </>
+        }
+      />
       <ul className="mt-1">
         <Row
           id="ops-tables"
@@ -150,7 +160,7 @@ export function OpsWidgets({ access, locationId, className }: { access: OpsAcces
                 <Context>
                   {k.waiting === 0
                     ? t('home.kitchenClear')
-                    : t('home.kitchenWaiting', { count: k.waiting, mins: k.oldestMins ?? 0 })}
+                    : t('home.kitchenWaiting', { count: k.waiting, time: formatElapsed(k.oldestMins ?? 0, t) })}
                   {k.ready > 0 && ` · ${t('home.kitchenReady', { count: k.ready })}`}
                 </Context>
                 {late && <p className="mt-1 text-sm font-medium text-warn">{t('home.kitchenLate', { mins: KITCHEN_LATE_MINS })}</p>}
@@ -173,7 +183,9 @@ export function OpsWidgets({ access, locationId, className }: { access: OpsAcces
               </>
             ) : (
               <>
-                <Figure>{formatMoney(p.totalMinor)}</Figure>
+                <Figure>
+                  <LedgerFigure minor={p.totalMinor} />
+                </Figure>
                 <Context>{t('home.approvalsPending', { count: p.count })}</Context>
               </>
             );

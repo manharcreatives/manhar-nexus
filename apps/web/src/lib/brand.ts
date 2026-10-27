@@ -7,10 +7,15 @@ export interface Brand {
   accent: string | null;
 }
 
+const DEFAULT_NAME = 'Manhar Nexus';
+
 export const brand: Brand = {
-  name: import.meta.env.VITE_BRAND_NAME ?? 'Manhar Nexus',
+  name: import.meta.env.VITE_BRAND_NAME ?? DEFAULT_NAME,
   accent: import.meta.env.VITE_BRAND_ACCENT ?? null,
 };
+
+/** True when no rebrand is configured: the drawn monogram and italic wordmark apply. */
+export const isDefaultBrand = brand.name === DEFAULT_NAME;
 
 export function applyBrand(): void {
   document.title = brand.name;

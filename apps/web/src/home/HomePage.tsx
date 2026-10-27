@@ -48,26 +48,29 @@ export function HomePage() {
   return (
     <>
       <PageHeader
+        eyebrow={location ? t('home.subtitleAt', { date: todayHeading(), location: location.name }) : todayHeading()}
         title={t('home.greeting', { name })}
-        description={location ? t('home.subtitleAt', { date: todayHeading(), location: location.name }) : todayHeading()}
+        actions={
+          actions.length > 0 ? (
+            <nav aria-label={t('home.quickActions')} className="flex flex-wrap gap-2 text-sm font-medium">
+              {actions.map((a) => (
+                <Link
+                  key={a.to}
+                  to={a.to}
+                  className={cn(
+                    'nx-press inline-flex min-h-11 items-center gap-1.5 rounded-control px-4',
+                    a.primary
+                      ? 'bg-accent text-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.14),0_1px_2px_rgb(143_45_7/0.25)] hover:bg-accent-strong'
+                      : 'border border-line bg-surface hover:border-ink/25 hover:bg-paper',
+                  )}
+                >
+                  {a.label}
+                </Link>
+              ))}
+            </nav>
+          ) : undefined
+        }
       />
-
-      {actions.length > 0 && (
-        <nav aria-label={t('home.quickActions')} className="-mt-2 mb-8 flex flex-wrap gap-2 text-sm font-medium">
-          {actions.map((a) => (
-            <Link
-              key={a.to}
-              to={a.to}
-              className={cn(
-                'inline-flex min-h-11 items-center rounded-control px-4 transition-colors duration-(--duration-micro)',
-                a.primary ? 'bg-accent text-surface hover:bg-accent-strong' : 'border border-line bg-surface hover:bg-sunken',
-              )}
-            >
-              {a.label}
-            </Link>
-          ))}
-        </nav>
-      )}
 
       {locStatus === 'loading' ? (
         <div aria-hidden className="space-y-4">
@@ -75,11 +78,11 @@ export function HomePage() {
           <Skeleton className="h-40" />
         </div>
       ) : home.revenue ? (
-        <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-x-14 gap-y-12 lg:grid-cols-12">
           <div className="min-w-0 lg:col-span-8">
             <RevenueHero withSeries={home.series} locationId={locationId} />
           </div>
-          {hasOps && <OpsWidgets access={opsAccess} locationId={locationId} className="min-w-0 lg:col-span-4 lg:border-l lg:border-line lg:pl-8" />}
+          {hasOps && <OpsWidgets access={opsAccess} locationId={locationId} className="min-w-0 lg:col-span-4 lg:border-l lg:border-line lg:pl-10" />}
         </div>
       ) : hasOps ? (
         <OpsWidgets access={opsAccess} locationId={locationId} className="max-w-xl" />
