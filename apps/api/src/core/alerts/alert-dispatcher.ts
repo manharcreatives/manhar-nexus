@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RealtimeBus } from '../../realtime/realtime.bus';
 import { AlertRuleService } from './alert-rule.service';
 
 /** Payload for a dispatched event notification. */
@@ -27,6 +28,7 @@ export class AlertDispatcher {
   constructor(
     private readonly prisma: PrismaService,
     private readonly alertRules: AlertRuleService,
+    private readonly realtime: RealtimeBus,
   ) {}
 
   async dispatch(businessId: string, eventKey: string, payload: DispatchPayload): Promise<void> {
@@ -50,6 +52,7 @@ export class AlertDispatcher {
           })),
           skipDuplicates: true,
         });
+        this.realtime.emit(businessId, 'notifications');
       }
     } catch (err) {
       this.logger.error(

@@ -13,6 +13,7 @@ import { ReportsModule } from './reports/reports.module';
 import { CommercialModule } from './commercial/commercial.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { CostsModule } from './costs/costs.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -42,6 +43,8 @@ import { CostsModule } from './costs/costs.module';
     OnboardingModule,
     // Phase 16: Operating Costs.
     CostsModule,
+    // Realtime change notifications (SSE), ADR-032.
+    RealtimeModule,
   ],
 })
 export class AppModule {}

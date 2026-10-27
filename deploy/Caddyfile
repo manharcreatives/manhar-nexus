@@ -40,7 +40,9 @@ http://127.0.0.1:8081 {
 
 {$NEXUS_DOMAIN:localhost} {
 	import tls_{$NEXUS_TLS:acme}
-	encode zstd gzip
+	# The realtime SSE stream (ADR-032) must never be compressed/buffered.
+	@compressible not path /api/admin/realtime/*
+	encode @compressible zstd gzip
 
 	# Security headers for every response (SPA and proxied API).
 	# CSP: the production bundle loads only same-origin JS/CSS/fonts (fonts are
@@ -63,6 +65,11 @@ http://127.0.0.1:8081 {
 	# API: strip the /api prefix (Nest routes are /health, /auth/*, /admin/* …).
 	handle_path /api/* {
 		reverse_proxy {$API_UPSTREAM:api:3000} {
+			# Server-Sent Events (/admin/realtime/stream): flush every write at
+			# once. No response timeout is configured, so idle streams survive;
+			# the API sends a heartbeat comment every 20 s to keep intermediaries
+			# from closing them.
+			flush_interval -1
 			# The API scopes the httpOnly refresh cookie to Path=/auth. Seen
 			# through this proxy the browser path is /api/auth, so rewrite the
 			# attribute or the browser would never send the cookie back.

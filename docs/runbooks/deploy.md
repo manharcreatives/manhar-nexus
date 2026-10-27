@@ -32,6 +32,15 @@ browser ──https──▶ web (Caddy :443) ──┬── /assets/*, /, /tab
 - CORS does not apply to same-origin requests. `CORS_ORIGIN` must still be set to the public origin (`https://<NEXUS_DOMAIN>`), because the validator requires it and it is the only origin allowed if a cross-origin client is added later.
 - `TRUST_PROXY=1` (set in compose) makes `req.ip` the real client IP behind Caddy, which rate limiting and login telemetry depend on.
 
+### Realtime stream (Server-Sent Events)
+
+`GET /admin/realtime/stream` (ADR-032) is a long-lived response. Any proxy in front of the API must not buffer or compress it and must not time out idle reads:
+
+- Caddy (shipped): `flush_interval -1` on the `/api/*` reverse proxy, and `encode` excludes `/api/admin/realtime/*`. No response timeout is set. `caddy validate` passes.
+- nginx equivalent, for the API location: `proxy_buffering off; proxy_cache off; proxy_http_version 1.1; proxy_set_header Connection ""; proxy_read_timeout 1h; gzip off;` (the API also sends `X-Accel-Buffering: no`).
+- Cloud load balancers: set the idle timeout above 60 s (the API heartbeats every 20 s, so any value over about 30 s works).
+- The bus is in-process. Run ONE API instance, or replace `RealtimeBus` with a Redis pub/sub adapter before scaling out (ADR-032).
+
 ### Alternative: cross-origin (not the default)
 
 If the API must live on its own hostname (for example `api.example.com` while the app is on `app.example.com`):

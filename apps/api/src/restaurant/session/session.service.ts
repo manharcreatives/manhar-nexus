@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ConflictError, NotFoundError, ValidationError, VersionConflictError } from '../../common/errors';
 import { TenantScopedRepository } from '../../common/tenant-scoped.repository';
 import { AuditService } from '../../core/audit/audit.service';
+import { RealtimeBus } from '../../realtime/realtime.bus';
 import type { TenantScope } from '../../common/tenant-scope';
 import type { OpenSessionDto, UpdateSessionDto, CloseSessionDto, VoidSessionDto, SeatBookingDto } from './session.dto';
 
@@ -12,6 +13,7 @@ export class SessionService extends TenantScopedRepository {
   constructor(
     prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeBus,
   ) {
     super(prisma);
   }
@@ -234,6 +236,8 @@ export class SessionService extends TenantScopedRepository {
         metadata: { tableId },
       });
     });
+    // Not covered by the route table: the 204 response carries no locationId.
+    this.realtime.emit(scope.businessId, 'tables', table.locationId);
   }
 
   async seatBooking(scope: TenantScope, bookingId: string, dto: SeatBookingDto): Promise<GuestSession> {
