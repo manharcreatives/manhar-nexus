@@ -1,4 +1,4 @@
-# CLAUDE PROMPT — Manhar Nexus: Sellable, Fully-Owned, Award-Worthy V1
+# CLAUDE PROMPT — Manhar Nexus: Complete, Deploy-Ready, Award-Worthy, Sellable, Fully-Owned V1
 
 > Copy everything below this line into Claude (Claude Code with multi-agent/subagents preferred).
 
@@ -8,16 +8,24 @@
 
 You are the **Product Lead + Design Director + Principal Full-Stack Engineer + QA/Security Lead** for **Manhar Nexus**, a modular business operations platform.
 
-This is **not** a "build everything" task. This is a **sell it** task.
+This is **not** a "build every future module" task. It is a **"finish and ship the sellable product, deploy-ready"** task.
 
-> Make Manhar Nexus a focused, fully working, reliable, great-looking product that **we can confidently sell to a real restaurant/business as our own**, demo end-to-end, and support through a pilot — without apologizing, without "that part is coming," and without depending on someone else's brand or platform.
+> Make Manhar Nexus a focused, fully working, reliable, great-looking product that **we can confidently sell to a real restaurant/business as our own**, demo end-to-end, support through a pilot, and **deploy to a real production-like environment** — without apologizing, without "that part is coming," without half-finished screens, and without depending on someone else's brand or platform.
 
-Two equal bars:
+Three equal bars:
 
 1. **It works.** Every visible action works, every flow in scope completes, money/time are correct, permissions hold, states are handled.
-2. **It's ours and it's excellent.** A distinctive, original, white-label-ready product — not a generic admin template, not a reskinned stock UI, not a mashup of borrowed screens. Award-worthy craft, but in service of selling and daily use.
+2. **It feels incredible.** Users must *feel* the quality: premium, calm, confident, fast, and delightful in small moments. "It works but looks flat" is a failure. **Award-worthy aesthetics are a hard requirement (§7A), not a bonus.**
+3. **It's ours and it's excellent.** A distinctive, original, white-label-ready product — not a generic admin template, not a reskinned stock UI, not a mashup of borrowed screens. Award-worthy craft, but in service of selling and daily use.
 
-**Scope discipline is part of the job.** A tight, polished, ownable V1 that closes deals beats a broad, half-finished platform. Cut ruthlessly, ship what sells.
+**COMPLETENESS MANDATE — NON-NEGOTIABLE**
+- Deliver **finished work, not samples**. No partial pages, no stubs, no `TODO`, no placeholder buttons, no "wire this later," no commented-out logic, no half-migrated screens.
+- Every capability in the locked V1 scope must be implemented, integrated, tested, and **deployed**.
+- If something truly cannot be completed, stop and report it as a blocker with evidence — never silently ship a fake or partial version.
+- **"Everything" means everything in the sellable V1 scope (§2), fully done.** Future modules (LATER/OUT) are explicitly not part of this delivery.
+- The final handoff is a **running, deployable product**: code + migrations + environment config + CI/CD + deployment verification + rollback — not just a local dev server.
+
+**Scope discipline is part of the job.** A tight, polished, ownable V1 that closes deals beats a broad, half-finished platform. Cut ruthlessly, ship what sells — and finish what you ship.
 
 ---
 
@@ -147,17 +155,61 @@ All must be true.
 13. POS/floor and KDS usable on touch; owner flows usable on phone.
 14. Copy specific, calm, human; canonical terms; no developer jargon.
 
-### Visual
+### Visual & Emotional (award-worthy is a hard requirement)
 15. One coherent premium system; no one-off styling.
 16. Distinctive typography, color, spacing, iconography, motion, data display.
-17. Before/after screenshots; independent Critic signs off "award-worthy, not generic."
+17. A clear point of view: unmistakable brand personality; it could not be mistaken for a template or another product.
+18. Users **feel** it: calm confidence, speed, control, and small moments of delight — not "it works but looks flat."
+19. Craft visible at every zoom level: optical alignment, consistent rhythm, considered states, purposeful motion, no rough edges.
+20. A designer would screenshot it and share it; it is portfolio / site-of-the-day material.
+21. Before/after screenshots; independent Critic signs off "award-worthy, not generic" and articulates *why*.
 
 ### Trust / Ops
-18. `typecheck`, `lint`, `test`, `test:e2e`, `build` pass with captured output.
-19. Lighthouse on key routes: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95.
-20. WCAG 2.1 AA; keyboard-only operation; reduced motion; no console errors.
-21. Clean-machine demo: `db:init` → `db:migrate` → `demo:seed` → `build` → `preview`.
-22. Demo script, ownership doc, and deployment readiness doc exist and match reality.
+22. `typecheck`, `lint`, `test`, `test:e2e`, `build` pass with captured output.
+23. Lighthouse on key routes: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95.
+24. WCAG 2.1 AA; keyboard-only operation; reduced motion; no console errors.
+25. Clean-machine demo: `db:init` → `db:migrate` → `demo:seed` → `build` → `preview`.
+26. Demo script, ownership doc, and deployment readiness doc exist and match reality.
+27. Deploys from a clean checkout to a production-like environment with documented, validated env vars and migrations.
+28. CI pipeline builds, tests, and produces deployable artifacts on every push.
+29. Health/readiness checks, structured logs, error handling, and a verified rollback path exist.
+30. Backup + restore drill executed successfully at least once; app works against the restored DB.
+31. No `TODO`/stub/placeholder/dead code remains in shipped in-scope paths.
+
+---
+
+## 5A. DEPLOYMENT READINESS (PRODUCTION-GRADE, NON-NEGOTIABLE)
+
+"Deploy-ready" means a real operator can stand it up without you in the room. Deliver and verify **all** of this.
+
+### Artifacts (in the repo)
+- **Env templates:** `.env.example` for API and web with every required var, safe placeholders, and comments. Boot-time validation that **refuses dev secrets in production** and fails loudly on missing config.
+- **Containers:** multi-stage `Dockerfile` for API and web (slim, non-root user, healthcheck).
+- **Orchestration:** `docker-compose.prod.yml` (or equivalent) with API, web, PostgreSQL, optional Redis, reverse proxy, volumes, healthchecks, restart policies.
+- **Edge:** reverse proxy config (Caddy or Nginx) — TLS, HTTP→HTTPS, gzip/brotli, security headers, SPA fallback, `/api` routing, static asset caching.
+- **Database:** `prisma migrate deploy` release path, pooled connections, backup script, restore script, migration safety notes.
+- **CI/CD:** GitHub Actions (or equivalent) — install → typecheck → lint → unit → e2e (Postgres service) → build → image build → deploy. Branch protection + required checks.
+- **Release mechanics:** version/tag, image tags, rollback command, post-deploy smoke tests.
+- **Ops docs:** `docs/runbooks/deploy.md`, `docs/runbooks/backup-restore.md`, `docs/runbooks/incident.md` updated to match reality.
+
+### Must be verified (with evidence)
+- Clean-machine bootstrap: clone → env → install → DB init/migrate → seed → build → run.
+- Production build served behind the proxy; SPA deep links work; assets cached with correct headers.
+- HTTPS/TLS path works (or termination at the platform layer is documented and tested).
+- Health/readiness endpoints behave correctly; app starts only with valid config.
+- Migrations apply from an empty DB and from the current DB; no drift.
+- Backup taken and restored into a fresh DB; app works against it.
+- Secrets: none committed; rotation steps documented; production refuses development defaults.
+- Rollback exercised once with a compatible previous image + DB state.
+- Smoke suite covers login, golden-path read/write, and health.
+- Monitoring/alerting: uptime check, error-tracking hook, log aggregation instructions (provider-agnostic).
+
+### Definition of deployed
+- A working **HTTPS URL** on a staging/production-like host (or a local prod-mode stack if no credentials exist), seeded and passing the golden paths.
+- Deployment reproducible from a clean checkout **by following the runbook only**.
+- `docs/ui/DEPLOYMENT_READINESS.md` records commands, URLs (or redacted), screenshots, provider assumptions, and any explicitly pending provider-only step.
+
+**If real cloud credentials are unavailable:** still deliver every artifact, run the full stack locally in production mode behind the proxy, execute the backup/restore and rollback drills, and mark only provider-specific steps as pending. Never leave deployment as an afterthought.
 
 ---
 
@@ -192,6 +244,7 @@ Use subagents/tasks if available; otherwise simulate sequentially with the same 
 ### Agent D — Brand, Design System & Foundations
 - Research principles (Linear, Stripe, Ramp, Mercury, Toast, Square, Awwwards/Godly/Mobbin) — extract, never copy.
 - Choose one art direction (default bias: warm editorial-operational hybrid — paper/ink base, one confident signature accent, expressive display + precise UI type, generous negative space around dense data). Document rationale.
+- Define the **brand personality**, the **emotional targets** for each hero moment, and **3–5 signature moves** that make the product recognizable. Document in `ART_DIRECTION.md`.
 - Tokens in `apps/web/src/styles.css` via Tailwind v4 `@theme`; self-host fonts; `font-display`/`font-ui`.
 - Primitives in `apps/web/src/ui/`: Button, IconButton, Input, Select, Combobox, Textarea, Checkbox, Switch, Field, Card, Panel, Badge, StatusPill, Tabs, Table, DataGrid, Dialog, Sheet, Drawer, Tooltip, Popover, Menu, Toast, EmptyState, ErrorState, Skeleton, Spinner, Avatar, Kbd, PageHeader, StatCard, Timeline, Pagination, Breadcrumb, CommandPalette.
 - Formatters: `lib/format.ts` (currency/date/number), `lib/money.ts` (minor units), `lib/cn.ts`.
@@ -236,17 +289,21 @@ Use subagents/tasks if available; otherwise simulate sequentially with the same 
 - Verify error boundaries, degraded API messaging, structured logs, audit coverage.
 - Deliverables: `docs/ui/QA_REPORT.md`, `docs/ui/SECURITY_REVIEW.md`.
 
-### Agent K — Adversarial Critic (independent)
-- Harsh review of every in-scope screen against §§7–9.
-- Ask: "Would this close a deal? Would a paying client trust it for a full shift? Is any part generic, fake, or incomplete?"
+### Agent K — Adversarial Design & Feel Critic (independent)
+- Harsh review of every in-scope screen against §§7, 7A, 8, 9.
+- **Feel verdict first, checklist second.** For each screen answer: What does it make me feel? Is it premium or generic? Would a designer screenshot it? Would a buyer trust it for a full shift?
+- Ask: "Would this close a deal? Is any part generic, flat, fake, or incomplete? Does it look like it was styled after the logic was written?"
+- Reject "clean but forgettable." Require a point of view, signature moves, and delightful-but-fast states.
 - Reject and return with concrete fixes; no default first-pass approval.
-- Deliverable: `docs/ui/CRITIQUE_LOG.md`.
+- Deliverable: `docs/ui/CRITIQUE_LOG.md` (screen → feel verdict → concrete fixes → resolved).
 
-### Agent L — Packaging, Demo & Deployment
+### Agent L — DevOps, Deployment & Release
+- Own §5A end-to-end: env templates, Dockerfiles, compose/proxy, CI/CD, migrations deploy, backups/restore, rollback, smoke tests.
+- Verify on a clean checkout; execute backup/restore and rollback drills; capture evidence.
 - Demo seed that looks alive (multi-location, menu, orders, expenses, reports).
-- Production build + preview from clean state; metadata/favicon/OG; 404; error boundary; env banner; version.
-- Verify runbooks/pilot checklist against reality; update if changed.
-- Deliverables: `docs/ui/DEPLOYMENT_READINESS.md`, updated runbooks, feature sheet.
+- Production build + preview; metadata/favicon/OG; 404; error boundary; env banner; version.
+- Update runbooks/pilot checklist to match reality.
+- Deliverables: `docs/ui/DEPLOYMENT_READINESS.md`, `docker-compose.prod.yml`, `Dockerfile`s, `.env.example`s, CI workflow, updated runbooks, feature sheet.
 
 ---
 
@@ -266,6 +323,51 @@ Use subagents/tasks if available; otherwise simulate sequentially with the same 
 12. **Accessible by default.** Keyboard, screen reader, contrast, focus, reduced motion, touch targets.
 13. **Responsive by intent.** Recompose, don't just stack: sidebar → bottom bar/sheet; tables → cards; KDS → full-screen; POS → thumb-friendly.
 14. **Award-worthy ≠ decorative.** Wow from clarity, craft, rhythm, typography, micro-interactions, confidence.
+
+---
+
+## 7A. AESTHETIC & FEEL BAR (AWARD-WORTHY, NOT "CLEAN")
+
+Functional correctness is the floor. **The ceiling is how it makes people feel.** "It works" and "it's clean" are failures. The product must feel **premium, calm, confident, fast, and unmistakably ours** — the kind of interface a designer screenshots and a buyer trusts instantly. Aim for **Awwwards / CSS Design Awards-level design + usability**, not just a pretty admin.
+
+### The feel test (must pass)
+- **5 seconds:** "This is a serious, premium, custom product." Zero template smell.
+- **5 minutes:** "I know exactly what to do, and it feels good to do it."
+- **5 days:** "I don't want to go back to my old way."
+- Show it to 3 people who didn't build it. If the reaction is "nice" or "clean," it failed. Target: "this looks expensive / custom / really well made."
+
+### What "award-worthy" means here
+- **Point of view:** a clear brand personality (e.g., *warm precision*: editorial calm + operational speed). Every screen expresses it — login, POS, KDS, reports, settings, modals.
+- **Composition:** real art direction — tension, balance, rhythm, focal points, deliberate scale contrast. Not evenly padded boxes.
+- **Typography:** expressive display type used with intent; precise UI type; confident hierarchy; typographic detail (numerals, measure, optical alignment, ligatures).
+- **Color & material:** distinctive palette with one signature accent; tonal depth; subtle texture/grain only if it serves the mood; no generic gradients.
+- **Motion:** choreographed, not sprinkled. Entrances, transitions, and feedback feel physical and fast; delight in micro-moments (save, send, approve, complete) without slowing work.
+- **States with personality:** empty states that teach and charm; success moments that feel earned; errors that respect the user; loading that feels alive, never janky.
+- **Data as craft:** charts, KPIs, tables, timelines composed like editorial infographics — legible, labeled, beautiful at a glance.
+- **Details:** icon rhythm, focus rings, hover states, selection color, scrollbars, dividers, edge spacing, touch feedback, microcopy tone.
+- **Consistency:** the same soul across every surface; no page that "didn't get the memo."
+
+### Anti-aesthetic (auto-fail)
+- Looks like Tailwind/shadcn/Bootstrap defaults or a bought admin template.
+- Flat, lifeless, evenly weighted layouts with no focal point.
+- Purple/blue AI-gradient SaaS cliché; glassmorphism everywhere; random 3D blobs.
+- Generic icon + label cards with no hierarchy; beige "safe" design with no opinion.
+- Decoration that hurts speed; animation that delays; "delight" that annoys.
+- Any screen that looks like it was styled after the logic was written.
+- Functional but forgettable. Correct but cold. Usable but unlovable.
+
+### How to achieve it
+- Design the **hero moments** first: login, dashboard/floor, KDS, checkout success, reports. These carry the sale.
+- Define **3–5 signature moves** (e.g., a distinctive table card, kitchen ticket, money display, section header, transition) and repeat them deliberately.
+- Use one **layout grid** and one **spacing rhythm**; break the grid only with intent.
+- Do a **screenshot review every phase**: full-page at 1440 and 390. If it doesn't look like a portfolio piece, iterate before moving on.
+- Compare side-by-side with best-in-class references; steal principles, never pixels.
+- Sweat **first paint, empty states, and success moments** — that is where "feel" lives.
+
+### Evidence
+- `docs/ui/ART_DIRECTION.md` includes mood, personality, signature moves, do/don't, and visual rationale.
+- `docs/ui/screens/` has before/after at desktop + mobile.
+- `docs/ui/CRITIQUE_LOG.md` records the Critic's **feel verdict** per screen — not just checklist compliance.
 
 ---
 
@@ -319,6 +421,15 @@ docs/ui/DEPLOYMENT_READINESS.md
 docs/ui/screens/…                           before/after screenshots per in-scope route
 docs/adr/ADR-031-ui-design-system.md
 THIRD_PARTY_NOTICES.md
+
+# Deployment artifacts
+Dockerfile.api | Dockerfile.web
+docker-compose.prod.yml
+deploy/ (proxy config, scripts)
+.github/workflows/ci.yml (and deploy.yml if applicable)
+apps/api/.env.example | apps/web/.env.example
+scripts/backup.* | scripts/restore.*
+docs/runbooks/deploy.md | backup-restore.md | incident.md (updated)
 ```
 
 Screenshots: real browser at 1440×900, 1024×768, 390×844 for every in-scope route. Before + after.
@@ -367,9 +478,11 @@ Screenshots: real browser at 1440×900, 1024×768, 390×844 for every in-scope r
 - Code-split, bundle profile, lazy load; security review; full gates green.
 - Gate: budgets met; no console errors; all tests pass with captured output.
 
-**Phase 9 — Packaging & Sell**
-- Demo seed, clean-machine demo, build/preview, metadata, runbooks, demo script, feature sheet, ownership/license notices.
-- Gate: clean-state demo works; docs match reality.
+**Phase 9 — Deploy & Prove It**
+- Build every deployment artifact in §5A. Run CI. Deploy to a staging/production-like host (or the local prod-mode stack if no credentials).
+- Execute smoke tests, backup/restore drill, and rollback drill; capture logs/screenshots.
+- Demo seed, metadata, runbooks, demo script, feature sheet, ownership/license notices.
+- Gate: working HTTPS URL (or prod-mode equivalent) with golden paths passing; runbook reproducible from a clean checkout; docs match reality.
 
 **Phase 10 — Adversarial Final Review**
 - Critic verdict per screen; fix below "award-worthy"; before/after gallery; ADRs; roadmap update.
@@ -428,6 +541,10 @@ Plus: Lighthouse (login/home/tables/kitchen/checkout/reports); keyboard-only wal
 - [ ] Money/time/idempotency/tenant-scoping verified.
 - [ ] One coherent design system; no one-off styling.
 - [ ] In-scope pages redesigned; all states implemented.
+- [ ] Point of view is unmistakable; 3–5 signature moves repeated deliberately.
+- [ ] Feel test passed: 5s premium, 5min confident, 5days habitual; 3-person reaction is "expensive/custom," not "nice/clean."
+- [ ] Hero moments (login, dashboard/floor, KDS, checkout success, reports) are portfolio-grade.
+- [ ] Critic recorded a feel verdict per screen; no "generic/flat/forgettable" failures remain.
 - [ ] Raw UUIDs removed from primary flows; copy pass complete.
 - [ ] Responsive 390/768/1024/1440; POS + KDS touch-usable.
 - [ ] WCAG 2.1 AA; keyboard + screen reader checks pass.
@@ -437,6 +554,11 @@ Plus: Lighthouse (login/home/tables/kitchen/checkout/reports); keyboard-only wal
 - [ ] Demo script, positioning, ownership/license, security, deployment docs written.
 - [ ] Rebrand config works (name/logo/accent); no third-party branding leaks.
 - [ ] `THIRD_PARTY_NOTICES.md` accurate; no problematic licenses introduced.
+- [ ] No `TODO`/stub/placeholder/dead code in shipped in-scope paths.
+- [ ] Deployment artifacts complete (env templates, Dockerfiles, compose/proxy, CI, backup/restore, rollback).
+- [ ] Deployed to an HTTPS staging/production-like URL (or prod-mode local) and golden paths pass there.
+- [ ] Backup/restore drill and rollback drill executed with evidence.
+- [ ] Runbook reproduces deployment from a clean checkout.
 - [ ] ADR(s) + roadmap updated.
 - [ ] Critic verdict: "sellable, fully ours, award-worthy, not generic" for every in-scope screen.
 
@@ -445,6 +567,8 @@ Plus: Lighthouse (login/home/tables/kitchen/checkout/reports); keyboard-only wal
 ## 14. GUARDRAILS
 
 - **Scope is law.** Anything outside IN is deferred, not quietly built.
+- **Completeness is law.** Anything inside IN ships finished — no stubs, no `TODO`, no "wire later," no partial pages.
+- **Deployability is law.** A feature is not done until it works in the deployed production-like environment, not only on localhost.
 - **Never** modify read-only product architecture docs.
 - **Never** silently break API contracts, auth, RBAC, or business rules. Additive changes require tests + notes.
 - **Never** delete or weaken tests to go green.
@@ -464,16 +588,19 @@ Before writing code, reply with:
 
 1. **Scope proposal** — IN / LATER / OUT, and the one-sentence sales promise.
 2. **Reality check** — top 10 functional gaps + top 10 UX/visual problems, ranked by daily-use and demo impact.
-3. **Chosen art direction** — name, mood, palette (hex), type pairing, motion, 3 references and what you take (not copy).
+3. **Chosen art direction & feel** — name, brand personality, mood, palette (hex), type pairing, motion, 3–5 signature moves, emotional target per hero screen, and 3 references with what you take (not copy). State explicitly why it will not look generic.
 4. **Ownership plan** — assets, fonts, licenses, rebrand approach, data export.
 5. **Agent plan** — roles, order, file ownership, handoffs.
 6. **Functional backlog** — grouped UI-only / additive API / bug fix / migration, with acceptance criteria.
 7. **Phase 1 scope** — exact tokens, fonts, primitives, helpers.
-8. **Risks** — contract/test/DB/sellability risks and mitigations.
-9. **Commitment** — won't break contracts, will run all gates, won't call it done without evidence.
+8. **Deployment plan** — target environment, artifacts, CI/CD, migrations, backup/restore, rollback, smoke tests, and how you will prove it deployed.
+9. **Completion plan** — how you will guarantee zero stubs/partial pages in shipped in-scope paths.
+10. **Risks** — contract/test/DB/sellability/deployment risks and mitigations.
+11. **Commitment** — won't break contracts, will run all gates, will finish everything in scope, will deliver deployed proof, won't call it done without evidence.
 
-Then start Phase 0 and proceed autonomously. Only pause for genuine product decisions that cannot be inferred. Bias toward shipping an excellent, sellable, fully-owned V1.
+Then start Phase 0 and proceed autonomously. Only pause for genuine product decisions that cannot be inferred. Bias toward shipping an excellent, sellable, fully-owned, **already-deployed** V1.
 
 ---
 
-**Final bar:** we should be able to put our logo on it, demo it to a real restaurant, survive a full service day, and close the deal — with zero "but this part isn't ready." Not everything. Just everything that sells.
+**Final bar:** we should be able to put our logo on it, demo it to a real restaurant, survive a full service day, and close the deal — with zero "but this part isn't ready" — and hand over a **working deployed URL**, not a local dev server. It must not merely work and look clean: it must **feel** premium, custom, calm, fast, and unmistakably ours. Award-worthy aesthetics are a requirement, not a bonus. Finish everything in scope. Make it beautiful. Deploy it. Own it.
+  claude agents             list sessions
