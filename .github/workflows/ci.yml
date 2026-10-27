@@ -1,0 +1,188 @@
+# Manhar Nexus CI — verify (typecheck, lint, unit, E2E on Postgres, build),
+# then build the production images and boot the full compose stack.
+# Images are never pushed from here (no registry secrets are configured).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint, unit, E2E, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus-ci-only
+          POSTGRES_DB: nexus_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexus -d nexus_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # E2E boots the real AppModule; ConfigModule + Prisma read these from the
+      # environment (no apps/api/.env is used in CI). Throwaway CI-only values.
+      DATABASE_URL: postgresql://nexus:nexus-ci-only@localhost:5432/nexus_ci?schema=public
+      CORS_ORIGIN: http://localhost:5173
+      PLATFORM_BOOTSTRAP_EMAIL: platform@manhar.local
+      PLATFORM_BOOTSTRAP_PASSWORD: ChangeMe!Dev12345
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Resolves the "engines.node" range from package.json.
+          node-version-file: package.json
+          cache: npm
+
+      # postinstall builds @nexus/shared and generates the Prisma client.
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      - name: Unit tests (API + web)
+        run: npm test
+
+      - name: Apply migrations to an empty database
+        working-directory: apps/api
+        run: npx prisma migrate deploy
+
+      - name: Seed reference data + platform admin
+        working-directory: apps/api
+        run: npx prisma db seed
+
+      - name: E2E (API against Postgres)
+        run: npm run test:e2e
+
+      - name: Production build
+        env:
+          VITE_API_URL: /api
+        run: npm run build
+
+  images:
+    name: Docker images + compose boot
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      IMAGE_TAG: ci-${{ github.sha }}
+      COMPOSE: docker compose -f docker-compose.prod.yml --env-file deploy/.env
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build API runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          target: runtime
+          tags: nexus/nexus-api:${{ env.IMAGE_TAG }}
+          load: true
+          push: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Build API migrate image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          target: migrate
+          tags: nexus/nexus-migrate:${{ env.IMAGE_TAG }}
+          load: true
+          push: false
+          cache-from: type=gha,scope=api
+
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.web
+          build-args: |
+            VITE_API_URL=/api
+          tags: nexus/nexus-web:${{ env.IMAGE_TAG }}
+          load: true
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+      - name: Validate Caddyfile
+        run: |
+          docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            nexus/nexus-web:$IMAGE_TAG caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Write throwaway CI env files
+        run: |
+          pg_pass="$(openssl rand -hex 24)"
+          {
+            echo "NEXUS_REGISTRY=nexus"
+            echo "IMAGE_TAG=$IMAGE_TAG"
+            echo "NEXUS_DOMAIN=nexus.ci.test"
+            echo "NEXUS_TLS=internal"
+            echo "ACME_EMAIL=ci@example.com"
+            echo "POSTGRES_USER=nexus_app"
+            echo "POSTGRES_PASSWORD=$pg_pass"
+            echo "POSTGRES_DB=nexus"
+          } > deploy/.env
+          smoke_pass="$(openssl rand -hex 16)"
+          {
+            echo "NODE_ENV=production"
+            echo "LOG_LEVEL=info"
+            echo "CORS_ORIGIN=https://nexus.ci.test"
+            echo "DATABASE_URL=postgresql://nexus_app:$pg_pass@postgres:5432/nexus?schema=public"
+            echo "JWT_ACCESS_SECRET=$(openssl rand -hex 48)"
+            echo "PLATFORM_BOOTSTRAP_EMAIL=ci-admin@example.com"
+            echo "PLATFORM_BOOTSTRAP_PASSWORD=$smoke_pass"
+          } > deploy/api.env
+          echo "::add-mask::$smoke_pass"
+          echo "SMOKE_PASS=$smoke_pass" >> "$GITHUB_ENV"
+          echo "127.0.0.1 nexus.ci.test" | sudo tee -a /etc/hosts > /dev/null
+
+      - name: Validate compose file
+        run: $COMPOSE config --quiet
+
+      - name: Boot stack (postgres → migrate → api → web)
+        run: |
+          $COMPOSE up -d postgres
+          $COMPOSE run --rm migrate
+          $COMPOSE up -d --wait --wait-timeout 180 api web
+
+      - name: Smoke test through Caddy (same origin, /api prefix)
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file deploy/.env \
+            cp web:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+          CURL_CA_BUNDLE="$PWD/caddy-root.crt" \
+          NEXUS_BASE_URL=https://nexus.ci.test/api \
+          NEXUS_SMOKE_EMAIL=ci-admin@example.com \
+          NEXUS_SMOKE_PASSWORD="$SMOKE_PASS" \
+          NEXUS_SMOKE_EXPECT_COOKIE_PATH=/api/auth \
+            bash scripts/smoke.sh
+          curl -fsS --cacert caddy-root.crt -o /dev/null -w 'SPA deep link: HTTP %{http_code}\n' https://nexus.ci.test/tables
+
+      - name: Compose logs on failure
+        if: failure()
+        run: $COMPOSE logs --no-color --tail 200
+
+      - name: Tear down
+        if: always()
+        run: $COMPOSE down -v --remove-orphans || true

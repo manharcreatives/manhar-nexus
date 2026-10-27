@@ -36,9 +36,3 @@ Thumbs.db
 
 # Local portable dev data (never commit)
 infra/.local/
-
-# GitHub Actions - temporarily not tracked
-.github/workflows/
-
-# GitHub Actions - temporarily not tracked
-.github/workflows/
