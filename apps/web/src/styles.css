@@ -376,8 +376,13 @@ button.nx-tile:active {
   to { stroke-dashoffset: 0; }
 }
 @keyframes nx-arrive {
-  from { opacity: 0.55; transform: translateY(-6px); }
-  to { opacity: 1; transform: none; }
+  0% { opacity: 0; transform: translateY(-22px) scale(0.96); }
+  60% { opacity: 1; transform: translateY(3px) scale(1.01); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes nx-sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
 }
 @keyframes nx-pulse {
   0%, 100% { opacity: 1; }
@@ -409,7 +414,8 @@ button.nx-tile:active {
   .nx-stamp { animation: nx-stamp 280ms var(--ease-stamp) both; }
   .nx-check-path { stroke-dasharray: 24; animation: nx-check 260ms 90ms var(--ease-out-soft) both; }
 
-  .nx-arrive { animation: nx-arrive 240ms var(--ease-out-soft) both; }
+  .nx-arrive { animation: nx-arrive 520ms var(--ease-stamp) both; }
+  .nx-arriving::after { animation: nx-sweep 1000ms 120ms var(--ease-out-soft) both; }
   .nx-stub { transition: background-color 700ms var(--ease-out-soft); }
   .nx-live-dot { animation: nx-pulse 2.4s ease-in-out infinite; }
 
@@ -419,7 +425,16 @@ button.nx-tile:active {
 .nx-stamp { transform: rotate(-8deg); }
 /* New kitchen ticket: a static ember wash (no motion, readable at once) that the
    page clears after two seconds; the 240ms slide above is motion-only. */
-.nx-arriving { background-color: rgb(34 197 94 / 0.18) !important; }
+.nx-arriving { background-color: rgb(34 197 94 / 0.2) !important; border-color: rgb(74 222 128 / 0.7) !important; }
+/* A light sweep across the new ticket; static (hidden off-edge) when motion is reduced. */
+.nx-arriving::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.2) 50%, transparent 70%);
+  transform: translateX(-120%);
+}
 
 /* Native <dialog> chrome. */
 dialog.nx-dialog::backdrop {

@@ -1,6 +1,6 @@
 # Design System
 
-Source of truth: `apps/web/src/styles.css` (tokens) and `apps/web/src/ui/` (primitives). Direction and rationale: `ART_DIRECTION.md`; decision record: `docs/adr/ADR-031-ui-design-system.md`.
+Source of truth: `apps/web/src/styles.css` (tokens) and `apps/web/src/ui/` (primitives). Direction ("Manhar Night", the Manhar family look) and rationale: `ART_DIRECTION.md`; decision record: `docs/adr/ADR-031-ui-design-system.md`.
 
 ## Rules
 1. Style with token utilities only (`bg-surface`, `text-muted`, `border-line`, `bg-accent`, …). No raw palette classes (`bg-blue-600`).
@@ -8,7 +8,8 @@ Source of truth: `apps/web/src/styles.css` (tokens) and `apps/web/src/ui/` (prim
 3. Headings use `font-display`; everything else is the UI face.
 4. Status is always text plus shape (`StatusPill`), never color alone.
 5. Touch targets: 44px minimum, 48px for POS/KDS primary actions (`Button size="lg"`).
-6. Motion: 160ms micro / 280ms surfaces; reduced-motion collapses it globally.
+6. Motion: 160ms micro / 300ms surfaces; reduced-motion collapses it globally.
+8. Surfaces: cards use `.nx-glass` (`Panel`, `Table` already do), floating layers use `.nx-pop`; primary actions use `.nx-primary`. Text on a green fill is `#04120A`.
 7. Icons come from `ui/icons.ts` only.
 
 ## Primitives
@@ -28,12 +29,12 @@ Source of truth: `apps/web/src/styles.css` (tokens) and `apps/web/src/ui/` (prim
 ## Signature components
 | Component | Notes |
 |---|---|
-| `LedgerFigure` | Money as a ledger figure; `rule="single\|double"`, `reveal` for the one-time digit rise. Currency and minor units are raised and tinted. |
-| `SectionHeader` | Eyebrow + serif heading + the ember-tick hairline. Replaces ad hoc `h2` styling. |
+| `LedgerFigure` | Money as a ledger figure; `rule="single\|double"`, `reveal` for the one-time digit rise, `countUp` to count from the previous value. Currency and minor units are raised and tinted. |
+| `SectionHeader` | Eyebrow + Clash heading + a hairline with a green tick. Replaces ad hoc `h2` styling. |
 | `Stamp` / `StampCheck` | `size="md\|lg"`; the label is real text. Lands once, reduced-motion aware. |
-| `Monogram`, `Wordmark` (`src/brand/`) | The tile + drawn N; wordmark in Fraunces. Rebrand takes the initial from `VITE_BRAND_NAME`. |
+| `Monogram`, `Wordmark` (`src/brand/`) | The green tile + drawn N; wordmark in Clash Display. Rebrand takes the initial from `VITE_BRAND_NAME`. |
 | Empty-state art (`src/brand/illustrations.tsx`) | `EmptyFloorArt`, `EmptyBillsArt`, `AllClearArt`, `EmptyTeamArt`, `EmptyOrderArt`. Pass via `EmptyState illustration={...}`; decorative, aria-hidden. |
-| CSS utilities | `.nx-ledger`, `.nx-stub` + `.nx-tear`, `.nx-tile` + `.nx-meter`, `.nx-arrive`/`.nx-arriving` (kitchen), `rule-tick`, `eyebrow`, `ticket-no`, `.nx-ledger-paper` (ink panel texture), `.nx-stamp`. |
+| CSS utilities | `.nx-ledger`, `.nx-stub` + `.nx-tear`, `.nx-tile` + `.nx-meter`, `.nx-arrive`/`.nx-arriving` (kitchen), `rule-tick`, `eyebrow`, `ticket-no`, `.nx-glass`, `.nx-pop`, `.nx-primary`, `.nx-hero-figure`, `.nx-ledger-paper` (login aurora panel), `.nx-stamp`. |
 | `Dialog` | A child with `data-autofocus` receives initial focus (used so New order, not Close session, is focused on the table session). |
 
 ## Not built (deliberately)

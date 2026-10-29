@@ -158,7 +158,7 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
       {r && base && (
         <>
           <p className="mt-4">
-            <LedgerFigure minor={r.today.netMinor} rule="double" reveal className="nx-hero-figure text-[3.25rem] sm:text-[4.5rem] lg:text-[5.5rem]" />
+            <LedgerFigure minor={r.today.netMinor} rule="double" reveal countUp className="nx-hero-figure text-[3.25rem] sm:text-[4.5rem] lg:text-[5.5rem]" />
           </p>
           <div className="mt-4">
             <Reference current={r.today.netMinor} base={base.netMinor} baseLabel={baseLabel} />

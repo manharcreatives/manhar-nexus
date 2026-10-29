@@ -1,75 +1,70 @@
-# Art Direction — "Ledger & Ember"
+# Art Direction — "Manhar Night"
 
-**Idea:** a restaurant runs on paper tickets, ledgers and heat. The product should feel like a well-kept ledger on a warm counter: calm paper, confident ink, one ember accent used sparingly for the thing to do next.
+**Idea:** Nexus is a Manhar Creatives product, so it looks like one. It shares the dark canvas, the single green accent, the glass surfaces and the Clash Display / Satoshi pair with `manhar-creatives-website-v2` and `manhar-crm`. On top of that family look it keeps the restaurant details that are its own: ticket stubs, the stamp, the ledger figure, the table tile.
+
+(Previous direction "Ledger & Ember", warm paper + serif + orange, was replaced on the `feat/sellable-v1-ui` branch. The restaurant-specific signature moves survived; only the skin changed.)
 
 ## Palette
+Token names are unchanged from the paper theme, so every utility (`bg-surface`, `text-muted`, `border-line`…) follows the new values. Meaning: `paper` = canvas, `surface` = card, `sunken` = well, `ink` = text.
+
 | Token | Hex | Role |
 |---|---|---|
-| paper | #F6F1E9 | App background |
-| surface | #FFFDF9 | Cards, inputs |
-| sunken | #ECE5D8 | Wells, table headers, hover |
-| line | #DDD4C3 | Borders |
-| ink | #1B1A17 | Text, login hero |
-| muted | #6B6558 | Secondary text |
-| accent / strong / soft | #B53A0A / #8F2D07 / #FBE6DA | Primary action, active nav |
-| ok / warn / bad / info | #3F6212 / #92600A / #A32119 / #1F5A6B | Semantics, each with a -soft tint |
+| paper | #070A09 | App canvas (under the aurora + grain) |
+| surface | #0F1513 | Solid card / input fill |
+| sunken | #161E1B | Wells, hover |
+| line | #222D29 | Hairlines |
+| ink / ink-2 | #F3F7F5 / #D5DDD9 | Text |
+| muted | #94A09B | Secondary text (≥ 6:1 on surface) |
+| accent / strong / soft | #22C55E / #4ADE80 / #0E2A1A | Primary action, active nav, accent text |
+| ok / warn / bad / info | #4ADE80 / #FBBF24 / #F87171 / #60A5FA | Semantics; used as text + 12% tint, never alone |
 
-Semantic colors are never the only signal: every status carries text.
+One accent hue only. Status colours appear as a dot + word on a tinted chip.
 
 ## Type
-- **Fraunces** (variable, OFL) for headings and large figures — editorial warmth, real weight contrast.
-- **Inter Tight** (variable, OFL) for UI — dense, legible, tabular numerals (`tabular` utility) for all money and counts.
+- **Clash Display** (400–700) for headings and large figures. It sets tight, so display text gets `word-spacing: .08em` and light negative tracking (−0.015 to −0.02em); do not go tighter.
+- **Satoshi** (300–700) for all UI text. Tabular numerals (`tabular`) for money and counts.
+- Both are self-hosted from `apps/web/public/fonts` (Fontshare, free for commercial use). No third-party font requests. No italics: Clash has none, so the old italic accent became a green gradient word.
 
-`ember-glow` #F08A5D is the accent for use on ink only (login panel, toasts, OG image): 7.0:1 on ink. Checked pairs: ok on surface 7.0:1, muted on paper 5.2:1, accent on accent-soft 4.9:1.
-
-## Shape, depth, motion
-Radii: 8px controls, 14px panels. Borders and tonal layers instead of shadows (the only real shadows are the login ticket and the table-tile hover lift). Micro-interactions 160ms, entrances 220ms, surfaces 280ms; `prefers-reduced-motion` collapses all durations, and the kitchen arrival wash stays as a static tint so nothing depends on motion.
-
-## References (principles only)
-- Linear: restraint and keyboard-first density.
-- Mercury: calm, trustworthy numeric tables.
-- Toast: oversized touch targets for service-time screens.
-
-## Why this works for the sale
-Warm and tactile differentiates from the default blue/slate admin look, and large display figures make the owner's daily numbers the visual center of the product.
-
-
-## Personality: warm precision
-A well-kept ledger on a warm counter. Calm paper, confident ink, one ember accent for the next action. Serious about numbers (accountant's rules, tabular figures), human about everything else (serif headings, plain words). It is never cute, never dark-mode-neon, never a dashboard of equal-weight cards.
+## Surfaces, depth, motion
+- **Canvas:** `body::before` aurora (three green radial washes, 5–10 % opacity) and `body::after` film grain. Static, hidden in print.
+- **`.nx-glass`** cards: white 1.5–4.5 % gradient fill, 1 px white-8 % border, inset top highlight, soft shadow. **`.nx-pop`** for floating layers (dialogs, palette, menus): blurred 86 % panel. `.nx-primary` is the one gradient button with a green glow.
+- Radii: 10 px controls, 16 px panels.
+- Motion: 160 ms micro, 300–360 ms surfaces, ease-out-expo. Only transform and opacity. `prefers-reduced-motion` collapses everything and the count-up settles instantly.
+- Glow budget: at most one hero glow per screen (`.nx-hero-figure`, the Home revenue figure).
 
 ## Emotional target per hero screen
 | Screen | Should feel | How |
 |---|---|---|
-| Login | Arriving at a trusted house | Ink panel with ledger ruling and grain; one slightly tilted ticket already stamped PAID tells the product story before any copy |
-| Home | Morning briefing from a calm colleague | One oversized ledger figure (today's net), a quiet 7-day strip, a "Right now" rail with hairline-and-tick section heads |
-| Tables | The floor at a glance | Tiles are tables: occupied ones carry an ember top edge and a two-hour occupancy meter, cleaning is hatched; the lift on hover is 2px |
-| Kitchen | Paper tickets on a rail, readable from a metre | Perforated ticket stubs, tear line with notches, monospaced ticket number, 32px table name, 56px action; late is text plus colour |
-| Checkout | A receipt being settled | Itemised stub with leader dots, subtotal rule and double-ruled grand total, then the PAID stamp lands |
-| Reports | A page of the ledger | Net revenue as the single hero figure, supporting figures in a row, tables under ruled headings |
-| Empty states | Quiet and a little witty | Hand-drawn line art (one ember detail), one sentence, one action |
+| Login | Arriving somewhere premium | Aurora panel with ledger ruling, gradient headline word, a PAID ticket stub already on the desk |
+| Home | A morning briefing | One glowing net-revenue figure that counts up, quiet 7-day bars in green, a "Right now" rail |
+| Tables | The floor at a glance | Occupied tiles glow green with an edge and a meter; cleaning is hatched |
+| Kitchen | Tickets on a rail | Perforated stubs, mono ticket number, 32 px table name; a new ticket drops in with a bounce and a light sweep |
+| Checkout | A receipt being settled | Itemised stub, double-ruled total, then the PAID stamp lands |
+| Reports | A page of the ledger | Tables on glass, ledger figures, calm empty states with line art |
 
-## Signature moves (all implemented)
-1. **The ledger figure** (`LedgerFigure`, `.nx-ledger`): Fraunces tabular figure with a raised currency sign and raised minor units; optional single or double accountant's rule; digits rise in once (320ms). Used for revenue, totals, approvals.
-2. **The ticket stub** (`.nx-stub`, `.nx-tear`, `data-perforated`): perforated top edge, dashed tear line with half-moon notches, monospaced ticket number (`ticket-no`). On kitchen tickets, order rounds, the checkout bill, the login hero and the OG image.
-3. **The stamp** (`Stamp`, `StampCheck`): a double-ruled rubber-stamp mark that lands in 280ms with a drawn check on the moments that become final (payment received; kitchen "waiting for pickup").
-4. **The table tile** (`.nx-tile`, `.nx-meter`): status in edge, texture and word, never colour alone.
-5. **The hairline with an ember tick** (`rule-tick`, `SectionHeader`): the one decorative flourish under every heading.
-6. **The monogram**: an ember tile with a half-moon notch in each side (a ticket stub) and a drawn serif N sitting on a ledger line; the same shape is the favicon.
-7. **New-ticket arrival** (kitchen): a 240ms slide-in plus a static ember-soft wash for two seconds and a screen-reader announcement. It never hides the content or delays reading.
+## Signature moves
+1. **Ledger figure** (`LedgerFigure`, `.nx-ledger`): Clash tabular figure with raised currency and minor units; optional single or double rule; `reveal` (digit rise) and `countUp` (counts from the previous value over 0.9 s; screen readers always get the final text).
+2. **Ticket stub** (`.nx-stub`, `.nx-tear`, `data-perforated`): perforated edge, notched tear line, mono ticket number.
+3. **Stamp** (`Stamp`, `StampCheck`): lands in 280 ms on final moments (payment received).
+4. **Table tile** (`.nx-tile`, `.nx-meter`): status in edge, texture and word.
+5. **Hero figure glow** (`.nx-hero-figure`): white figure with a soft green halo.
+6. **New-ticket arrival** (kitchen): 520 ms drop with overshoot, a one-off light sweep, a static green wash and border for two seconds, plus the screen-reader announcement. The wash is static so nothing depends on motion.
+7. **Monogram**: green ticket-stub tile with a drawn serif N (kept from the previous brand; it still reads as a stub).
 
 ## Brand assets
-`apps/web/src/brand/` holds the Monogram, Wordmark, four empty-state illustrations plus the empty order pad, and `og-source.html` (the source of `public/og.png`). Rebrands keep the tile and take the initial in Fraunces.
+`apps/web/src/brand/` holds the Monogram, Wordmark (Clash, second word in accent), the empty-state illustrations and `og-source.html`. `og-source.html` and `public/og.png` still use the old Fraunces/paper look and need regenerating.
 
 ## Do
-- Put the single most important number on the screen in a ledger figure and give it room.
-- Use the ember accent for the next action and the live thing, nowhere else.
+- Put the most important number on the screen in a ledger figure and give it room.
+- Use green for the next action and the live thing.
 - Pair every colour state with a word or shape.
-- Keep motion under 300ms and make it explain a state change.
+- Keep motion under ~500 ms and make it explain a state change.
 - Write plain restaurant words (table, ticket, bill), not software words.
+- Check contrast on dark: text on glass is at least 4.5:1.
 
 ## Don't
-- No second accent colour, no gradients on surfaces, no glassmorphism, no emoji, no stock illustration.
-- No shadows to create hierarchy; use rules, tone and spacing.
-- No decorative motion on screens used during service (floor, kitchen, checkout).
+- No second accent hue, no neon on more than one element per screen, no emoji, no stock illustration.
+- No backdrop blur on more than a handful of large layers at once.
+- No decorative looping motion on service screens (floor, kitchen, checkout).
 - No Tailwind default palette classes; tokens only.
-- Do not use the italic anywhere except the brand wordmark and the one headline accent.
+- Dark-on-green text on primary buttons uses `#04120A`; do not use pure black.
