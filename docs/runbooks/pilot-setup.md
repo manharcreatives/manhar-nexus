@@ -1,7 +1,7 @@
 # Runbook: Pilot Restaurant Setup
 
 **Audience:** Manhar Creatives deployment team  
-**Updated:** 2026-08-30  
+**Updated:** 2026-10-29  
 **Prerequisite:** `deploy.ps1` has already run successfully (migrations, seed, health check).
 
 ---
@@ -17,6 +17,11 @@ After `deploy.ps1` succeeds, the database contains:
 
 | Path | When to use |
 |---|---|
+| **[A] Demo seed** | Developer testing / demo environments only |
+| **[B] Admin UI (recommended)** | Real restaurant onboarding: platform admin creates the workspace in the app, the owner sets up tables and menu themselves |
+| **[C] API** | Scripting / bulk onboarding. Same result as [B] |
+
+---|---|
 | **[A] Demo seed** | Developer testing / demo environments only |
 | **[B] Manual API setup** | Real pilot restaurant onboarding |
 
@@ -45,197 +50,63 @@ The script will print the login credentials when complete. Login at http://local
 
 ---
 
-## Path B — Manual API Setup (Real Pilot Restaurant)
+## Path B — Admin UI (recommended)
 
-All calls below require a valid access token. Obtain it by logging in as the platform admin:
+### Step 1 — Platform admin creates the restaurant
 
-```bash
-POST /auth/login
-{ "email": "PLATFORM_BOOTSTRAP_EMAIL", "password": "PLATFORM_BOOTSTRAP_PASSWORD" }
-→ { "accessToken": "..." }
-```
+1. Sign in as the platform admin (`PLATFORM_BOOTSTRAP_EMAIL`).
+2. **Onboarding → New restaurant**.
+3. Fill in the restaurant name, first location, the owner's name and email, and pick the commercial status (Trial for a free pilot). A strong temporary password is generated; modules Restaurant operations, Menu and Checkout are always included, Reports and Operating costs are optional.
+4. **Create restaurant**. The dialog creates the business, location, owner login and modules, and starts the go-live checklist. If a step fails, **Retry** continues from that step (nothing is created twice).
+5. Copy the sign-in address, email and temporary password from the final screen. **The password is shown only once.** Send it to the owner over a private channel.
 
-Set `Authorization: Bearer <accessToken>` on every subsequent request.
+### Step 2 — Owner signs in and changes the password
 
----
+1. The owner signs in. Home shows a **Getting started** checklist (tables, menu, team).
+2. Account menu (initials, top right) → **Change password**. This signs the owner out everywhere; they sign in again with the new password.
 
-### Step 1 — Get business type ID
+### Step 3 — Owner sets up the restaurant (no API needed)
 
-```bash
-GET /internal/business-types
-```
+| Where | What |
+|---|---|
+| **Floor setup** | Add dining areas (Main Hall, Terrace) and tables. **Add many** creates T1…T10 in one go. Hide a table instead of removing it once it has history. |
+| **Menu** | Add tax rates first (for example GST 5%), then categories and dishes. Sizes (Half/Full) are added to a dish after it is saved. Untick **Available** when something is sold out. |
+| **Team** | Add waiters, kitchen and cashier logins with their roles. |
 
-Find the `id` for `key: "restaurant"` (or whichever type applies). Save it as `$BT_ID`.
+### Step 4 — Smoke test the flow
 
----
+1. Tables & Sessions: tables visible. Open a session on a table.
+2. New order with one dish, send to kitchen.
+3. Kitchen Display: ticket appears. Start preparing, Mark ready.
+4. Tables: Check out the session (CASH). The bill shows PAID.
+5. Close the session. The table shows *Needs cleaning*; **Mark available** returns it to the floor.
+6. Reports → Daily closing shows the sale.
 
-### Step 2 — Create the business
-
-```bash
-POST /internal/businesses
-{
-  "name": "My Restaurant Name",
-  "businessTypeId": "$BT_ID"
-}
-→ { "id": "$BUSINESS_ID", ... }
-```
-
----
-
-### Step 3 — Create the location
-
-```bash
-POST /internal/businesses/$BUSINESS_ID/locations
-{
-  "name": "Main Location",
-  "timezone": "Asia/Kolkata"
-}
-→ { "id": "$LOCATION_ID", ... }
-```
+An order must be served or cancelled before its session can be closed.
 
 ---
 
-### Step 4 — Provision the owner user
+## Path C — API (same outcome as B)
+
+All payloads below are validated by strict schemas: unknown fields are rejected.
 
 ```bash
-POST /internal/businesses/$BUSINESS_ID/provision
-{
-  "email": "owner@restaurantname.com",
-  "displayName": "Restaurant Owner",
-  "password": "StrongPassword@123",
-  "roleKey": "owner"
-}
-→ { "userId": "$OWNER_ID", ... }
+# Platform admin token
+POST /auth/login                                   { "email": "...", "password": "..." }
+
+POST /internal/businesses                          { "name": "My Restaurant", "businessTypeKey": "restaurant" }      -> { "id": "$BID" }
+POST /internal/businesses/$BID/locations           { "name": "Main Location" }
+POST /internal/businesses/$BID/provision           { "email": "owner@x.com", "displayName": "Owner", "password": "min 8 chars" }
+
+# Modules, in dependency order (restaurant -> catalog -> checkout), then optional ones
+POST /internal/businesses/$BID/modules/{restaurant|catalog|checkout|reports|costs}/activate
+POST /internal/businesses/$BID/modules/{...}/complete-setup
+
+POST /internal/commercial/clients/$BID             PATCH { "commercialStatus": "TRIAL" }
+POST /internal/onboarding/$BID/initialize          { }
 ```
 
----
-
-### Step 5 — Activate modules
-
-Activate in dependency order (restaurant → catalog → checkout).
-
-```bash
-POST /internal/businesses/$BUSINESS_ID/modules/restaurant/activate
-POST /internal/businesses/$BUSINESS_ID/modules/restaurant/complete-setup
-
-POST /internal/businesses/$BUSINESS_ID/modules/catalog/activate
-POST /internal/businesses/$BUSINESS_ID/modules/catalog/complete-setup
-
-POST /internal/businesses/$BUSINESS_ID/modules/checkout/activate
-POST /internal/businesses/$BUSINESS_ID/modules/checkout/complete-setup
-```
-
-Optionally activate Operating Costs (standalone, no dependencies):
-
-```bash
-POST /internal/businesses/$BUSINESS_ID/modules/costs/activate
-POST /internal/businesses/$BUSINESS_ID/modules/costs/complete-setup
-```
-
----
-
-### Step 6 — Switch to the owner token
-
-Log out the platform admin and log in as the owner:
-
-```bash
-POST /auth/login
-{ "email": "owner@restaurantname.com", "password": "StrongPassword@123" }
-→ { "accessToken": "$OWNER_TOKEN" }
-```
-
-All remaining steps use `Authorization: Bearer $OWNER_TOKEN`.
-
----
-
-### Step 7 — Set up tax categories
-
-```bash
-POST /admin/catalog/tax-categories
-{ "name": "GST 5%", "rateMinorUnits": 500 }
-→ { "id": "$TAX_5_ID" }
-
-POST /admin/catalog/tax-categories
-{ "name": "Exempt", "rateMinorUnits": 0 }
-→ { "id": "$TAX_EXEMPT_ID" }
-```
-
----
-
-### Step 8 — Create catalog categories and items
-
-```bash
-POST /admin/catalog/categories
-{ "name": "Main Course", "sortOrder": 10 }
-→ { "id": "$CAT_ID" }
-
-POST /admin/catalog/items
-{
-  "categoryId": "$CAT_ID",
-  "taxCategoryId": "$TAX_5_ID",
-  "name": "Dal Makhani",
-  "basePriceMinorUnits": 22000
-}
-```
-
-Repeat for each menu item.
-
----
-
-### Step 9 — Create dining areas and tables
-
-```bash
-POST /admin/dining/areas
-{ "locationId": "$LOCATION_ID", "name": "Main Hall" }
-→ { "id": "$AREA_ID" }
-
-POST /admin/dining/tables
-{
-  "locationId": "$LOCATION_ID",
-  "areaId": "$AREA_ID",
-  "code": "T1",
-  "seatingCapacity": 4
-}
-```
-
-Repeat for each table.
-
----
-
-### Step 10 — Create additional staff users
-
-```bash
-POST /admin/users
-{
-  "email": "cashier@restaurantname.com",
-  "displayName": "Cashier Name",
-  "password": "CashierPassword@123",
-  "roleKeys": ["checkout-associate"]
-}
-
-POST /admin/users
-{
-  "email": "kitchen@restaurantname.com",
-  "displayName": "Kitchen Name",
-  "password": "KitchenPassword@123",
-  "roleKeys": ["kitchen-team"]
-}
-```
-
----
-
-### Step 11 — Smoke test the flow
-
-1. Open http://[your-domain]:5173
-2. Log in as the owner
-3. Navigate to Tables & Sessions → verify tables visible
-4. Open a session on Table T1
-5. Create an order with one item
-6. Send to kitchen → navigate to Kitchen Display → verify ticket appears
-7. Mark ticket Ready in kitchen
-8. Back to Tables → Checkout the session (test payment: CASH)
-9. Verify session closes and table returns to AVAILABLE
-10. Navigate to Reports → Daily Report → verify the transaction appears
+Then, with the owner's token: `POST /admin/dining/areas { locationId, name }`, `POST /admin/dining/tables { diningAreaId, locationId, code, capacity }`, `POST /admin/catalog/tax-categories { name, rate (0-1, e.g. 0.05) }`, `POST /admin/catalog/categories { name }`, `POST /admin/catalog/items { categoryId, taxCategoryId?, name, basePriceMinorUnits }`, `POST /admin/users { email, displayName, password, roleKeys }`.
 
 ---
 
@@ -244,6 +115,7 @@ POST /admin/users
 Before handing off to the pilot client:
 
 - [ ] Rotate the platform admin password (`PLATFORM_BOOTSTRAP_PASSWORD`)
+- [ ] Owner changed the temporary password (Account menu → Change password)
 - [ ] Owner has logged in and confirmed they can see their restaurant
 - [ ] At least 5 tables visible on the floor
 - [ ] At least 3 menu items visible in the order builder

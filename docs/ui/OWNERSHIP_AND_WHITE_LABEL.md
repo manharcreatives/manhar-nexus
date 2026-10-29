@@ -3,7 +3,7 @@
 ## What is ours
 - **UI code:** `apps/web/src` is original. The design system lives in `styles.css` (tokens) and `ui/` (primitives). No template, UI kit, or competitor screens were used.
 - **Brand assets:** the monogram mark is generated from the brand name in CSS (`AppShell`, `LoginScreen`); `apps/web/public/favicon.svg` is original SVG. Add a logo file to `apps/web/public/` and swap `BrandMark` if a client wants their own.
-- **Fonts:** Fraunces (display) and Inter Tight (UI), both OFL-1.1, installed from npm (`@fontsource-variable/*`) and bundled into `dist/assets`. No runtime Google Fonts request.
+- **Fonts:** Clash Display (display) and Satoshi (UI) from Fontshare (Indian Type Foundry Free Font License, free for commercial use), self-hosted in `apps/web/public/fonts`. The same files the Manhar Creatives site and CRM ship. No runtime third-party font request. Re-check the Fontshare licence terms before redistributing the font files outside this product.
 - **Icons:** lucide-react (ISC), imported only through `ui/icons.ts`.
 - Licenses and versions: see `/THIRD_PARTY_NOTICES.md`.
 
@@ -12,6 +12,7 @@
 |---|---|
 | Product name | Set `VITE_BRAND_NAME` at build time (default "Manhar Nexus"). Shown in the shell, login, and `<title>`. |
 | Accent color | Set `VITE_BRAND_ACCENT` (any CSS color, e.g. `#0f766e`). Hover and tint shades are derived automatically. |
+| Login footnote | Set `VITE_BRAND_FOOTNOTE` (empty string hides "A Manhar Creatives product"). |
 | Permanent palette change | Edit the `--color-*` tokens in `apps/web/src/styles.css` `@theme`. |
 | Favicon / theme-color | Replace `apps/web/public/favicon.svg`; edit `theme-color` in `apps/web/index.html`. |
 | Copy | `apps/web/src/i18n/en.json` and the `en.<area>.json` overlays. |

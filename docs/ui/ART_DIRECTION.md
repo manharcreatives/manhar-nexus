@@ -52,7 +52,7 @@ One accent hue only. Status colours appear as a dot + word on a tinted chip.
 7. **Monogram**: green ticket-stub tile with a drawn serif N (kept from the previous brand; it still reads as a stub).
 
 ## Brand assets
-`apps/web/src/brand/` holds the Monogram, Wordmark (Clash, second word in accent), the empty-state illustrations and `og-source.html`. `og-source.html` and `public/og.png` still use the old Fraunces/paper look and need regenerating.
+`apps/web/src/brand/` holds the Monogram, Wordmark (Clash, second word in accent), the empty-state illustrations and `og-source.html`. `og-source.html` renders `public/og.png` (1200x630) in the Manhar Night look; re-render it after any brand change.
 
 ## Do
 - Put the most important number on the screen in a ledger figure and give it room.

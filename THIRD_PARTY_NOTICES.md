@@ -8,8 +8,8 @@ Runtime dependencies of the web app that ship in the built bundle. Licenses veri
 | react-router-dom | 7.x | MIT | Routing |
 | react-i18next, i18next | 15.x / 23.x | MIT | Localisation |
 | lucide-react | 1.x | ISC | Icons (single registry: `apps/web/src/ui/icons.ts`) |
-| @fontsource-variable/fraunces | 5.x | OFL-1.1 | Display typeface, self-hosted |
-| @fontsource-variable/inter-tight | 5.x | OFL-1.1 | UI typeface, self-hosted |
+| Clash Display, Satoshi (Fontshare) | n/a | ITF Free Font License | Display and UI typefaces, self-hosted woff2 in `apps/web/public/fonts` (free for commercial use; confirm terms before redistributing the files) |
+| @fontsource-variable/fraunces, inter-tight | 5.x | OFL-1.1 | No longer used by the app; only referenced by old tooling, safe to remove from `apps/web/package.json` |
 | tailwindcss, @tailwindcss/vite | 4.x | MIT | Styling (build-time) |
 
 Font licenses: SIL Open Font License 1.1 permits embedding and redistribution, including commercially. The license text ships inside each `@fontsource-variable/*` package (`LICENSE`).

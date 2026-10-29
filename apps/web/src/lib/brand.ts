@@ -5,6 +5,8 @@
 export interface Brand {
   name: string;
   accent: string | null;
+  /** Login-panel footnote. null = the default ("A Manhar Creatives product"); an empty string hides it. */
+  footnote: string | null;
 }
 
 const DEFAULT_NAME = 'Manhar Nexus';
@@ -12,6 +14,7 @@ const DEFAULT_NAME = 'Manhar Nexus';
 export const brand: Brand = {
   name: import.meta.env.VITE_BRAND_NAME ?? DEFAULT_NAME,
   accent: import.meta.env.VITE_BRAND_ACCENT ?? null,
+  footnote: (import.meta.env.VITE_BRAND_FOOTNOTE as string | undefined) ?? null,
 };
 
 /** True when no rebrand is configured: the drawn monogram and italic wordmark apply. */

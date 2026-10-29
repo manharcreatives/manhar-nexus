@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import type { ApiError } from './api';
 import { Wordmark } from '../brand/Wordmark';
+import { brand } from '../lib/brand';
 import { LedgerFigure } from '../ui/LedgerFigure';
 import { Stamp } from '../ui/Stamp';
 import { Button } from '../ui/Button';
@@ -111,7 +112,7 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
           <p className="mt-6 max-w-sm text-base leading-relaxed text-ink/72">{t('auth.heroBody')}</p>
         </div>
         <div className="flex items-end justify-between gap-6">
-          <p className="text-sm text-ink/55">{t('auth.heroFootnote')}</p>
+          <p className="text-sm text-ink/55">{brand.footnote ?? t('auth.heroFootnote')}</p>
         </div>
         <TicketVignette />
       </aside>
