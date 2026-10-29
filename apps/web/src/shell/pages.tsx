@@ -11,6 +11,7 @@ import { CostsPage } from '../costs/CostsPage';
 import { HomePage } from '../home/HomePage';
 import { BillsPage } from '../bills/BillsPage';
 import { PeoplePage } from '../people/PeoplePage';
+import { ProfilePage } from '../profile/ProfilePage';
 import { FloorSetupPage } from '../setup/FloorSetupPage';
 import { MenuSetupPage } from '../setup/MenuSetupPage';
 import * as Icons from '../ui/icons';
@@ -48,6 +49,7 @@ export const PAGES: PageDef[] = [
   { path: '/', labelKey: 'shell.nav.home', keywordsKey: 'shell.keywords.home', icon: Icons.Home, group: 'main', can: () => true, Component: HomePage, goKey: 'h' },
   { path: '/modules', labelKey: 'shell.nav.modules', keywordsKey: 'shell.keywords.modules', icon: Icons.LayoutGrid, group: 'main', can: (a) => a.canSeeModules, Component: ModuleCenter },
   { path: '/config', labelKey: 'shell.nav.config', keywordsKey: 'shell.keywords.config', icon: Icons.Settings, group: 'main', can: (a) => a.isTenantAdmin, Component: ConfigCenter },
+  { path: '/profile', labelKey: 'shell.nav.profile', keywordsKey: 'shell.keywords.profile', icon: Icons.Store, group: 'main', can: (a) => a.canManageProfile, Component: ProfilePage, goKey: 'p' },
   { path: '/reports', labelKey: 'shell.nav.reports', keywordsKey: 'shell.keywords.reports', icon: Icons.BarChart3, group: 'main', can: (a) => a.canSeeReports, Component: ReportsPage, goKey: 'r' },
   { path: '/team', labelKey: 'shell.nav.team', keywordsKey: 'shell.keywords.team', icon: Icons.Users, group: 'main', can: (a) => a.canSeeTeam, Component: PeoplePage },
   { path: '/activity', labelKey: 'shell.nav.activity', keywordsKey: 'shell.keywords.activity', icon: Icons.History, group: 'main', can: (a) => a.canSeeActivity, Component: ActivityPage },

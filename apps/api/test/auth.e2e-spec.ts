@@ -216,6 +216,7 @@ describe('Auth & Access (e2e)', () => {
 
       const me = await bearer(request(http()).get('/auth/me'), token).expect(200);
       expect(me.body.mustChangePassword).toBe(true);
+      expect(me.body.business).toEqual({ name: 'Temp Pw Co', accentColor: null });
       await bearer(request(http()).get('/admin/users'), token).expect(403);
 
       await bearer(request(http()).post('/auth/change-password'), token).send({ currentPassword: PW, newPassword: 'Fresh-Passw0rd!9' }).expect(204);

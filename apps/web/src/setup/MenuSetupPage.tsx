@@ -382,7 +382,7 @@ export function MenuSetupPage() {
                       onClick={() => setSelected(c.id)}
                       className={cn(
                         'flex min-h-11 w-full items-center justify-between gap-2 rounded-control px-3 text-left text-sm font-medium transition-colors',
-                        on ? 'bg-gradient-to-r from-accent/18 to-accent/[0.03] text-ink shadow-[inset_0_0_0_1px_rgb(34_197_94/0.22)]' : 'text-ink/75 hover:bg-white/[0.05] hover:text-ink',
+                        on ? 'bg-gradient-to-r from-accent/18 to-accent/[0.03] text-ink shadow-[inset_0_0_0_1px_rgb(var(--accent-rgb)/0.22)]' : 'text-ink/75 hover:bg-white/[0.05] hover:text-ink',
                       )}
                     >
                       <span className="truncate">{c.name}</span>

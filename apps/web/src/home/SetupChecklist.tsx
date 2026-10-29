@@ -52,7 +52,7 @@ export function SetupChecklist() {
           <h2 id="setup-h" className="text-xl leading-tight font-semibold">{t('home.setup.title')}</h2>
           <p className="mt-1 max-w-prose text-sm text-muted">{t('home.setup.body')}</p>
         </div>
-        <Link to={next.to} className="nx-press nx-primary inline-flex min-h-11 items-center gap-1.5 rounded-control px-4 text-sm font-semibold text-[#04120a]">
+        <Link to={next.to} className="nx-press nx-primary inline-flex min-h-11 items-center gap-1.5 rounded-control px-4 text-sm font-semibold text-on-accent">
           {t(`home.setup.${next.key}.cta`)}
           <Icons.ChevronRight className="size-4" aria-hidden />
         </Link>
@@ -67,7 +67,7 @@ export function SetupChecklist() {
                 s.done ? 'border-accent/30 bg-accent/10' : 'border-white/10 bg-white/[0.03] hover:border-accent/40',
               )}
             >
-              <span aria-hidden className={cn('grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold', s.done ? 'bg-accent text-[#04120a]' : 'bg-white/10 text-muted')}>
+              <span aria-hidden className={cn('grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold', s.done ? 'bg-accent text-on-accent' : 'bg-white/10 text-muted')}>
                 {s.done ? <Icons.Check className="size-4" /> : i + 1}
               </span>
               <span className="min-w-0">

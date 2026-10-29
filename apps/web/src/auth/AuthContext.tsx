@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { applyAccent, brand } from '../lib/brand';
 import { api, hasSessionHint, login as apiLogin, setAccessToken, setAuthLostHandler, setSessionHint, tryRefresh } from './api';
 
 export interface AuthUser {
@@ -10,6 +11,8 @@ export interface AuthUser {
   roles: { key: string; name: string }[];
   /** True while the account still has a temporary password. */
   mustChangePassword?: boolean;
+  /** The user's own restaurant (name + accent), when they belong to one. */
+  business?: { name: string; accentColor: string | null } | null;
 }
 
 type Status = 'loading' | 'authenticated' | 'unauthenticated';
@@ -20,6 +23,8 @@ interface AuthState {
   notice: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Re-read the signed-in user (for example after the restaurant profile changed). */
+  refreshUser: () => Promise<void>;
   /** The server ended every session after a password change: drop local state and ask for a fresh sign-in. */
   endSessionAfterPasswordChange: () => void;
 }
@@ -30,6 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Each restaurant sees its own accent colour; signed-out screens use the product default.
+  useEffect(() => {
+    applyAccent(user?.business?.accentColor ?? brand.accent);
+  }, [user]);
 
   async function loadMe(): Promise<void> {
     const me = await api<AuthUser>('/auth/me');
@@ -72,6 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signIn(email, password) {
         setNotice(null);
         await apiLogin(email, password);
+        await loadMe();
+      },
+      async refreshUser() {
         await loadMe();
       },
       endSessionAfterPasswordChange() {

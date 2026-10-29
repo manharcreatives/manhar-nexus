@@ -148,7 +148,7 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePasswor
           data-initials={initialsOf(user.displayName, user.email)}
           className={cn(
             'grid size-8 place-items-center rounded-full text-xs font-semibold tracking-wide before:content-[attr(data-initials)]',
-            isPlatform ? 'bg-accent text-[#04120a]' : 'bg-accent-soft text-accent-strong',
+            isPlatform ? 'bg-accent text-on-accent' : 'bg-accent-soft text-accent-strong',
           )}
         />
       </button>
@@ -165,7 +165,7 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePasswor
             {user.displayName && <p className="truncate text-sm text-muted">{user.email}</p>}
             <p className="mt-2 flex flex-wrap gap-1.5">
               {isPlatform && (
-                <span className="rounded-control bg-accent px-2 py-0.5 text-xs font-semibold text-[#04120a]">
+                <span className="rounded-control bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">
                   {t('shell.platformRealm')}
                 </span>
               )}

@@ -144,7 +144,7 @@ export function AppShell() {
                         'group relative flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-(--duration-micro)',
                         'before:absolute before:inset-y-2.5 before:left-0 before:w-[3px] before:rounded-full before:transition-colors',
                         isActive
-                          ? 'bg-gradient-to-r from-accent/18 to-accent/[0.03] text-ink shadow-[inset_0_0_0_1px_rgb(34_197_94/0.22)] before:bg-accent before:shadow-[0_0_12px_var(--color-accent)] [&_svg]:text-accent-strong'
+                          ? 'bg-gradient-to-r from-accent/18 to-accent/[0.03] text-ink shadow-[inset_0_0_0_1px_rgb(var(--accent-rgb)/0.22)] before:bg-accent before:shadow-[0_0_12px_var(--color-accent)] [&_svg]:text-accent-strong'
                           : 'text-ink/75 before:bg-transparent hover:bg-white/[0.05] hover:text-ink [&_svg]:text-muted hover:[&_svg]:text-ink',
                       )
                     }

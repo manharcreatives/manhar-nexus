@@ -36,6 +36,8 @@ export interface Access {
   canSeeReports: boolean;
   canSeeActivity: boolean;
   canSeeTeam: boolean;
+  /** Owner only (core.business.configure): restaurant profile, brand colour, invoice identity. */
+  canManageProfile: boolean;
 }
 
 export interface AccessUser {
@@ -65,5 +67,6 @@ export function computeAccess(user: AccessUser | null): Access {
     canSeeReports: !isPlatform && hasAnyRole(roles, FINANCE_VIEW_ROLES),
     canSeeActivity: !isPlatform && hasAnyRole(roles, FINANCE_VIEW_ROLES),
     canSeeTeam: !isPlatform && hasAnyRole(roles, TEAM_ROLES),
+    canManageProfile: !isPlatform && hasAnyRole(roles, MODULE_ROLES),
   };
 }

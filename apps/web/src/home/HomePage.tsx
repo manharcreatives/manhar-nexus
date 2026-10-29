@@ -62,7 +62,7 @@ export function HomePage() {
                   className={cn(
                     'nx-press inline-flex min-h-11 items-center gap-1.5 rounded-control px-4',
                     a.primary
-                      ? 'nx-primary font-semibold text-[#04120a]'
+                      ? 'nx-primary font-semibold text-on-accent'
                       : 'border border-white/10 bg-white/[0.04] hover:border-accent/40 hover:bg-white/[0.07]',
                   )}
                 >

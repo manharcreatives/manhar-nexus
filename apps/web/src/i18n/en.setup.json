@@ -2,11 +2,13 @@
   "shell": {
     "nav": {
       "floor": "Floor setup",
-      "menu": "Menu"
+      "menu": "Menu",
+      "profile": "Restaurant profile"
     },
     "keywords": {
       "floor": "tables areas seats layout dining rooms add edit setup",
-      "menu": "catalog items dishes prices categories variants tax setup"
+      "menu": "catalog items dishes prices categories variants tax setup",
+      "profile": "brand colour logo name invoice gst tax address identity"
     }
   },
   "setup": {
@@ -234,5 +236,37 @@
   },
   "auth": {
     "passwordChanged": "Password changed. Sign in with your new password."
+  },
+  "profile": {
+    "title": "Restaurant profile",
+    "subtitle": "Your name, brand colour and the details printed on invoices.",
+    "identity": "Identity",
+    "name": "Display name",
+    "nameHint": "Shown across the app.",
+    "legalName": "Legal name",
+    "colour": "Brand colour",
+    "colourHint": "Buttons, highlights and glows use this colour for everyone in your restaurant. Dark colours switch button text to white.",
+    "custom": "Custom",
+    "previewButton": "Primary button",
+    "previewPill": "Status",
+    "preset": {
+      "green": "Green",
+      "teal": "Teal",
+      "blue": "Blue",
+      "violet": "Violet",
+      "rose": "Rose",
+      "orange": "Orange",
+      "amber": "Amber"
+    },
+    "invoice": "Invoice details",
+    "invoiceHint": "Printed on bills. Leave blank to use the restaurant name.",
+    "invoiceName": "Name on invoices",
+    "invoiceAddress": "Address",
+    "taxId": "GST / tax number",
+    "taxIdHint": "For example 22AAAAA0000A1Z5.",
+    "nameRequired": "Enter the restaurant name.",
+    "colourInvalid": "Pick a valid colour.",
+    "saved": "Profile saved.",
+    "failed": "The profile could not be saved."
   }
 }

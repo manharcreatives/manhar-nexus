@@ -31,7 +31,7 @@ describe('page access (single definition)', () => {
 
   it('gives owners every tenant page and no platform page', () => {
     expect(visible('BUSINESS', 'owner')).toEqual([
-      '/', '/modules', '/config', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/floor', '/menu', '/costs',
+      '/', '/modules', '/config', '/profile', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/floor', '/menu', '/costs',
     ]);
   });
   it('keeps the platform realm out of tenant pages', () => {

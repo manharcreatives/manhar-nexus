@@ -331,7 +331,7 @@ export function KitchenPage() {
                   <span
                     className={cn(
                       'ticket-no grid h-8 min-w-8 place-items-center rounded-control px-2 text-base font-semibold',
-                      tickets.length > 0 ? 'bg-accent text-[#04120a] font-semibold' : 'bg-sunken text-muted',
+                      tickets.length > 0 ? 'bg-accent text-on-accent font-semibold' : 'bg-sunken text-muted',
                     )}
                   >
                     {tickets.length}

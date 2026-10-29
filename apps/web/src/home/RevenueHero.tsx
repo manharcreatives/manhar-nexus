@@ -76,7 +76,7 @@ function Reference({ current, base, baseLabel }: { current: number; base: number
             aria-valuetext={t('home.reference.progress', { pct: share })}
             className="mt-2 h-1.5 overflow-hidden rounded-full bg-line"
           >
-            <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-strong shadow-[0_0_14px_rgb(34_197_94/0.6)]" style={{ width: `${Math.min(share, 100)}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-strong shadow-[0_0_14px_rgb(var(--accent-rgb)/0.6)]" style={{ width: `${Math.min(share, 100)}%` }} />
           </div>
           <p className="mt-1.5 text-xs text-muted">{t('home.reference.progress', { pct: share })}</p>
         </>

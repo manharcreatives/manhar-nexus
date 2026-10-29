@@ -179,6 +179,8 @@ export class AuthService {
     businessId: string | null;
     status: string;
     mustChangePassword: boolean;
+    /** Own workspace name and accent colour (no permission needed: every staff member sees their restaurant's brand). */
+    business: { name: string; accentColor: string | null } | null;
     roles: { key: string; name: string }[];
   }> {
     const user = await this.prisma.user.findUnique({
@@ -186,6 +188,9 @@ export class AuthService {
       include: { userRoles: { include: { role: true } } },
     });
     if (!user) throw new UnauthorizedError('Account not found');
+    const biz = user.businessId
+      ? await this.prisma.business.findUnique({ where: { id: user.businessId }, select: { name: true, accentColor: true } })
+      : null;
     return {
       id: user.id,
       email: user.email,
@@ -194,6 +199,7 @@ export class AuthService {
       businessId: user.businessId,
       status: user.status,
       mustChangePassword: user.mustChangePassword,
+      business: biz ? { name: biz.name, accentColor: biz.accentColor } : null,
       roles: user.userRoles.map((ur) => ({ key: ur.role.key, name: ur.role.name })),
     };
   }
