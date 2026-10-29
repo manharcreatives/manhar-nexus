@@ -12,10 +12,10 @@ const visible = (key: string, realm: 'BUSINESS' | 'PLATFORM' = 'BUSINESS') =>
  */
 describe('role -> visible pages', () => {
   it('owner sees every tenant page, never the platform pages', () => {
-    expect(visible('owner')).toEqual(['/', '/modules', '/config', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/costs']);
+    expect(visible('owner')).toEqual(['/', '/modules', '/config', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/floor', '/menu', '/costs']);
   });
   it('location manager has no Module Center (no core.modules.view) but everything else', () => {
-    expect(visible('location-manager')).toEqual(['/', '/config', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/costs']);
+    expect(visible('location-manager')).toEqual(['/', '/config', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/floor', '/menu', '/costs']);
   });
   it('accountant sees Reports, Activity and Costs only', () => {
     expect(visible('accountant')).toEqual(['/', '/reports', '/activity', '/costs']);

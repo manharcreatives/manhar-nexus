@@ -10,6 +10,7 @@ import { homeAccess } from './access';
 import { RevenueHero } from './RevenueHero';
 import { OpsWidgets } from './OpsWidgets';
 import { PlatformHome } from './PlatformHome';
+import { SetupChecklist } from './SetupChecklist';
 
 function todayHeading(): string {
   return new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -72,6 +73,8 @@ export function HomePage() {
           ) : undefined
         }
       />
+
+      {nav.isTenantAdmin && <SetupChecklist />}
 
       {nav.isPlatform ? (
         <PlatformHome />

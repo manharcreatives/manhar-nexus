@@ -11,6 +11,8 @@ import { CostsPage } from '../costs/CostsPage';
 import { HomePage } from '../home/HomePage';
 import { BillsPage } from '../bills/BillsPage';
 import { PeoplePage } from '../people/PeoplePage';
+import { FloorSetupPage } from '../setup/FloorSetupPage';
+import { MenuSetupPage } from '../setup/MenuSetupPage';
 import * as Icons from '../ui/icons';
 import type { Access } from './access';
 
@@ -52,6 +54,8 @@ export const PAGES: PageDef[] = [
   { path: '/tables', labelKey: 'shell.nav.tables', keywordsKey: 'shell.keywords.tables', icon: Icons.Armchair, group: 'restaurant', can: (a) => a.canSeeTables, Component: TablesPage, goKey: 't' },
   { path: '/kitchen', labelKey: 'shell.nav.kitchen', keywordsKey: 'shell.keywords.kitchen', icon: Icons.ChefHat, group: 'restaurant', can: (a) => a.canSeeKitchen, Component: KitchenPage, goKey: 'k' },
   { path: '/bills', labelKey: 'shell.nav.bills', keywordsKey: 'shell.keywords.bills', icon: Icons.Receipt, group: 'restaurant', can: (a) => a.canSeeBills, Component: BillsPage },
+  { path: '/floor', labelKey: 'shell.nav.floor', keywordsKey: 'shell.keywords.floor', icon: Icons.LayoutPanelTop, group: 'restaurant', can: (a) => a.isTenantAdmin, Component: FloorSetupPage, goKey: 'f' },
+  { path: '/menu', labelKey: 'shell.nav.menu', keywordsKey: 'shell.keywords.menu', icon: Icons.UtensilsCrossed, group: 'restaurant', can: (a) => a.isTenantAdmin, Component: MenuSetupPage, goKey: 'm' },
   { path: '/costs', labelKey: 'shell.nav.costs', keywordsKey: 'shell.keywords.costs', icon: Icons.Wallet, group: 'operations', can: (a) => a.canSeeCosts, Component: CostsPage },
   { path: '/commercial', labelKey: 'shell.nav.commercial', keywordsKey: 'shell.keywords.commercial', icon: Icons.Receipt, group: 'platform', can: (a) => a.isPlatform, Component: CommercialPage },
   { path: '/onboarding', labelKey: 'shell.nav.onboarding', keywordsKey: 'shell.keywords.onboarding', icon: Icons.Rocket, group: 'platform', can: (a) => a.isPlatform, Component: OnboardingPage },
