@@ -1,53 +1,68 @@
 @import "tailwindcss";
-/* Fraunces with the optical-size axis: hairline-contrast display cuts at hero
-   sizes, sturdier text cuts at 14-20px. Italic loads only where it is used. */
-@import "@fontsource-variable/fraunces/opsz.css";
-@import "@fontsource-variable/fraunces/opsz-italic.css";
-@import "@fontsource-variable/inter-tight/index.css";
 
 /*
- * Design tokens — "Ledger & Ember" / personality "warm precision".
- * Single source of styling truth. Rebrand: change --color-accent-* here (or
- * override at runtime via applyBrand() in lib/brand.ts).
- * See docs/ui/ART_DIRECTION.md and docs/ui/DESIGN_SYSTEM.md.
+ * Self-hosted Clash Display + Satoshi (Fontshare, free for commercial use),
+ * the same pair the Manhar Creatives site and CRM use. No third-party requests.
+ */
+@font-face { font-family: "Clash Display"; src: url("/fonts/clash-display-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Clash Display"; src: url("/fonts/clash-display-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Clash Display"; src: url("/fonts/clash-display-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Clash Display"; src: url("/fonts/clash-display-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-300.woff2") format("woff2"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Satoshi Fallback"; src: local("Arial"); size-adjust: 102%; ascent-override: 94%; descent-override: 24%; line-gap-override: 0%; }
+@font-face { font-family: "Clash Display Fallback"; src: local("Arial"); size-adjust: 104%; ascent-override: 90%; descent-override: 22%; line-gap-override: 0%; }
+
+/*
+ * Design tokens: the Manhar family look (dark canvas, one green accent, glass
+ * surfaces), shared with manhar-creatives-website-v2 and manhar-crm.
+ * Token NAMES are kept from the earlier paper theme so every component follows
+ * the new palette: paper = canvas, surface = card, sunken = well, ink = text.
+ * Rebrand: change --color-accent-* here (or override at runtime via applyBrand()).
  */
 @theme {
-  --font-display: "Fraunces Variable", Georgia, serif;
-  --font-ui: "Inter Tight Variable", ui-sans-serif, sans-serif;
+  --font-display: "Clash Display", "Clash Display Fallback", "Space Grotesk", sans-serif;
+  --font-ui: "Satoshi", "Satoshi Fallback", "Inter", ui-sans-serif, sans-serif;
   /* Ticket numbers and codes: the system monospace, never a webfont. */
   --font-ticket: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
 
-  --color-paper: #f6f1e9;
-  --color-surface: #fffdf9;
-  --color-sunken: #ece5d8;
-  --color-line: #ddd4c3;
-  --color-ink: #1b1a17;
-  --color-ink-2: #2a2824;
-  --color-muted: #6b6558;
+  --color-paper: #070a09;
+  --color-surface: #0f1513;
+  --color-sunken: #161e1b;
+  --color-line: #222d29;
+  --color-ink: #f3f7f5;
+  --color-ink-2: #d5ddd9;
+  --color-muted: #94a09b;
 
-  --color-accent: #b53a0a;
-  --color-accent-strong: #8f2d07;
-  --color-accent-soft: #fbe6da;
-  /* Ember on ink (login panel, toasts): AA 6.1:1 on #1b1a17. */
-  --color-ember-glow: #f08a5d;
+  --color-accent: #22c55e;
+  --color-accent-strong: #4ade80;
+  --color-accent-soft: #0e2a1a;
+  /* Bright accent for glows and text on the darkest panels. */
+  --color-ember-glow: #4ade80;
 
-  --color-ok: #3f6212;
-  --color-ok-soft: #e7efd4;
-  --color-warn: #92600a;
-  --color-warn-soft: #fbefcf;
-  --color-bad: #a32119;
-  --color-bad-soft: #fbe0dd;
-  --color-info: #1f5a6b;
-  --color-info-soft: #dcecf0;
+  --color-ok: #4ade80;
+  --color-ok-soft: #0f2a1b;
+  --color-warn: #fbbf24;
+  --color-warn-soft: #2a2108;
+  --color-bad: #f87171;
+  --color-bad-soft: #2d1415;
+  --color-info: #60a5fa;
+  --color-info-soft: #101f38;
 
-  --radius-control: 0.5rem;
-  --radius-panel: 0.875rem;
+  --radius-control: 0.625rem;
+  --radius-panel: 1rem;
 
-  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-stamp: cubic-bezier(0.34, 1.4, 0.64, 1);
   --duration-micro: 160ms;
-  --duration-enter: 220ms;
-  --duration-surface: 280ms;
+  --duration-enter: 360ms;
+  --duration-surface: 300ms;
+
+  --shadow-card: 0 4px 24px rgb(0 0 0 / 0.35);
+  --shadow-pop: 0 18px 60px rgb(0 0 0 / 0.6);
+  --shadow-glow: 0 0 60px rgb(34 197 94 / 0.16);
 }
 
 @layer base {
@@ -57,36 +72,68 @@
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    font-feature-settings: "cv11", "ss01";
+    color-scheme: dark;
     scrollbar-color: var(--color-line) transparent;
   }
   body {
     margin: 0;
     min-height: 100vh;
+    background: var(--color-paper);
+  }
+  /* Ambient aurora + film grain under everything. Static, GPU-cheap, print-hidden. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 38rem at 12% -8%, rgb(34 197 94 / 0.10), transparent 62%),
+      radial-gradient(48rem 32rem at 100% 8%, rgb(74 222 128 / 0.055), transparent 60%),
+      radial-gradient(56rem 36rem at 50% 118%, rgb(34 197 94 / 0.07), transparent 62%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  #root { position: relative; z-index: 1; }
+  @media print { body::before, body::after { display: none; } }
+  h1, h2, h3, .font-display {
+    word-spacing: 0.08em;
   }
   h1, h2, h3 {
     font-family: var(--font-display);
     font-optical-sizing: auto;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
   p {
     text-wrap: pretty;
   }
   ::selection {
-    background: var(--color-accent-soft);
-    color: var(--color-ink);
+    background: rgb(34 197 94 / 0.32);
+    color: #fff;
   }
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+    box-shadow: 0 0 0 5px rgb(34 197 94 / 0.22);
+    border-radius: var(--radius-control);
   }
   /* Our own show/hide toggle replaces the browser's. */
   input::-ms-reveal, input::-ms-clear { display: none; }
   input:focus-visible, select:focus-visible, textarea:focus-visible {
     outline-offset: 0;
     border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgb(34 197 94 / 0.2);
   }
+  input, select, textarea { color-scheme: dark; }
+  input[role="combobox"]:focus-visible { box-shadow: none; outline: none; }
   hr {
     border: 0;
     border-top: 1px solid var(--color-line);
@@ -153,7 +200,6 @@
 .nx-ledger {
   display: inline-block;
   font-family: var(--font-display);
-  font-optical-sizing: auto;
   font-variant-numeric: tabular-nums lining-nums;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -194,6 +240,33 @@
   --stub-bg: var(--color-paper);
   position: relative;
 }
+/* Hero figure: soft white-to-green gradient with a restrained glow (max one per screen). */
+.nx-hero-figure {
+  color: #fff;
+  text-shadow: 0 0 40px rgb(34 197 94 / 0.45), 0 0 90px rgb(34 197 94 / 0.2);
+}
+
+/* ───────────── Glass surfaces ───────────── */
+.nx-glass {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.015));
+  border: 1px solid rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), var(--shadow-card);
+  backdrop-filter: blur(14px);
+}
+.nx-pop {
+  background: rgb(17 24 23 / 0.86);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), var(--shadow-pop);
+  backdrop-filter: blur(22px);
+}
+.nx-card-hover { transition: transform var(--duration-micro) var(--ease-out-soft), border-color var(--duration-micro), box-shadow var(--duration-micro); }
+.nx-card-hover:hover { transform: translateY(-2px); border-color: rgb(34 197 94 / 0.35); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 10px 36px -12px rgb(34 197 94 / 0.25); }
+.nx-primary {
+  background: linear-gradient(180deg, #2fd46b, #16a34a);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 0 0 1px rgb(34 197 94 / 0.5), 0 8px 24px -8px rgb(34 197 94 / 0.55);
+}
+.nx-primary:hover:not(:disabled) { background: linear-gradient(180deg, #4ade80, #22c55e); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 0 0 1px rgb(74 222 128 / 0.6), 0 10px 30px -8px rgb(34 197 94 / 0.7); }
+.nx-eyebrow-dot::before { content: ""; width: 6px; height: 6px; border-radius: 99px; background: var(--color-accent); box-shadow: 0 0 10px var(--color-accent); display: inline-block; margin-right: 8px; vertical-align: 1px; }
 /* Perforated top edge, as if torn off the kitchen printer roll. */
 .nx-stub[data-perforated] {
   -webkit-mask: radial-gradient(circle 3.5px at 50% 0, #0000 97%, #000) 0 0 / 12px 100% repeat-x;
@@ -228,20 +301,21 @@
     box-shadow var(--duration-micro) var(--ease-out-soft);
 }
 .nx-tile[data-status="OCCUPIED"] {
-  background: color-mix(in srgb, var(--color-accent-soft) 55%, var(--color-surface));
-  box-shadow: inset 0 3px 0 var(--color-accent);
+  background: linear-gradient(180deg, rgb(34 197 94 / 0.16), rgb(34 197 94 / 0.04) 70%), var(--color-surface);
+  box-shadow: inset 0 3px 0 var(--color-accent), 0 0 32px -14px rgb(34 197 94 / 0.55);
 }
 .nx-tile[data-status="CLEANING"] {
   background:
-    repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--color-line) 70%, transparent) 7px 8px),
+    repeating-linear-gradient(135deg, transparent 0 7px, rgb(255 255 255 / 0.05) 7px 8px),
     var(--color-sunken);
 }
 button.nx-tile:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px -10px rgb(27 26 23 / 0.35);
+  border-color: rgb(34 197 94 / 0.45);
+  box-shadow: 0 10px 30px -14px rgb(34 197 94 / 0.45);
 }
 button.nx-tile[data-status="OCCUPIED"]:hover {
-  box-shadow: inset 0 3px 0 var(--color-accent), 0 6px 18px -10px rgb(27 26 23 / 0.35);
+  box-shadow: inset 0 3px 0 var(--color-accent), 0 12px 34px -12px rgb(34 197 94 / 0.6);
 }
 button.nx-tile:active {
   transform: translateY(0) scale(0.985);
@@ -250,7 +324,7 @@ button.nx-tile:active {
 .nx-meter {
   height: 2px;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  background: rgb(255 255 255 / 0.08);
   overflow: hidden;
 }
 .nx-meter > span {
@@ -261,12 +335,14 @@ button.nx-tile:active {
   transform-origin: 0 50%;
 }
 
-/* Ink panel texture (login, OG): ledger ruling + film grain. */
+/* Login panel: deep canvas with an aurora, ledger ruling and film grain. */
 .nx-ledger-paper {
-  background-color: var(--color-ink);
+  background-color: #060908;
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(to bottom, transparent 0 39px, rgb(246 241 233 / 0.045) 39px 40px);
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(44rem 30rem at 18% 8%, rgb(34 197 94 / 0.26), transparent 62%),
+    radial-gradient(36rem 28rem at 92% 92%, rgb(74 222 128 / 0.14), transparent 62%),
+    repeating-linear-gradient(to bottom, transparent 0 39px, rgb(255 255 255 / 0.035) 39px 40px);
 }
 
 /* ───────────── Motion ───────────── */
@@ -343,10 +419,10 @@ button.nx-tile:active {
 .nx-stamp { transform: rotate(-8deg); }
 /* New kitchen ticket: a static ember wash (no motion, readable at once) that the
    page clears after two seconds; the 240ms slide above is motion-only. */
-.nx-arriving { background-color: var(--color-accent-soft) !important; }
+.nx-arriving { background-color: rgb(34 197 94 / 0.18) !important; }
 
 /* Native <dialog> chrome. */
 dialog.nx-dialog::backdrop {
-  background: rgb(27 26 23 / 0.42);
-  backdrop-filter: blur(2px);
+  background: rgb(2 5 4 / 0.66);
+  backdrop-filter: blur(6px);
 }

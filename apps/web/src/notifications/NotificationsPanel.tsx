@@ -201,7 +201,7 @@ export function NotificationsPanel() {
         aria-controls={open ? panelId : undefined}
         aria-label={totalUnread > 0 ? t('notifications.ariaLabel', { count: totalUnread }) : t('notifications.ariaLabelNone')}
         onClick={toggle}
-        className="inline-flex min-h-11 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-ink hover:bg-sunken"
+        className="inline-flex min-h-11 items-center gap-2 rounded-control border border-white/10 bg-white/[0.04] px-3 text-sm text-ink hover:border-accent/40 hover:bg-white/[0.07]"
       >
         <span aria-hidden>{t('shell.alerts')}</span>
         {totalUnread > 0 && (
@@ -221,7 +221,7 @@ export function NotificationsPanel() {
           role="dialog"
           aria-label={t('notifications.panelLabel')}
           tabIndex={-1}
-          className="fixed inset-x-4 top-16 z-50 rounded-panel border border-line bg-surface shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
+          className="fixed inset-x-4 top-16 z-50 nx-pop rounded-panel sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
         >
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2">
             <h2 className="text-base font-semibold">

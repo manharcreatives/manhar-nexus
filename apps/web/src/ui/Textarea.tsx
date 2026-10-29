@@ -19,7 +19,7 @@ export function Textarea({ label, error, className, ...rest }: TextareaProps) {
         rows={3}
         {...rest}
         className={cn(
-          'w-full rounded-control border bg-surface px-3 py-2 text-base',
+          'w-full rounded-control border bg-white/[0.035] px-3 py-2 text-base',
           error ? 'border-bad' : 'border-line hover:border-muted/70',
           className,
         )}

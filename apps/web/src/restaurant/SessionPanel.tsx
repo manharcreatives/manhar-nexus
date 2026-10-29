@@ -61,7 +61,7 @@ function OrderCard({
   }
 
   return (
-    <article className={cn('nx-stub rounded-panel border border-line bg-surface', order.status === 'CANCELLED' && 'opacity-70')}>
+    <article className={cn('nx-stub nx-glass rounded-panel', order.status === 'CANCELLED' && 'opacity-70')}>
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3.5 pb-3">
         <h3 className="flex items-baseline gap-2.5">
           <span className="font-display text-lg font-semibold">{t('restaurant.session.round', { n: order.roundNumber })}</span>

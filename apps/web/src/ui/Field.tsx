@@ -24,8 +24,8 @@ export function Field({ label, hint, error, adornment, className, ...rest }: Fie
           aria-describedby={describedBy}
           {...rest}
           className={cn(
-            'min-h-11 w-full rounded-control border bg-surface px-3 text-base text-ink transition-colors duration-(--duration-micro) placeholder:text-muted/70',
-            error ? 'border-bad' : 'border-line hover:border-muted/70',
+            'min-h-11 w-full rounded-control border bg-white/[0.035] px-3 text-base text-ink transition-colors duration-(--duration-micro) placeholder:text-muted/70',
+            error ? 'border-bad' : 'border-white/10 hover:border-white/25',
             adornment ? 'pr-11' : '',
             className,
           )}

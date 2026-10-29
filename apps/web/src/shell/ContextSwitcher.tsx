@@ -175,7 +175,7 @@ export function ContextSwitcher({ isPlatform }: { isPlatform: boolean }) {
       {open && (
         <div
           className={cn(
-            'z-50 overflow-hidden rounded-panel border border-line bg-surface',
+            'z-50 nx-pop overflow-hidden rounded-panel',
             'max-sm:fixed max-sm:inset-x-4 max-sm:top-15 sm:absolute sm:top-full sm:left-0 sm:mt-1.5 sm:w-72',
           )}
         >

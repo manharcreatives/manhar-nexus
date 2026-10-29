@@ -185,7 +185,7 @@ export function PeoplePage() {
           {/* Phones: stacked cards. */}
           <ul className="space-y-3 sm:hidden">
             {items.map((p) => (
-              <li key={p.id} className="space-y-3 rounded-panel border border-line bg-surface p-4">
+              <li key={p.id} className="space-y-3 nx-glass rounded-panel p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium">

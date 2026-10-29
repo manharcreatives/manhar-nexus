@@ -76,7 +76,7 @@ function Reference({ current, base, baseLabel }: { current: number; base: number
             aria-valuetext={t('home.reference.progress', { pct: share })}
             className="mt-2 h-1.5 overflow-hidden rounded-full bg-line"
           >
-            <div className="h-full rounded-full bg-ink/60" style={{ width: `${Math.min(share, 100)}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-strong shadow-[0_0_14px_rgb(34_197_94/0.6)]" style={{ width: `${Math.min(share, 100)}%` }} />
           </div>
           <p className="mt-1.5 text-xs text-muted">{t('home.reference.progress', { pct: share })}</p>
         </>
@@ -123,7 +123,7 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
           {t('home.netRevenueToday')}
         </h2>
         {r && (
-          <div role="group" aria-label={t('home.basis.label')} className="inline-flex rounded-control border border-line bg-surface p-0.5 text-xs">
+          <div role="group" aria-label={t('home.basis.label')} className="inline-flex rounded-control border border-white/10 bg-white/[0.03] p-0.5 text-xs">
             {(['lastWeek', 'yesterday'] as const).map((b) => (
               <button
                 key={b}
@@ -132,7 +132,7 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
                 onClick={() => setBasis(b)}
                 className={cn(
                   'min-h-8 rounded-[0.375rem] px-2.5 font-medium transition-colors duration-(--duration-micro)',
-                  basis === b ? 'bg-sunken font-semibold text-ink' : 'text-muted hover:text-ink',
+                  basis === b ? 'bg-white/10 font-semibold text-ink' : 'text-muted hover:text-ink',
                 )}
               >
                 {b === 'lastWeek' ? t('home.basis.lastWeekday', { weekday: weekdayName(r.lastWeek.date) }) : t('home.basis.yesterday')}
@@ -158,7 +158,7 @@ export function RevenueHero({ withSeries, locationId }: { withSeries: boolean; l
       {r && base && (
         <>
           <p className="mt-4">
-            <LedgerFigure minor={r.today.netMinor} rule="double" reveal className="text-[3.25rem] sm:text-[4.5rem] lg:text-[5.5rem]" />
+            <LedgerFigure minor={r.today.netMinor} rule="double" reveal className="nx-hero-figure text-[3.25rem] sm:text-[4.5rem] lg:text-[5.5rem]" />
           </p>
           <div className="mt-4">
             <Reference current={r.today.netMinor} base={base.netMinor} baseLabel={baseLabel} />

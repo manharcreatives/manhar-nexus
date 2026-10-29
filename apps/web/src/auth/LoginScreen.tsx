@@ -27,10 +27,9 @@ function HeroLine({ text }: { text: string }) {
   const tail = cut > 0 ? text.slice(cut + 1) : text;
   return (
     <p
-      className="max-w-[32rem] font-display text-[3.5rem] leading-[1.02] font-medium tracking-[-0.03em] xl:text-[4.25rem]"
-      style={{ fontVariationSettings: '"opsz" 144' }}
+      className="max-w-[32rem] font-display text-[3.5rem] leading-[1.02] font-semibold tracking-[-0.02em] xl:text-[4.25rem]"
     >
-      {head} <span className="font-normal text-ember-glow italic">{tail}</span>
+      {head} <span className="bg-gradient-to-r from-accent to-[#bbf7d0] bg-clip-text text-transparent">{tail}</span>
     </p>
   );
 }
@@ -101,18 +100,18 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => setCapsLock(e.getModifierState('CapsLock'));
 
   return (
-    <div className="grid min-h-screen w-full bg-paper lg:grid-cols-[1.1fr_1fr]">
-      <aside className="nx-ledger-paper relative hidden overflow-hidden text-paper lg:flex lg:flex-col lg:justify-between lg:py-12 lg:pr-12 lg:pl-20">
+    <div className="grid min-h-screen w-full lg:grid-cols-[1.1fr_1fr]">
+      <aside className="nx-ledger-paper relative hidden overflow-hidden text-ink lg:flex lg:flex-col lg:justify-between lg:py-12 lg:pr-12 lg:pl-20">
         {/* The ledger's margin: a double ember rule down the page. */}
         <span aria-hidden className="absolute inset-y-0 left-10 w-[5px] border-x border-ember-glow/45" />
         <Wordmark on="ink" size="md" />
         <div className="relative">
           <p className="eyebrow mb-5 text-ember-glow!">{t('auth.heroEyebrow')}</p>
           <HeroLine text={t('auth.heroLine')} />
-          <p className="mt-6 max-w-sm text-base leading-relaxed text-paper/72">{t('auth.heroBody')}</p>
+          <p className="mt-6 max-w-sm text-base leading-relaxed text-ink/72">{t('auth.heroBody')}</p>
         </div>
         <div className="flex items-end justify-between gap-6">
-          <p className="text-sm text-paper/55">{t('auth.heroFootnote')}</p>
+          <p className="text-sm text-ink/55">{t('auth.heroFootnote')}</p>
         </div>
         <TicketVignette />
       </aside>
@@ -123,7 +122,7 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
             <Wordmark size="md" />
           </div>
           <p className="eyebrow mb-2">{t('auth.formEyebrow')}</p>
-          <h1 className="text-[2rem] leading-tight font-semibold tracking-[-0.025em]">{t('auth.signInTitle')}</h1>
+          <h1 className="text-[2rem] leading-tight font-semibold tracking-[-0.015em]">{t('auth.signInTitle')}</h1>
           <p className="mt-2 text-sm text-muted">{t('auth.signInSubtitle')}</p>
 
           {notice && (

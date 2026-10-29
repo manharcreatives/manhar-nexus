@@ -150,7 +150,7 @@ export function OnboardingPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedId(o.businessId)}
-                    className="block w-full rounded-panel border border-line bg-surface p-4 text-left transition-colors hover:border-accent"
+                    className="block w-full nx-glass rounded-panel p-4 text-left transition-colors hover:border-accent"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">

@@ -138,7 +138,7 @@ function SettingRow({
   const shown = def.sensitive ? null : friendlyValue(t, def.namespace, def.key, displayValue);
 
   return (
-    <li className="rounded-panel border border-line bg-surface p-4">
+    <li className="nx-glass rounded-panel p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium break-words">{name}</p>
@@ -521,7 +521,7 @@ function AlertRulesTab() {
           {state.rules.map((rule) => {
             const busy = busyIds.has(rule.id);
             return (
-              <li key={rule.id} className="rounded-panel border border-line bg-surface p-4">
+              <li key={rule.id} className="nx-glass rounded-panel p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium break-words">

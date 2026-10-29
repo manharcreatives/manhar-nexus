@@ -6,10 +6,10 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'md' | 'lg';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.14),0_1px_2px_rgb(143_45_7/0.25)] hover:bg-accent-strong',
-  secondary: 'border border-line bg-surface text-ink hover:border-ink/25 hover:bg-paper',
-  ghost: 'text-ink hover:bg-sunken/70',
-  danger: 'bg-bad text-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] hover:brightness-90',
+  primary: 'nx-primary text-[#04120a] font-semibold',
+  secondary: 'border border-white/10 bg-white/[0.04] text-ink hover:border-accent/40 hover:bg-white/[0.07]',
+  ghost: 'text-ink hover:bg-white/[0.06]',
+  danger: 'bg-bad/90 text-[#1a0606] font-semibold shadow-[inset_0_1px_0_rgb(255_255_255/0.2)] hover:bg-bad',
 };
 const sizes: Record<Size, string> = {
   md: 'min-h-11 px-4 text-sm', // 44px minimum target

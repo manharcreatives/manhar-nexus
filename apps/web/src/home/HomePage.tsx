@@ -61,8 +61,8 @@ export function HomePage() {
                   className={cn(
                     'nx-press inline-flex min-h-11 items-center gap-1.5 rounded-control px-4',
                     a.primary
-                      ? 'bg-accent text-surface shadow-[inset_0_1px_0_rgb(255_255_255/0.14),0_1px_2px_rgb(143_45_7/0.25)] hover:bg-accent-strong'
-                      : 'border border-line bg-surface hover:border-ink/25 hover:bg-paper',
+                      ? 'nx-primary font-semibold text-[#04120a]'
+                      : 'border border-white/10 bg-white/[0.04] hover:border-accent/40 hover:bg-white/[0.07]',
                   )}
                 >
                   {a.label}

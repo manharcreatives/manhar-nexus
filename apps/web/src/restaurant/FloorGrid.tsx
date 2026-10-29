@@ -7,7 +7,7 @@ import { minutesSince } from './time';
 import { type DiningTable, type GuestSession, timeAgo } from './api';
 
 const EDGE: Record<DiningTable['status'], string> = {
-  AVAILABLE: 'border-line hover:border-ink/30',
+  AVAILABLE: 'border-white/10 hover:border-accent/40',
   OCCUPIED: 'border-accent/30 hover:border-accent/60',
   CLEANING: 'border-line',
 };

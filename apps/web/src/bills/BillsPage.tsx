@@ -110,7 +110,7 @@ export function BillsPage() {
     else groups.push({ day, bills: [b] });
   }
 
-  const chip = (on: boolean) => cn(on && 'border-ink bg-sunken font-semibold');
+  const chip = (on: boolean) => cn(on && 'border-accent bg-accent/12 font-semibold');
   const openBill = openId ? items.find((x) => x.id === openId) : undefined;
 
   return (
@@ -214,7 +214,7 @@ export function BillsPage() {
           {groups.map((g) => (
             <section key={g.day} aria-label={dayHeading(g.day)} className="mb-6">
               <h2 className="eyebrow mb-2">{dayHeading(g.day)}</h2>
-              <ul className="divide-y divide-line overflow-hidden rounded-panel border border-line bg-surface">
+              <ul className="divide-y divide-line overflow-hidden nx-glass rounded-panel">
                 {g.bills.map((b) => {
                   const methods = methodsOf(b);
                   const detail = [b.tableCode ?? t('bills.noTable'), timeOf(b.paidAt ?? b.createdAt), methods ?? (b.status === 'PAID' ? null : t('bills.notPaid'))]

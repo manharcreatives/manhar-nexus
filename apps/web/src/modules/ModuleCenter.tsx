@@ -69,7 +69,7 @@ function ModuleCard({
   const titleId = `mod-${mod.key}`;
 
   return (
-    <li className="rounded-panel border border-line bg-surface p-5" aria-labelledby={titleId}>
+    <li className="nx-glass rounded-panel p-5" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">

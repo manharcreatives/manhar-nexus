@@ -115,8 +115,8 @@ export function CommandPalette({ open, onClose, commands }: Props) {
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        'mx-auto mt-[12vh] w-[min(38rem,calc(100vw-2rem))] overflow-hidden rounded-panel border border-line bg-surface p-0 text-ink',
-        'backdrop:bg-ink/35',
+        'mx-auto mt-[12vh] w-[min(38rem,calc(100vw-2rem))] nx-pop overflow-hidden rounded-panel p-0 text-ink',
+        'backdrop:bg-black/60 backdrop:backdrop-blur-sm',
       )}
     >
       {open && (
@@ -196,7 +196,7 @@ export function CommandPalette({ open, onClose, commands }: Props) {
             {t('shell.palette.count', { count: results.length })}
           </p>
 
-          <div className="hidden items-center gap-4 border-t border-line bg-paper px-4 py-2.5 text-xs text-muted sm:flex">
+          <div className="hidden items-center gap-4 border-t border-white/[0.07] bg-white/[0.02] px-4 py-2.5 text-xs text-muted sm:flex">
             <span className="inline-flex items-center gap-1.5">
               <Kbd>↑</Kbd>
               <Kbd>↓</Kbd>

@@ -326,12 +326,12 @@ export function KitchenPage() {
             const tickets = byStatus(status);
             return (
               <section key={status} aria-label={t(`restaurant.kitchen.columns.${status}`)} className="min-w-0">
-                <div className="mb-4 flex items-center justify-between border-b-2 border-ink pb-2.5">
+                <div className="mb-4 flex items-center justify-between border-b-2 border-accent/60 pb-2.5">
                   <h2 className="text-xl font-semibold">{t(`restaurant.kitchen.columns.${status}`)}</h2>
                   <span
                     className={cn(
                       'ticket-no grid h-8 min-w-8 place-items-center rounded-control px-2 text-base font-semibold',
-                      tickets.length > 0 ? 'bg-ink text-paper' : 'bg-sunken text-muted',
+                      tickets.length > 0 ? 'bg-accent text-[#04120a] font-semibold' : 'bg-sunken text-muted',
                     )}
                   >
                     {tickets.length}

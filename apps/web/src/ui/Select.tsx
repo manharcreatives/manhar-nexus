@@ -19,7 +19,7 @@ export function Select({ label, error, className, children, ...rest }: SelectPro
         aria-invalid={error ? true : undefined}
         {...rest}
         className={cn(
-          'min-h-11 w-full rounded-control border bg-surface px-3 text-base',
+          'min-h-11 w-full rounded-control border bg-white/[0.035] px-3 text-base',
           error ? 'border-bad' : 'border-line hover:border-muted/70',
           className,
         )}

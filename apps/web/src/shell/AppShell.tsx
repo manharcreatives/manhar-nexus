@@ -142,8 +142,8 @@ export function AppShell() {
                         'group relative flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-(--duration-micro)',
                         'before:absolute before:inset-y-2.5 before:left-0 before:w-[3px] before:rounded-full before:transition-colors',
                         isActive
-                          ? 'bg-sunken/70 text-ink before:bg-accent [&_svg]:text-accent'
-                          : 'text-ink/80 before:bg-transparent hover:bg-sunken/45 hover:text-ink [&_svg]:text-muted',
+                          ? 'bg-gradient-to-r from-accent/18 to-accent/[0.03] text-ink shadow-[inset_0_0_0_1px_rgb(34_197_94/0.22)] before:bg-accent before:shadow-[0_0_12px_var(--color-accent)] [&_svg]:text-accent-strong'
+                          : 'text-ink/75 before:bg-transparent hover:bg-white/[0.05] hover:text-ink [&_svg]:text-muted hover:[&_svg]:text-ink',
                       )
                     }
                   >
@@ -162,14 +162,14 @@ export function AppShell() {
   const mod = modKeyLabel();
 
   return (
-    <div className="flex h-screen w-full flex-col bg-paper">
+    <div className="flex h-screen w-full flex-col">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2"
       >
         {t('shell.skipToContent')}
       </a>
-      <header className="relative z-40 flex h-14 shrink-0 items-center gap-1 border-b border-line bg-surface px-2 sm:gap-2 sm:px-4">
+      <header className="relative z-40 flex h-16 shrink-0 items-center gap-1 border-b border-white/[0.07] bg-[#070a09]/70 px-2 backdrop-blur-xl sm:gap-2 sm:px-4">
         <button
           type="button"
           className="grid size-11 shrink-0 place-items-center rounded-control hover:bg-sunken lg:hidden"
@@ -192,7 +192,7 @@ export function AppShell() {
             aria-keyshortcuts="Control+K Meta+K /"
             className={cn(
               'grid size-11 place-items-center rounded-control text-muted transition-colors duration-(--duration-micro) hover:bg-sunken hover:text-ink',
-              'lg:flex lg:h-10 lg:w-60 lg:items-center lg:justify-between lg:gap-2 lg:border lg:border-line lg:bg-paper lg:px-3 lg:text-sm',
+              'lg:flex lg:h-10 lg:w-64 lg:whitespace-nowrap lg:items-center lg:justify-between lg:gap-2 lg:rounded-full lg:border lg:border-white/10 lg:bg-white/[0.04] lg:px-4 lg:text-sm lg:hover:border-accent/40',
             )}
           >
             <span className="flex items-center gap-2">
@@ -216,7 +216,7 @@ export function AppShell() {
       <div className="relative flex min-h-0 flex-1">
         <aside
           className={cn(
-            'z-30 flex w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface p-4',
+            'z-30 flex w-64 shrink-0 flex-col overflow-y-auto border-r border-white/[0.07] bg-[#070a09]/80 p-4 backdrop-blur-xl max-lg:bg-[#0a0f0d]',
             'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:transition-[transform,visibility] max-lg:duration-(--duration-surface)',
             navOpen ? 'max-lg:translate-x-0' : 'max-lg:invisible max-lg:-translate-x-full',
           )}
@@ -231,7 +231,7 @@ export function AppShell() {
           <button
             type="button"
             aria-label={t('shell.closeNav')}
-            className="absolute inset-0 z-20 bg-ink/30 lg:hidden"
+            className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm lg:hidden"
             onClick={() => setNavOpen(false)}
           />
         )}

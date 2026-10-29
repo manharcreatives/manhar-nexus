@@ -199,7 +199,7 @@ export function CheckoutDialog({
 
         {phase === 'review' && invoice && (
           <div className="space-y-5">
-            <div className="nx-stub rounded-panel border border-line bg-paper/50 [--stub-bg:var(--color-surface)]">
+            <div className="nx-stub rounded-panel border border-line bg-white/[0.03] [--stub-bg:var(--color-surface)]">
               <ul aria-label={t('restaurant.checkout.item')} className="max-h-[30dvh] space-y-2 overflow-y-auto px-4 pt-4 pb-3">
                 {invoice.lines.map((line) => (
                   <li key={line.id} className="flex items-baseline gap-2 text-base">
@@ -245,7 +245,7 @@ export function CheckoutDialog({
                       'nx-press flex min-h-12 items-center justify-center gap-2 rounded-control border text-base font-medium disabled:opacity-50',
                       method === m
                         ? 'border-accent bg-accent-soft text-accent-strong shadow-[inset_0_0_0_1px_var(--color-accent)]'
-                        : 'border-line bg-surface hover:border-ink/25',
+                        : 'border-white/10 bg-white/[0.03] hover:border-accent/40',
                     )}
                   >
                     <span aria-hidden className={cn('size-2 rounded-full border-2 border-current', method === m && 'bg-current')} />

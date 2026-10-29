@@ -168,11 +168,11 @@ export function BarTrend({
                   {/* Hit target spans the full slot height, larger than the mark. */}
                   <rect x={i * geo.slot} y={0} width={geo.slot} height={geo.innerH} className="fill-transparent" />
                   {isShown && (
-                    <rect x={i * geo.slot} y={0} width={geo.slot} height={geo.innerH} rx={4} className="fill-sunken/70" />
+                    <rect x={i * geo.slot} y={0} width={geo.slot} height={geo.innerH} rx={4} className="fill-white/5" />
                   )}
                   <path
                     d={barPath(geo.x(i), top, geo.band, h, 4)}
-                    className={cn('nx-grow-y', isHi ? 'fill-accent' : isShown ? 'fill-ink/70' : 'fill-muted/60')}
+                    className={cn('nx-grow-y', isHi ? 'fill-accent' : isShown ? 'fill-accent/60' : 'fill-accent/25')}
                   />
                   {v === 0 && (
                     <line
@@ -215,7 +215,7 @@ export function BarTrend({
         {shownDatum && (
           <div
             aria-hidden
-            className="nx-fade pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-control border border-line bg-surface px-3 py-2 text-xs"
+            className="nx-fade pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full nx-pop rounded-control px-3 py-2 text-xs"
             style={{ left: tipLeft, top: Math.max(0, tipY - 8) }}
           >
             <p className="whitespace-nowrap text-muted">{shownDatum.fullLabel}</p>

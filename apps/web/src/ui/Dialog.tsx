@@ -41,7 +41,7 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        'nx-dialog m-auto focus:outline-none w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-line bg-surface p-0 text-ink shadow-[0_24px_60px_-24px_rgb(27_26_23/0.45)]',
+        'nx-dialog m-auto focus:outline-none w-[min(32rem,calc(100vw-2rem))] nx-pop rounded-panel p-0 text-ink',
         className,
       )}
     >
@@ -52,7 +52,7 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
           </div>
           <div className="px-6 pt-4 pb-6">{children}</div>
           {footer && (
-            <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-panel border-t border-line bg-paper/60 px-6 py-4">{footer}</div>
+            <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-panel border-t border-white/[0.07] bg-white/[0.02] px-6 py-4">{footer}</div>
           )}
         </div>
       )}

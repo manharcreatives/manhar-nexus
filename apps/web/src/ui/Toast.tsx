@@ -61,7 +61,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={i.id}
             className={cn(
               'nx-toast pointer-events-auto flex max-w-md items-center gap-3 rounded-[0.75rem] py-3 pr-5 pl-3.5 text-sm font-medium shadow-[0_16px_40px_-16px_rgb(27_26_23/0.6)]',
-              i.tone === 'ok' && 'bg-ink text-paper',
+              i.tone === 'ok' && 'bg-accent text-[#04120a]',
               i.tone === 'bad' && 'bg-bad text-surface',
               i.tone === 'info' && 'bg-info text-surface',
             )}

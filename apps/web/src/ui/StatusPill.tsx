@@ -3,12 +3,12 @@ import { cn } from '../lib/cn';
 
 type Tone = 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
 const tones: Record<Tone, string> = {
-  neutral: 'bg-sunken text-muted',
-  ok: 'bg-ok-soft text-ok',
-  warn: 'bg-warn-soft text-warn',
-  bad: 'bg-bad-soft text-bad',
-  info: 'bg-info-soft text-info',
-  accent: 'bg-accent-soft text-accent-strong',
+  neutral: 'bg-white/[0.06] text-muted',
+  ok: 'bg-ok/12 text-ok',
+  warn: 'bg-warn/12 text-warn',
+  bad: 'bg-bad/12 text-bad',
+  info: 'bg-info/12 text-info',
+  accent: 'bg-accent/14 text-accent-strong',
 };
 
 /** Status is always text + shape, never color alone. */

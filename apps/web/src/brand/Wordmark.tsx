@@ -22,7 +22,7 @@ const SIZES = {
  * size. The default brand sets its second word in italic — the one place the
  * product uses the italic, so it reads as a signature rather than a style.
  */
-export function Wordmark({ className, nameClassName, on = 'paper', size = 'sm' }: WordmarkProps) {
+export function Wordmark({ className, nameClassName, on: _on = 'paper', size = 'sm' }: WordmarkProps) {
   const s = SIZES[size];
   const [first, ...rest] = brand.name.split(' ');
   return (
@@ -32,17 +32,16 @@ export function Wordmark({ className, nameClassName, on = 'paper', size = 'sm' }
       <span
         aria-hidden
         className={cn(
-          'font-display leading-none font-semibold tracking-[-0.02em]',
+          'font-display leading-none font-semibold tracking-[-0.018em]',
           s.name,
-          on === 'ink' ? 'text-paper' : 'text-ink',
+          'text-ink',
           nameClassName,
         )}
-        style={{ fontVariationSettings: '"opsz" 72' }}
-      >
+              >
         {isDefaultBrand && rest.length > 0 ? (
           <>
             {first}{' '}
-            <span className={cn('font-medium italic', on === 'ink' ? 'text-ember-glow' : 'text-accent')}>{rest.join(' ')}</span>
+            <span className={cn('font-medium', 'text-accent-strong')}>{rest.join(' ')}</span>
           </>
         ) : (
           brand.name
