@@ -17,6 +17,7 @@ import { CommandPalette, type Command } from './CommandPalette';
 import { ContextSwitcher } from './ContextSwitcher';
 import { EnvBadge } from './EnvBadge';
 import { PAGES, PAGE_GROUPS } from './pages';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { ShortcutHelp } from './ShortcutHelp';
 import { modKeyLabel, type ShortcutBinding } from './shortcuts';
 import { UserMenu } from './UserMenu';
@@ -39,6 +40,7 @@ export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setNavOpen(false), [location.pathname]);
@@ -208,7 +210,7 @@ export function AppShell() {
           {!access.isPlatform && <ConnectionIndicator />}
           {!access.isPlatform && <NotificationsPanel />}
           {user && (
-            <UserMenu user={user} onOpenPalette={openPalette} onOpenShortcuts={() => setHelpOpen(true)} onSignOut={doSignOut} />
+            <UserMenu user={user} onOpenPalette={openPalette} onOpenShortcuts={() => setHelpOpen(true)} onChangePassword={() => setPasswordOpen(true)} onSignOut={doSignOut} />
           )}
         </div>
       </header>
@@ -268,6 +270,7 @@ export function AppShell() {
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
+      {passwordOpen && <ChangePasswordDialog onClose={() => setPasswordOpen(false)} />}
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} goShortcuts={goShortcuts} />
     </div>
   );

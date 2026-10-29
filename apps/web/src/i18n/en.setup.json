@@ -157,5 +157,75 @@
         "cta": "Add people"
       }
     }
+  },
+  "provision": {
+    "newButton": "New restaurant",
+    "title": "New restaurant",
+    "intro": "This creates the restaurant workspace, its first location, the owner login and the modules in one go. The owner then sets up their own tables and menu.",
+    "name": "Restaurant name",
+    "location": "First location",
+    "locationHint": "Branch or outlet name. More can be added later.",
+    "ownerLegend": "Owner login",
+    "ownerName": "Owner name",
+    "ownerEmail": "Owner email",
+    "password": "Temporary password",
+    "passwordHint": "Generated for you. Share it once and ask the owner to change it.",
+    "regenerate": "Generate another",
+    "modulesLegend": "Modules",
+    "modulesHint": "The first three work together, so they always come as a set.",
+    "included": "included",
+    "module": {
+      "restaurant": "Restaurant operations (tables, orders, kitchen)",
+      "catalog": "Menu",
+      "checkout": "Checkout and payments",
+      "reports": "Reports",
+      "costs": "Operating costs"
+    },
+    "create": "Create restaurant",
+    "working": "Setting everything up. Please keep this window open.",
+    "stopped": "Something went wrong. Nothing is lost: retry continues from the step that failed.",
+    "retry": "Retry",
+    "closeAnyway": "Close",
+    "step": {
+      "business": "Create the restaurant",
+      "location": "Add the first location",
+      "owner": "Create the owner login",
+      "module": "Switch on {{name}}",
+      "onboarding": "Start the go-live checklist"
+    },
+    "readyTitle": "{{name}} is ready",
+    "readyBody": "Send these details to the owner. They can sign in right away and will see a short getting-started guide.",
+    "signInAt": "Sign in at",
+    "copy": "Copy",
+    "copied": "Copied",
+    "shownOnce": "The password is shown only now. Copy it before you close this window.",
+    "done": "Done",
+    "openChecklist": "Open go-live checklist",
+    "errors": {
+      "name": "Enter the restaurant name.",
+      "location": "Enter the first location name.",
+      "ownerName": "Enter the owner name.",
+      "email": "Enter a valid email address.",
+      "password": "Use at least 8 characters.",
+      "failed": "This step failed."
+    }
+  },
+  "account": {
+    "password": {
+      "menu": "Change password",
+      "title": "Change password",
+      "intro": "You will be signed out everywhere and asked to sign in again with the new password.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "submit": "Change password",
+      "currentRequired": "Enter your current password.",
+      "same": "Choose a password different from the current one.",
+      "wrongCurrent": "That current password is not right.",
+      "failed": "The password could not be changed. Try again."
+    }
+  },
+  "auth": {
+    "passwordChanged": "Password changed. Sign in with your new password."
   }
 }

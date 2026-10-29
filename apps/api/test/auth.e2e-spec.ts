@@ -185,6 +185,28 @@ describe('Auth & Access (e2e)', () => {
     });
   });
 
+  describe('change password', () => {
+    const NEW_PW = 'N3w-Passw0rd!45';
+    it('needs the current password, signs the user out everywhere, and the new one works', async () => {
+      await bearer(request(http()).post('/admin/users'), ownerAToken)
+        .send({ email: email('chgpw'), password: PW, displayName: 'cp', roleKeys: ['owner'] })
+        .expect(201);
+      const token = await loginToken(email('chgpw'), PW);
+
+      await bearer(request(http()).post('/auth/change-password'), token).send({ currentPassword: 'wrong-password', newPassword: NEW_PW }).expect(400);
+      await bearer(request(http()).post('/auth/change-password'), token).send({ currentPassword: PW, newPassword: PW }).expect(400);
+      await bearer(request(http()).post('/auth/change-password'), token).send({ currentPassword: PW, newPassword: 'short' }).expect(400);
+
+      await bearer(request(http()).post('/auth/change-password'), token).send({ currentPassword: PW, newPassword: NEW_PW }).expect(204);
+      await bearer(request(http()).get('/auth/me'), token).expect(401);
+      expect((await login(email('chgpw'), PW)).status).toBe(401);
+      expect((await login(email('chgpw'), NEW_PW)).status).toBe(200);
+    });
+    it('requires authentication', async () => {
+      await request(http()).post('/auth/change-password').send({ currentPassword: PW, newPassword: NEW_PW }).expect(401);
+    });
+  });
+
   describe('RBAC + business isolation', () => {
     let limitedToken: string;
 

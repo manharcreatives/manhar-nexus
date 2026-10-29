@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, type User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { ForbiddenError, UnauthorizedError } from '../common/errors';
+import { ForbiddenError, UnauthorizedError, ValidationError } from '../common/errors';
 import { PasswordService } from './password.service';
 import { TokenService, hashRefresh } from './token.service';
 
@@ -206,6 +206,24 @@ export class AuthService {
       await tx.session.updateMany({
         where: { userId, revokedAt: null },
         data: { revokedAt: new Date(), revokedReason: 'logout_all' },
+      });
+    });
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedError('Account not found');
+    const valid = await this.passwords.verifyOrDummy(user.passwordHash, currentPassword);
+    if (!valid) throw new ValidationError('Current password is incorrect', { field: 'currentPassword' });
+    const passwordHash = await this.passwords.hash(newPassword);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { passwordHash, failedAttempts: 0, lockedUntil: null, tokenVersion: { increment: 1 } },
+      });
+      await tx.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date(), revokedReason: 'password_changed' },
       });
     });
   }

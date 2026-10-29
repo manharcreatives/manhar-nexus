@@ -15,3 +15,15 @@ export const refreshSchema = z
   })
   .strict();
 export type RefreshDto = z.infer<typeof refreshSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(200),
+    newPassword: z.string().min(8).max(200),
+  })
+  .strict()
+  .refine((v) => v.currentPassword !== v.newPassword, {
+    message: 'New password must be different from the current one',
+    path: ['newPassword'],
+  });
+export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;

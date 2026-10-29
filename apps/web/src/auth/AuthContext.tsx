@@ -18,6 +18,8 @@ interface AuthState {
   notice: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** The server ended every session after a password change: drop local state and ask for a fresh sign-in. */
+  endSessionAfterPasswordChange: () => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -69,6 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNotice(null);
         await apiLogin(email, password);
         await loadMe();
+      },
+      endSessionAfterPasswordChange() {
+        setAccessToken(null);
+        setSessionHint(false);
+        setUser(null);
+        setNotice('passwordChanged');
+        setStatus('unauthenticated');
       },
       async signOut() {
         await api('/auth/logout', { method: 'POST' }).catch(() => undefined);

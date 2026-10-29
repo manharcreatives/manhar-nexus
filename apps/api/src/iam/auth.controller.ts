@@ -14,7 +14,14 @@ import type { Request, Response } from 'express';
 import { UnauthorizedError } from '../common/errors';
 import { zodBody } from '../common/zod-validation.pipe';
 import { AuthService, type AuthContext } from './auth.service';
-import { loginSchema, refreshSchema, type LoginDto, type RefreshDto } from './auth.dto';
+import {
+  changePasswordSchema,
+  loginSchema,
+  refreshSchema,
+  type ChangePasswordDto,
+  type LoginDto,
+  type RefreshDto,
+} from './auth.dto';
 import { CurrentPrincipal, Public, type Principal } from './principal';
 
 const REFRESH_COOKIE = 'nexus_refresh';
@@ -80,6 +87,22 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.auth.logoutAll(principal.userId);
+    this.clearRefreshCookie(res);
+  }
+
+  /**
+   * Self-service password change. Every session of the user (this one included)
+   * is revoked, so the client signs in again with the new password.
+   */
+  @UseGuards(ThrottlerGuard)
+  @Post('change-password')
+  @HttpCode(204)
+  async changePassword(
+    @CurrentPrincipal() principal: Principal,
+    @Body(zodBody(changePasswordSchema)) dto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.auth.changePassword(principal.userId, dto.currentPassword, dto.newPassword);
     this.clearRefreshCookie(res);
   }
 

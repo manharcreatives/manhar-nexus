@@ -14,6 +14,7 @@ interface Props {
   user: AuthUser;
   onOpenPalette: () => void;
   onOpenShortcuts: () => void;
+  onChangePassword: () => void;
   onSignOut: () => void;
 }
 
@@ -27,7 +28,7 @@ interface Item {
 }
 
 /** Initials button → identity, roles, version, shortcut help and Sign out (WAI-ARIA menu button). */
-export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onSignOut }: Props) {
+export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePassword, onSignOut }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
@@ -66,6 +67,12 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onSignOut }: Pr
         </span>
       ),
       run: onOpenShortcuts,
+    },
+    {
+      id: 'password',
+      label: t('account.password.menu'),
+      icon: <Icons.KeyRound className="size-4" aria-hidden />,
+      run: onChangePassword,
     },
     {
       id: 'signout',

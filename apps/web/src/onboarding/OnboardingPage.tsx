@@ -13,6 +13,7 @@ import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { useToast } from '../ui/Toast';
 import { initializeOnboarding, listOnboardings, ONBOARDING_STEPS, type OnboardingProgress } from './api';
 import { BusinessPicker } from './BusinessPicker';
+import { NewRestaurantDialog } from './NewRestaurantDialog';
 import { OnboardingWizard } from './OnboardingWizard';
 
 type Filter = 'progress' | 'completed' | 'all';
@@ -28,6 +29,7 @@ export function OnboardingPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [startOpen, setStartOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
   const [clients, setClients] = useState<ClientSummary[] | null>(null);
   const [clientsFailed, setClientsFailed] = useState(false);
   const [existing, setExisting] = useState<Set<string>>(new Set());
@@ -110,7 +112,12 @@ export function OnboardingPage() {
       <PageHeader
         title={t('onboarding.title')}
         description={t('onboarding.subtitle')}
-        actions={<Button onClick={openStart}>{t('onboarding.startNew')}</Button>}
+        actions={
+          <>
+            <Button variant="secondary" onClick={openStart}>{t('onboarding.startNew')}</Button>
+            <Button onClick={() => setNewOpen(true)}>{t('provision.newButton')}</Button>
+          </>
+        }
       />
 
       <Tabs
@@ -193,6 +200,19 @@ export function OnboardingPage() {
           </ul>
         )}
       </div>
+
+      {newOpen && (
+        <NewRestaurantDialog
+          onClose={() => {
+            setNewOpen(false);
+            void load();
+          }}
+          onOpenChecklist={(id) => {
+            setNewOpen(false);
+            setSelectedId(id);
+          }}
+        />
+      )}
 
       <Dialog
         open={startOpen}
