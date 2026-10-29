@@ -191,7 +191,8 @@
       "location": "Add the first location",
       "owner": "Create the owner login",
       "module": "Switch on {{name}}",
-      "onboarding": "Start the go-live checklist"
+      "onboarding": "Start the go-live checklist",
+      "commercial": "Record the commercial status"
     },
     "readyTitle": "{{name}} is ready",
     "readyBody": "Send these details to the owner. They can sign in right away and will see a short getting-started guide.",
@@ -208,7 +209,8 @@
       "email": "Enter a valid email address.",
       "password": "Use at least 8 characters.",
       "failed": "This step failed."
-    }
+    },
+    "commercialStatus": "Commercial status"
   },
   "account": {
     "password": {

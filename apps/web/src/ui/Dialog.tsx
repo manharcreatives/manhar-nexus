@@ -41,7 +41,7 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
         if (e.target === ref.current) onClose();
       }}
       className={cn(
-        'nx-dialog m-auto focus:outline-none w-[min(32rem,calc(100vw-2rem))] nx-pop rounded-panel p-0 text-ink',
+        'nx-dialog m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto focus:outline-none w-[min(32rem,calc(100vw-2rem))] nx-pop rounded-panel p-0 text-ink',
         className,
       )}
     >

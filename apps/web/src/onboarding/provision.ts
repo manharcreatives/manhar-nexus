@@ -1,4 +1,5 @@
 import { api } from '../auth/api';
+import { updateClient, type CommercialStatus } from '../commercial/api';
 import { initializeOnboarding } from './api';
 
 /** Everything a platform admin needs to hand a new restaurant its own workspace. */
@@ -8,17 +9,19 @@ export interface ProvisionInput {
   ownerName: string;
   ownerEmail: string;
   ownerPassword: string;
+  /** Commercial status of the new client (Trial for a free pilot, Active once paying). */
+  commercialStatus: CommercialStatus;
   /** Module keys, in dependency order (restaurant, catalog, checkout, then optional ones). */
   modules: string[];
 }
 
-export type StepId = 'business' | 'location' | 'owner' | `module:${string}` | 'onboarding';
+export type StepId = 'business' | 'location' | 'owner' | `module:${string}` | 'commercial' | 'onboarding';
 
 export const CORE_MODULES = ['restaurant', 'catalog', 'checkout'] as const;
 export const OPTIONAL_MODULES = ['reports', 'costs'] as const;
 
 export function stepsFor(input: Pick<ProvisionInput, 'modules'>): StepId[] {
-  return ['business', 'location', 'owner', ...input.modules.map((m) => `module:${m}` as StepId), 'onboarding'];
+  return ['business', 'location', 'owner', ...input.modules.map((m) => `module:${m}` as StepId), 'commercial', 'onboarding'];
 }
 
 /** Core modules first (they depend on each other in this order), then the chosen extras. */
@@ -102,6 +105,7 @@ export async function runProvision(
       await post(`/internal/businesses/${id}/modules/${m}/complete-setup`, {});
     });
   }
+  await step('commercial', () => updateClient(id, { commercialStatus: input.commercialStatus }).then(() => undefined));
   await step('onboarding', () => initializeOnboarding(id).then(() => undefined));
   return id;
 }

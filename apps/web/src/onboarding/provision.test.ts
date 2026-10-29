@@ -7,7 +7,7 @@ describe('provision helpers', () => {
     expect(orderModules([])).toEqual(['restaurant', 'catalog', 'checkout']);
   });
   it('lists one step per action in order', () => {
-    expect(stepsFor({ modules: ['restaurant', 'catalog'] })).toEqual(['business', 'location', 'owner', 'module:restaurant', 'module:catalog', 'onboarding']);
+    expect(stepsFor({ modules: ['restaurant', 'catalog'] })).toEqual(['business', 'location', 'owner', 'module:restaurant', 'module:catalog', 'commercial', 'onboarding']);
   });
   it('generates strong, varied passwords', () => {
     const a = generatePassword();

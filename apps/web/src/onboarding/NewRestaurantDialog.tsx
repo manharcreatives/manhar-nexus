@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { CommercialStatus } from '../commercial/api';
 import { errorMessage } from '../commercial/helpers';
 import { FormError } from '../commercial/Shared';
 import { cn } from '../lib/cn';
@@ -7,6 +8,7 @@ import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Dialog } from '../ui/Dialog';
 import { Field } from '../ui/Field';
+import { Select } from '../ui/Select';
 import * as Icons from '../ui/icons';
 import { Spinner } from '../ui/Spinner';
 import { CORE_MODULES, OPTIONAL_MODULES, generatePassword, orderModules, runProvision, stepsFor, type ProvisionInput, type StepId } from './provision';
@@ -51,6 +53,7 @@ export function NewRestaurantDialog({ onClose, onOpenChecklist }: { onClose: () 
   const [ownerEmail, setOwnerEmail] = useState('');
   const [password, setPassword] = useState(() => generatePassword());
   const [showPw, setShowPw] = useState(false);
+  const [commercialStatus, setCommercialStatus] = useState<CommercialStatus>('TRIAL');
   const [extras, setExtras] = useState<string[]>([...OPTIONAL_MODULES]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -86,7 +89,7 @@ export function NewRestaurantDialog({ onClose, onOpenChecklist }: { onClose: () 
     if (password.length < 8) next.password = t('provision.errors.password');
     setErrors(next);
     if (Object.keys(next).length > 0) return;
-    inputRef.current = { name, locationName, ownerName, ownerEmail, ownerPassword: password, modules: orderModules(extras) };
+    inputRef.current = { name, locationName, ownerName, ownerEmail, ownerPassword: password, commercialStatus, modules: orderModules(extras) };
     setStatuses({});
     state.current = { done: new Set() };
     void execute();
@@ -147,6 +150,12 @@ export function NewRestaurantDialog({ onClose, onOpenChecklist }: { onClose: () 
             />
             <Button variant="ghost" onClick={() => setPassword(generatePassword())}>{t('provision.regenerate')}</Button>
           </fieldset>
+
+          <Select label={t('provision.commercialStatus')} value={commercialStatus} onChange={(e) => setCommercialStatus(e.target.value as CommercialStatus)}>
+            <option value="TRIAL">{t('commercial.status.TRIAL')}</option>
+            <option value="ACTIVE">{t('commercial.status.ACTIVE')}</option>
+            <option value="PROSPECT">{t('commercial.status.PROSPECT')}</option>
+          </Select>
 
           <fieldset>
             <legend className="mb-1 text-sm font-medium">{t('provision.modulesLegend')}</legend>
