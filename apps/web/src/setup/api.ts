@@ -1,5 +1,5 @@
 import { api } from '../auth/api';
-import type { CatalogCategory, CatalogItem, CatalogVariant, DiningArea, DiningTable } from '../restaurant/api';
+import type { CatalogCategory, CatalogItem, CatalogVariant, DiningArea, DiningTable, ModifierGroup, ModifierOption } from '../restaurant/api';
 
 /** Admin (setup) endpoints. The owner / location manager configures the floor and the menu here. */
 
@@ -57,6 +57,20 @@ export const menuApi = {
     api<CatalogVariant>(`/admin/catalog/items/${itemId}/variants`, { method: 'POST', ...json(body) }),
   deleteVariant: (itemId: string, variantId: string) =>
     api<void>(`/admin/catalog/items/${itemId}/variants/${variantId}`, { method: 'DELETE' }),
+  modifierGroups: () => api<ModifierGroup[]>('/admin/catalog/modifier-groups'),
+  createGroup: (body: { name: string; selectionType: 'SINGLE' | 'MULTIPLE'; isRequired: boolean; minSelections: number; maxSelections: number | null }) =>
+    api<ModifierGroup>('/admin/catalog/modifier-groups', { method: 'POST', ...json(body) }),
+  updateGroup: (id: string, body: { name?: string; selectionType?: 'SINGLE' | 'MULTIPLE'; isRequired?: boolean; minSelections?: number; maxSelections?: number | null }) =>
+    api<ModifierGroup>(`/admin/catalog/modifier-groups/${id}`, { method: 'PATCH', ...json(body) }),
+  deleteGroup: (id: string) => api<void>(`/admin/catalog/modifier-groups/${id}`, { method: 'DELETE' }),
+  createOption: (groupId: string, body: { name: string; priceAdjMinorUnits: number }) =>
+    api<ModifierOption>(`/admin/catalog/modifier-groups/${groupId}/options`, { method: 'POST', ...json(body) }),
+  deleteOption: (groupId: string, optionId: string) =>
+    api<void>(`/admin/catalog/modifier-groups/${groupId}/options/${optionId}`, { method: 'DELETE' }),
+  linkGroup: (itemId: string, modifierGroupId: string) =>
+    api<unknown>(`/admin/catalog/items/${itemId}/modifier-groups`, { method: 'POST', ...json({ modifierGroupId }) }),
+  unlinkGroup: (itemId: string, modifierGroupId: string) =>
+    api<void>(`/admin/catalog/items/${itemId}/modifier-groups/${modifierGroupId}`, { method: 'DELETE' }),
   createTaxCategory: (body: { name: string; rate: number; isDefault?: boolean }) =>
     api<TaxCategory>('/admin/catalog/tax-categories', { method: 'POST', ...json(body) }),
 };

@@ -11,7 +11,8 @@
 | What | How |
 |---|---|
 | Product name | Set `VITE_BRAND_NAME` at build time (default "Manhar Nexus"). Shown in the shell, login, and `<title>`. |
-| Accent color | Set `VITE_BRAND_ACCENT` (any CSS color, e.g. `#0f766e`). Hover and tint shades are derived automatically. |
+| Accent colour per restaurant (runtime) | The owner picks it on **Restaurant profile**. It is stored on the business, returned by `/auth/me`, and applied for every staff member after sign-in. No rebuild needed. |
+| Accent colour for the whole build | Set `VITE_BRAND_ACCENT` (any CSS color, e.g. `#0f766e`). Hover and tint shades are derived automatically. |
 | Login footnote | Set `VITE_BRAND_FOOTNOTE` (empty string hides "A Manhar Creatives product"). |
 | Permanent palette change | Edit the `--color-*` tokens in `apps/web/src/styles.css` `@theme`. |
 | Favicon / theme-color | Replace `apps/web/public/favicon.svg`; edit `theme-color` in `apps/web/index.html`. |

@@ -2,7 +2,7 @@ import { useId, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { describeError } from '../restaurant/errors';
 import { useSingleFlight } from '../restaurant/hooks';
-import type { CatalogCategory, CatalogVariant } from '../restaurant/api';
+import type { CatalogCategory, CatalogVariant, ModifierGroup } from '../restaurant/api';
 import { cn } from '../lib/cn';
 import { formatMoney, parseMoney } from '../lib/money';
 import { Button } from '../ui/Button';
@@ -17,6 +17,7 @@ import { StatusPill } from '../ui/StatusPill';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { Table, Td, Th } from '../ui/Table';
 import { useToast } from '../ui/Toast';
+import { AddOnsSection } from './AddOnsSection';
 import { menuApi, type SetupItem, type TaxCategory } from './api';
 import { useLoad } from './useLoad';
 
@@ -135,6 +136,7 @@ function ItemDialog({
   item,
   categories,
   taxes,
+  groups,
   defaultCategoryId,
   onDone,
   onClose,
@@ -142,6 +144,7 @@ function ItemDialog({
   item?: SetupItem;
   categories: CatalogCategory[];
   taxes: TaxCategory[];
+  groups: ModifierGroup[];
   defaultCategoryId: string;
   onDone: (msg: string, keepOpen?: boolean) => void;
   onClose: () => void;
@@ -155,6 +158,7 @@ function ItemDialog({
   const [taxId, setTaxId] = useState(item ? (item.taxCategoryId ?? '') : defaultTax);
   const [available, setAvailable] = useState(item?.isAvailable ?? true);
   const [variants, setVariants] = useState<CatalogVariant[]>(item?.variants ?? []);
+  const [linked, setLinked] = useState<string[]>((item?.modifierGroups ?? []).map((g) => g.modifierGroupId));
   const [vName, setVName] = useState('');
   const [vPrice, setVPrice] = useState('');
   const [error, setError] = useState('');
@@ -205,6 +209,20 @@ function ItemDialog({
       try {
         await menuApi.deleteVariant(item.id, v.id);
         setVariants((list) => list.filter((x) => x.id !== v.id));
+        onDone('', true);
+      } catch (err) {
+        setError(describeError(err, t, 'setup.errors.save'));
+      }
+    });
+  }
+  async function toggleGroup(groupId: string, on: boolean) {
+    if (!item) return;
+    await run(async () => {
+      try {
+        if (on) await menuApi.linkGroup(item.id, groupId);
+        else await menuApi.unlinkGroup(item.id, groupId);
+        setLinked((l) => (on ? [...l, groupId] : l.filter((x) => x !== groupId)));
+        setError('');
         onDone('', true);
       } catch (err) {
         setError(describeError(err, t, 'setup.errors.save'));
@@ -292,6 +310,16 @@ function ItemDialog({
         ) : (
           <p className="text-sm text-muted">{t('setup.menu.variantsAfterSave')}</p>
         )}
+
+        {item && groups.length > 0 && (
+          <fieldset className="rounded-control border border-white/10 p-3">
+            <legend className="px-1 text-sm font-medium">{t('setup.addons.forDish')}</legend>
+            <p className="mb-1 text-sm text-muted">{t('setup.addons.forDishHint')}</p>
+            {groups.filter((g) => g.isActive).map((g) => (
+              <Checkbox key={g.id} label={g.name} checked={linked.includes(g.id)} disabled={busy} onChange={(e) => void toggleGroup(g.id, e.target.checked)} />
+            ))}
+          </fieldset>
+        )}
         <p role="alert" className="text-sm text-bad">{error}</p>
       </form>
     </Dialog>
@@ -304,12 +332,14 @@ export function MenuSetupPage() {
   const cats = useLoad(menuApi.categories);
   const items = useLoad(menuApi.items);
   const taxes = useLoad(menuApi.taxCategories);
+  const groups = useLoad(menuApi.modifierGroups);
   const [selected, setSelected] = useState<string | null>(null);
   const [dlg, setDlg] = useState<Dlg>(null);
   const reload = () => {
     cats.reload();
     items.reload();
     taxes.reload();
+    groups.reload();
   };
 
   const categories = useMemo(() => [...(cats.data ?? [])].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)), [cats.data]);
@@ -461,6 +491,8 @@ export function MenuSetupPage() {
         </div>
       )}
 
+      <AddOnsSection groups={groups.data ?? []} onChanged={(msg) => done(msg ?? '', true)} />
+
       <section aria-labelledby="tax-h" className="mt-14">
         <SectionHeader
           id="tax-h"
@@ -516,7 +548,7 @@ export function MenuSetupPage() {
         />
       )}
       {dlg?.kind === 'item' && current && (
-        <ItemDialog item={dlg.item} categories={categories.filter((c) => c.isActive || c.id === dlg.item?.categoryId)} taxes={taxList} defaultCategoryId={current.id} onDone={done} onClose={() => setDlg(null)} />
+        <ItemDialog item={dlg.item} categories={categories.filter((c) => c.isActive || c.id === dlg.item?.categoryId)} taxes={taxList} groups={groups.data ?? []} defaultCategoryId={current.id} onDone={done} onClose={() => setDlg(null)} />
       )}
       {dlg?.kind === 'tax' && (
         <TaxDialog

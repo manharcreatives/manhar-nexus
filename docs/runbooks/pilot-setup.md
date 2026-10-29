@@ -60,10 +60,11 @@ The script will print the login credentials when complete. Login at http://local
 4. **Create restaurant**. The dialog creates the business, location, owner login and modules, and starts the go-live checklist. If a step fails, **Retry** continues from that step (nothing is created twice).
 5. Copy the sign-in address, email and temporary password from the final screen. **The password is shown only once.** Send it to the owner over a private channel.
 
-### Step 2 — Owner signs in and changes the password
+### Step 2 — Owner signs in and sets their own password
 
-1. The owner signs in. Home shows a **Getting started** checklist (tables, menu, team).
-2. Account menu (initials, top right) → **Change password**. This signs the owner out everywhere; they sign in again with the new password.
+1. The owner signs in with the temporary password. The app shows a **Set your own password** screen and nothing else works until it is changed (the API enforces this too).
+2. After the change they sign in again. Home shows a **Getting started** checklist (tables, menu, team). Later changes: account menu (initials, top right) → **Change password**.
+3. An admin who resets someone's password in Team also marks it temporary, so that person must change it at next sign-in.
 
 ### Step 3 — Owner sets up the restaurant (no API needed)
 
@@ -71,6 +72,8 @@ The script will print the login credentials when complete. Login at http://local
 |---|---|
 | **Floor setup** | Add dining areas (Main Hall, Terrace) and tables. **Add many** creates T1…T10 in one go. Hide a table instead of removing it once it has history. |
 | **Menu** | Add tax rates first (for example GST 5%), then categories and dishes. Sizes (Half/Full) are added to a dish after it is saved. Untick **Available** when something is sold out. |
+| **Add-ons** (on the Menu page) | Groups like *Spice level* (pick one) or *Extra toppings* (pick several, with prices). Create the group, add its choices, then tick it on each dish. |
+| **Restaurant profile** (owner only) | Brand colour (applies to every staff member), display name, and the name, address and GST number printed on invoices. |
 | **Team** | Add waiters, kitchen and cashier logins with their roles. |
 
 ### Step 4 — Smoke test the flow
@@ -96,7 +99,7 @@ POST /auth/login                                   { "email": "...", "password":
 
 POST /internal/businesses                          { "name": "My Restaurant", "businessTypeKey": "restaurant" }      -> { "id": "$BID" }
 POST /internal/businesses/$BID/locations           { "name": "Main Location" }
-POST /internal/businesses/$BID/provision           { "email": "owner@x.com", "displayName": "Owner", "password": "min 8 chars" }
+POST /internal/businesses/$BID/provision           { "email": "owner@x.com", "displayName": "Owner", "password": "min 8 chars", "requirePasswordChange": true }
 
 # Modules, in dependency order (restaurant -> catalog -> checkout), then optional ones
 POST /internal/businesses/$BID/modules/{restaurant|catalog|checkout|reports|costs}/activate
@@ -115,7 +118,8 @@ Then, with the owner's token: `POST /admin/dining/areas { locationId, name }`, `
 Before handing off to the pilot client:
 
 - [ ] Rotate the platform admin password (`PLATFORM_BOOTSTRAP_PASSWORD`)
-- [ ] Owner changed the temporary password (Account menu → Change password)
+- [ ] Owner changed the temporary password (the app forces this at first sign-in)
+- [ ] Restaurant profile filled in (invoice name, address, GST number) before the first real bill
 - [ ] Owner has logged in and confirmed they can see their restaurant
 - [ ] At least 5 tables visible on the floor
 - [ ] At least 3 menu items visible in the order builder
