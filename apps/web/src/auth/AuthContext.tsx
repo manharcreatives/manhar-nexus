@@ -8,6 +8,8 @@ export interface AuthUser {
   realm: 'PLATFORM' | 'BUSINESS';
   businessId: string | null;
   roles: { key: string; name: string }[];
+  /** True while the account still has a temporary password. */
+  mustChangePassword?: boolean;
 }
 
 type Status = 'loading' | 'authenticated' | 'unauthenticated';

@@ -27,6 +27,14 @@ export interface AuthenticatedRequest extends Request {
 export const IS_PUBLIC = 'isPublic';
 export const Public = (): MethodDecorator & ClassDecorator => SetMetadata(IS_PUBLIC, true);
 
+/**
+ * Routes a user with a temporary password may still call (own profile, sign-out and the
+ * password change itself). Everything else answers 403 until the password is changed.
+ */
+export const ALLOW_PASSWORD_CHANGE_PENDING = 'allowPasswordChangePending';
+export const AllowWhilePasswordChangePending = (): MethodDecorator & ClassDecorator =>
+  SetMetadata(ALLOW_PASSWORD_CHANGE_PENDING, true);
+
 /** Declares the permission (and optional location-scoped param) a route needs. */
 export const REQUIRED_PERMISSION = 'requiredPermission';
 export interface PermissionRequirement {

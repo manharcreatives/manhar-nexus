@@ -12,6 +12,8 @@ export interface ProvisionBusinessInput {
   email: string;
   displayName: string;
   password: string;
+  /** Mark the password as temporary: the owner must change it at first sign-in. */
+  requirePasswordChange?: boolean;
 }
 
 export interface ProvisionResult {
@@ -67,6 +69,7 @@ export class ProvisioningService {
           businessId,
           email: emailLower,
           passwordHash,
+          mustChangePassword: input.requirePasswordChange ?? false,
           displayName: input.displayName,
           status: 'ACTIVE',
         },

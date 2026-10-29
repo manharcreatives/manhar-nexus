@@ -169,7 +169,7 @@
     "ownerName": "Owner name",
     "ownerEmail": "Owner email",
     "password": "Temporary password",
-    "passwordHint": "Generated for you. Share it once and ask the owner to change it.",
+    "passwordHint": "Generated for you. The owner must change it at first sign-in.",
     "regenerate": "Generate another",
     "modulesLegend": "Modules",
     "modulesHint": "The first three work together, so they always come as a set.",
@@ -225,6 +225,11 @@
       "same": "Choose a password different from the current one.",
       "wrongCurrent": "That current password is not right.",
       "failed": "The password could not be changed. Try again."
+    },
+    "gate": {
+      "eyebrow": "First sign-in",
+      "title": "Set your own password",
+      "body": "You signed in with a temporary password ({{email}}). Choose a new one to continue. You will sign in again afterwards."
     }
   },
   "auth": {

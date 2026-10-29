@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UnauthorizedError } from '../common/errors';
+import { ForbiddenError, UnauthorizedError } from '../common/errors';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthorizationService } from './authorization.service';
-import { IS_PUBLIC, type AuthenticatedRequest, type Principal, actorOf } from './principal';
+import { ALLOW_PASSWORD_CHANGE_PENDING, IS_PUBLIC, type AuthenticatedRequest, type Principal, actorOf } from './principal';
 import { TokenService } from './token.service';
 
 /**
@@ -55,6 +55,14 @@ export class JwtAuthGuard implements CanActivate {
     const user = session.user;
     if (!user || user.id !== claims.sub || user.status !== 'ACTIVE' || user.tokenVersion !== claims.tv) {
       throw new UnauthorizedError('Account is not active');
+    }
+
+    if (user.mustChangePassword) {
+      const allowed = this.reflector.getAllAndOverride<boolean>(ALLOW_PASSWORD_CHANGE_PENDING, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+      if (!allowed) throw new ForbiddenError('Password change required', { reason: 'PASSWORD_CHANGE_REQUIRED' });
     }
 
     const authz = await this.authz.resolve(user.id);

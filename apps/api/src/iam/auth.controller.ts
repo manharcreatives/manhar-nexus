@@ -22,7 +22,7 @@ import {
   type LoginDto,
   type RefreshDto,
 } from './auth.dto';
-import { CurrentPrincipal, Public, type Principal } from './principal';
+import { AllowWhilePasswordChangePending, CurrentPrincipal, Public, type Principal } from './principal';
 
 const REFRESH_COOKIE = 'nexus_refresh';
 
@@ -73,6 +73,7 @@ export class AuthController {
     return { accessToken: tokens.accessToken, expiresIn: tokens.expiresIn };
   }
 
+  @AllowWhilePasswordChangePending()
   @Post('logout')
   @HttpCode(204)
   async logout(@CurrentPrincipal() principal: Principal, @Res({ passthrough: true }) res: Response) {
@@ -80,6 +81,7 @@ export class AuthController {
     this.clearRefreshCookie(res);
   }
 
+  @AllowWhilePasswordChangePending()
   @Post('logout-all')
   @HttpCode(204)
   async logoutAll(
@@ -94,6 +96,7 @@ export class AuthController {
    * Self-service password change. Every session of the user (this one included)
    * is revoked, so the client signs in again with the new password.
    */
+  @AllowWhilePasswordChangePending()
   @UseGuards(ThrottlerGuard)
   @Post('change-password')
   @HttpCode(204)
@@ -106,6 +109,7 @@ export class AuthController {
     this.clearRefreshCookie(res);
   }
 
+  @AllowWhilePasswordChangePending()
   @Get('me')
   me(@CurrentPrincipal() principal: Principal) {
     return this.auth.me(principal.userId);

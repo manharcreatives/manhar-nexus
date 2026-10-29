@@ -178,6 +178,7 @@ export class AuthService {
     realm: string;
     businessId: string | null;
     status: string;
+    mustChangePassword: boolean;
     roles: { key: string; name: string }[];
   }> {
     const user = await this.prisma.user.findUnique({
@@ -192,6 +193,7 @@ export class AuthService {
       realm: user.realm,
       businessId: user.businessId,
       status: user.status,
+      mustChangePassword: user.mustChangePassword,
       roles: user.userRoles.map((ur) => ({ key: ur.role.key, name: ur.role.name })),
     };
   }
@@ -219,7 +221,7 @@ export class AuthService {
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
-        data: { passwordHash, failedAttempts: 0, lockedUntil: null, tokenVersion: { increment: 1 } },
+        data: { passwordHash, mustChangePassword: false, failedAttempts: 0, lockedUntil: null, tokenVersion: { increment: 1 } },
       });
       await tx.session.updateMany({
         where: { userId, revokedAt: null },

@@ -410,6 +410,9 @@ model User {
   failedAttempts Int        @default(0)
   lockedUntil    DateTime?  @db.Timestamptz(6)
   lastLoginAt    DateTime?  @db.Timestamptz(6)
+  /// True while the password is a temporary one (provisioning / admin reset): the API then only
+  /// allows changing it. Cleared by POST /auth/change-password.
+  mustChangePassword Boolean @default(false)
   /// Reserved (ADR-005 groundwork): 1:0..1 link to a future staff_profile.
   /// No table/FK yet; deactivating a user never clears it (history rule).
   staffProfileId String?    @db.Uuid

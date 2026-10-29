@@ -268,6 +268,8 @@ export class UserService extends TenantScopedRepository {
         where: { id: userId },
         data: {
           passwordHash,
+          // An admin chose this password, so the person must replace it at next sign-in.
+          mustChangePassword: true,
           failedAttempts: 0,
           lockedUntil: null,
           tokenVersion: { increment: 1 },

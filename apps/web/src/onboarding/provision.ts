@@ -97,6 +97,7 @@ export async function runProvision(
       email: input.ownerEmail.trim().toLowerCase(),
       displayName: input.ownerName.trim(),
       password: input.ownerPassword,
+      requirePasswordChange: true,
     }).then(() => undefined),
   );
   for (const m of input.modules) {

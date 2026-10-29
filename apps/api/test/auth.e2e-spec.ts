@@ -207,6 +207,33 @@ describe('Auth & Access (e2e)', () => {
     });
   });
 
+  describe('temporary password (forced change)', () => {
+    it('blocks everything except profile, sign-out and the password change until it is changed', async () => {
+      const biz = await createBusiness('Temp Pw Co');
+      const em = email('temppw');
+      await platformPost(`/internal/businesses/${biz}/provision`, { email: em, displayName: 'T', password: PW, requirePasswordChange: true }).then((r) => expect(r.status).toBe(201));
+      const token = await loginToken(em, PW);
+
+      const me = await bearer(request(http()).get('/auth/me'), token).expect(200);
+      expect(me.body.mustChangePassword).toBe(true);
+      await bearer(request(http()).get('/admin/users'), token).expect(403);
+
+      await bearer(request(http()).post('/auth/change-password'), token).send({ currentPassword: PW, newPassword: 'Fresh-Passw0rd!9' }).expect(204);
+      const after = await loginToken(em, 'Fresh-Passw0rd!9');
+      const me2 = await bearer(request(http()).get('/auth/me'), after).expect(200);
+      expect(me2.body.mustChangePassword).toBe(false);
+      await bearer(request(http()).get('/admin/users'), after).expect(200);
+    });
+
+    it('provisioning without the flag keeps the old behaviour', async () => {
+      const biz = await createBusiness('No Flag Co');
+      const em = email('noflag');
+      await platformPost(`/internal/businesses/${biz}/provision`, { email: em, displayName: 'N', password: PW }).then((r) => expect(r.status).toBe(201));
+      const token = await loginToken(em, PW);
+      expect((await bearer(request(http()).get('/auth/me'), token).expect(200)).body.mustChangePassword).toBe(false);
+    });
+  });
+
   describe('RBAC + business isolation', () => {
     let limitedToken: string;
 

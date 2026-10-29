@@ -12,6 +12,7 @@ const provisionSchema = z
     email: z.string().trim().email().toLowerCase(),
     displayName: z.string().trim().min(1).max(100),
     password: z.string().min(8).max(128),
+    requirePasswordChange: z.boolean().optional(),
   })
   .strict();
 
