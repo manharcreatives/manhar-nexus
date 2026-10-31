@@ -389,7 +389,7 @@ export const PRICING: PricingContent = {
       text: 'One price per outlet. No add-on maze.',
       accent: 'price',
     },
-    subhead: 'The kitchen screen, alerts, Activity History and role-based access are already in. Prices exclude 18% GST.',
+    subhead: 'The kitchen screen, alerts and Activity History are in every plan. Prices exclude 18% GST.',
   },
   toggle: {
     monthly: 'Monthly',
@@ -447,6 +447,7 @@ export const PRICING: PricingContent = {
   comingSoonTitle: 'Coming soon (not sold yet)',
   includedTitle: 'Included, where others charge extra',
   included: [
+    ...(QR_MENU_LIVE ? [`${QR_MENU_NAME}: QR menu and table ordering, in every plan`] : []),
     'Kitchen Operations Screen (KOS) on any screen you own',
     'Activity History with Verify',
     'Role-based access, so the cook never sees sales',

@@ -15,6 +15,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { CostsModule } from './costs/costs.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RegistrationModule } from './registration/registration.module';
+import { GuestMenuModule } from './guestmenu/guestmenu.module';
 
 @Module({
   imports: [
@@ -48,6 +49,8 @@ import { RegistrationModule } from './registration/registration.module';
     RealtimeModule,
     // Public landing-page registration requests + platform triage, ADR-033.
     RegistrationModule,
+    // QR digital menu / guest self-ordering, ADR-035.
+    GuestMenuModule,
   ],
 })
 export class AppModule {}

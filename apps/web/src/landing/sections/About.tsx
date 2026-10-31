@@ -1,10 +1,8 @@
-import { ExternalLink, IndianRupee, KeyRound, Mail, MapPin, MessageCircle, MessageSquareText, Phone, type LucideIcon } from 'lucide-react';
-import { Button, Eyebrow, Heading, Icon, IconTile, ImageSlot, Reveal, Section } from '../components';
+import { ExternalLink, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { Button, Icon, ImageSlot, Reveal, Section, SectionHead } from '../components';
 import { ABOUT, CONTACT } from '../content';
 import { mapWords } from './sectionsA.shared';
 import '../styles/about.css';
-
-const BELIEF_ICONS: readonly LucideIcon[] = [KeyRound, MessageSquareText, IndianRupee];
 
 /**
  * Only fields the content module marks publishable are rendered: paragraphs flagged `ownerConfirm` (claims about the
@@ -13,57 +11,29 @@ const BELIEF_ICONS: readonly LucideIcon[] = [KeyRound, MessageSquareText, Indian
  */
 const PUBLISHABLE = ABOUT.paragraphs.filter((p) => !p.ownerConfirm).map((p) => p.text);
 
-/** Splits the last sentence off a paragraph so it can be set as the pull-quote (no duplicated copy). */
-function splitPullQuote(text: string): { body: string; quote: string } {
-  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g)?.map((s) => s.trim()) ?? [];
-  if (sentences.length < 3) return { body: text, quote: '' };
-  return { body: sentences.slice(0, -1).join(' '), quote: sentences[sentences.length - 1] };
-}
-
 function splitBelief(text: string): { lead: string; rest: string } {
   const m = text.match(/^(.+?[.!?])\s+(.+)$/);
   return m ? { lead: m[1], rest: m[2] } : { lead: text, rest: '' };
 }
 
-const heading = (
-  <>
-    {mapWords(ABOUT.header.headline.text, ABOUT.header.headline.accent, (node) => node)}
-  </>
-);
+const heading = <>{mapWords(ABOUT.header.headline.text, ABOUT.header.headline.accent, (node) => node)}</>;
 
-/** About: who builds Nexus. Honest, no invented history. Light Grey alternate section with an Ink studio panel. */
+/** About: who builds Nexus. Honest, short, no invented history. */
 export default function About() {
-  const last = PUBLISHABLE[PUBLISHABLE.length - 1] ?? '';
-  const { body, quote } = splitPullQuote(last);
-  const lead = PUBLISHABLE.slice(0, -1);
-
   return (
     <Section id="about" tone="alt" labelledBy="about-title" className="lp-about">
-      <div className="lp-about__head">
-        <Eyebrow className="lp-about__eyebrow">{ABOUT.header.eyebrow}</Eyebrow>
-        <Heading level={2} id="about-title" className="lp-about__h2">
-          {heading}
-        </Heading>
-      </div>
+      <SectionHead eyebrow={ABOUT.header.eyebrow} title={heading} titleId="about-title" />
 
       <div className="lp-about__grid">
         <div className="lp-about__story">
           <Reveal>
             <div className="lp-about__prose">
-              {lead.map((t) => (
+              {PUBLISHABLE.map((t) => (
                 <p key={t}>{t}</p>
               ))}
-              {body ? <p>{body}</p> : null}
             </div>
           </Reveal>
-          {quote ? (
-            <Reveal delay={100}>
-              <blockquote className="lp-about__quote">
-                <p>{quote}</p>
-              </blockquote>
-            </Reveal>
-          ) : null}
-          <Reveal delay={160}>
+          <Reveal delay={120}>
             <aside className="lp-about__note" aria-label={ABOUT.honestNote.title}>
               <p className="lp-about__notetitle">{ABOUT.honestNote.title}</p>
               <p className="lp-about__notebody">{ABOUT.honestNote.body}</p>
@@ -76,8 +46,8 @@ export default function About() {
           ) : null}
         </div>
 
-        <Reveal delay={120} className="lp-about__studiowrap">
-          <aside className="lp-about__studio" aria-label={ABOUT.studioLabel}>
+        <Reveal delay={140} className="lp-about__studiowrap">
+          <aside className="lp-about__studio lp-glass" aria-label={ABOUT.studioLabel}>
             <p className="lp-about__studiolabel">{ABOUT.studioLabel}</p>
             <a
               className="lp-about__logo"
@@ -98,7 +68,6 @@ export default function About() {
               />
             </a>
             <p className="lp-about__tagline">{ABOUT.studioLine}</p>
-            <p className="lp-about__reach">{CONTACT.reach}</p>
             <ul className="lp-about__contact" aria-label="Contact Manhar Creatives">
               <li>
                 <a href={`mailto:${CONTACT.email}`}>
@@ -125,21 +94,10 @@ export default function About() {
                 </p>
               </li>
             </ul>
-            <div className="lp-about__studioactions">
-              <Button href={CONTACT.studioUrl} external variant="secondary" tone="dark">
-                Visit manharcreatives.com
-                <Icon icon={ExternalLink} size={16} />
-              </Button>
-              <ul className="lp-about__social">
-                {CONTACT.social.map((s) => (
-                  <li key={s.href}>
-                    <a href={s.href} target="_blank" rel="noopener noreferrer">
-                      {s.text}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <Button href={CONTACT.studioUrl} external variant="secondary" size="sm">
+              Visit manharcreatives.com
+              <Icon icon={ExternalLink} size={16} />
+            </Button>
           </aside>
         </Reveal>
       </div>
@@ -154,12 +112,9 @@ export default function About() {
             return (
               <li key={b}>
                 <Reveal delay={i * 100} className="lp-about__card">
-                  <div className="lp-about__cardtop">
-                    <IconTile icon={BELIEF_ICONS[i % BELIEF_ICONS.length]} size={20} />
-                    <span className="lp-num lp-about__cardno" aria-hidden="true">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                  </div>
+                  <span className="lp-num lp-about__cardno" aria-hidden="true">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                   <p className="lp-about__cardlead">{l}</p>
                   {rest ? <p className="lp-about__cardrest">{rest}</p> : null}
                 </Reveal>
@@ -171,4 +126,3 @@ export default function About() {
     </Section>
   );
 }
-

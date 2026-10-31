@@ -40,8 +40,8 @@ http://127.0.0.1:8081 {
 
 {$NEXUS_DOMAIN:localhost} {
 	import tls_{$NEXUS_TLS:acme}
-	# The realtime SSE stream (ADR-032) must never be compressed/buffered.
-	@compressible not path /api/admin/realtime/*
+	# The realtime SSE streams (ADR-032 staff, ADR-035 guest QR menu) must never be compressed/buffered.
+	@compressible not path /api/admin/realtime/* /api/public/menu/*/stream
 	encode @compressible zstd gzip
 
 	# Security headers for every response (SPA and proxied API).
@@ -62,10 +62,25 @@ http://127.0.0.1:8081 {
 		-X-Powered-By
 	}
 
+	# QR-menu pictures (ADR-035): content-addressed, so the API sends
+	# "Cache-Control: public, max-age=31536000, immutable" and an ETag. This block
+	# keeps those headers (the generic /api block below forces no-store on every
+	# response, which would make each dish photo re-download on every visit).
+	handle_path /api/media/* {
+		rewrite * /media{uri}
+		reverse_proxy {$API_UPSTREAM:api:3000} {
+			header_up X-Forwarded-Prefix /api
+		}
+	}
+
 	# API: strip the /api prefix (Nest routes are /health, /auth/*, /admin/* …).
 	handle_path /api/* {
 		reverse_proxy {$API_UPSTREAM:api:3000} {
-			# Server-Sent Events (/admin/realtime/stream): flush every write at
+			# Lets the API build absolute picture URLs for the public QR menu
+			# (https://<host>/api/media/...) even though Caddy strips the prefix.
+			# Only trusted when the API runs with TRUST_PROXY>0 (compose sets 1).
+			header_up X-Forwarded-Prefix /api
+			# Server-Sent Events (/admin/realtime/stream, /public/menu/<t>/stream): flush every write at
 			# once. No response timeout is configured, so idle streams survive;
 			# the API sends a heartbeat comment every 20 s to keep intermediaries
 			# from closing them.

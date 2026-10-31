@@ -61,6 +61,7 @@ import { Algorithm, hash } from '@node-rs/argon2';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { loadCatalog, seedHistory, type DemoLocation } from './demo/history';
 import { seedExpenses } from './demo/expenses';
+import { seedQrMenu } from './demo/qr-menu';
 import { buildServices, closePaidOpenSessions, ensureSeries, openLiveTables, retireStaleSessions, userScope } from './demo/live';
 
 if (process.env.NEXUS_DEMO_SEED !== 'true') {
@@ -556,6 +557,10 @@ async function main(): Promise<void> {
   console.log(`[16a] Retired stale / previous live-scenario sessions: ${retired.length ? retired.join(', ') : 'none'}`);
   const live = await openLiveTables(prisma, svc, waiterScope, kitchenScope, { main: demoLocations[0], riverside: demoLocations[1] }, NOW);
   console.log(`[16b] Live tables (relative to now): ${live.length ? live.join('; ') : 'none (tables busy)'}`);
+
+  // ── 16c. QR digital menu: QR codes, policy, dish marks, pictures (ADR-035) ─────
+  const qr = await seedQrMenu(prisma, businessId);
+  console.log(`[16c] QR menu: ${qr.qrCodes} new QR code(s), ${qr.dishesMarked} dish(es) marked, ${qr.pictures} picture(s) set${qr.mediaDir ? ` (media: ${qr.mediaDir})` : ' (no MEDIA_DIR: pictures skipped)'}. Set a UPI ID in Settings > Checkout to enable "Pay by UPI".`);
 
   // ── 17. Integrity check ───────────────────────────────────────────────────────
   const chain = await svc.audit.verifyChain(ownerScope);

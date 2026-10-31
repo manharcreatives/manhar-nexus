@@ -1,293 +1,226 @@
-/* ==========================================================================
-   Platform: module showcase. Default = plain responsive grid of kitchen tickets.
-   Desktop + fine pointer + motion allowed = STICKY FANNED TICKET STACK in CSS 3D,
-   driven by --p (0..1, set by useScrollProgress('pin') on .lp-pf).
-   3D rules: .lp-pf__deck owns `perspective`; .lp-pf__cards owns preserve-3d; no overflow / filter /
-   opacity / mask / clip-path on those two or on anything between them. Opacity + mask live on LEAVES only
-   (.lp-pf__card and .lp-pf__ticket). Only transform + opacity change while scrolling.
-   Sticky needs NO overflow on any ancestor up to .lp-root (which uses overflow-x: clip, safe).
-   ========================================================================== */
+/* Platform: six headline modules in a bento grid + an "and also" strip. Dark-native, glass-edge cards.
+   Grid (>= 960px, 12 columns): feature (tall, left) | wide | wide (stacked right), then three standard cards. */
 
-.lp-platform {
-  --lx: cubic-bezier(0.16, 1, 0.3, 1);
-  padding-top: clamp(6rem, 3.5rem + 7vw, 10rem);
+.lp-pf__grid {
+  display: grid;
+  gap: var(--lp-gap);
+  grid-template-columns: 1fr;
 }
-.lp-platform__head .lp-section-header {
-  padding-top: 1.75rem;
-  border-top: 1px solid var(--lp-line);
+.lp-pfc {
+  display: block;
+  min-width: 0;
+  perspective: 1200px;
 }
-.lp-platform__soon {
-  padding-block: clamp(4rem, 2rem + 5vw, 7rem) clamp(6rem, 3.5rem + 7vw, 10rem);
+.lp-pfc__tilt {
+  height: 100%;
 }
-
-/* ---- the ticket (shared by the stack, the grid and the coming-soon cards) ------------------------------ */
-.lp-pf__ticket {
-  --notch: 4.25rem; /* height of the stub above the perforation; the notches sit exactly on this line */
-  --nr: 11px;
+.lp-pfc__card {
   position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  gap: 2.5rem;
   height: 100%;
+  min-height: 15rem;
+  padding: clamp(1.4rem, 1.1rem + 1vw, 2rem);
   overflow: hidden;
-  background: var(--lp-white);
   border: 1px solid var(--lp-line);
   border-radius: var(--lp-radius-xl);
-  color: var(--lp-body);
-  -webkit-mask:
-    radial-gradient(circle var(--nr) at 0 var(--notch), #0000 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle var(--nr) at 100% var(--notch), #0000 98%, #000) right / 51% 100% no-repeat;
-  mask:
-    radial-gradient(circle var(--nr) at 0 var(--notch), #0000 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle var(--nr) at 100% var(--notch), #0000 98%, #000) right / 51% 100% no-repeat;
+  background: var(--lp-surface);
+  box-shadow: var(--lp-shadow-card);
+  transition: border-color 0.6s var(--lp-ease), box-shadow 0.8s var(--lp-ease), transform 0.8s var(--lp-ease);
 }
-.lp-pf__top {
+@media (hover: hover) {
+  .lp-pfc__card:hover {
+    border-color: var(--lp-hair-strong);
+    box-shadow: var(--lp-shadow-lift);
+    transform: translateY(-4px);
+  }
+}
+.lp-pfc__top {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  height: var(--notch);
-  padding-inline: 1.25rem;
-  flex: none;
+  justify-content: space-between;
+  gap: 1rem;
 }
-.lp-pf__no {
-  margin-right: auto;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--lp-muted);
-  white-space: nowrap;
-}
-.lp-pf__perf {
-  flex: none;
-  margin-inline: 1.1rem;
-  border-top: 2px dashed var(--lp-line);
-}
-.lp-pf__body {
+.lp-pfc__body {
+  position: relative;
+  z-index: 1;
   display: grid;
-  align-content: start;
   gap: 0.6rem;
-  flex: 1;
-  padding: 1.1rem 1.4rem 1.4rem;
+  max-width: 30rem;
 }
-.lp-pf__title {
-  color: var(--lp-text);
+.lp-pfc__curious {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--lp-green);
 }
-.lp-pf__curious {
-  font-family: var(--lp-font-display);
-  font-weight: 600;
-  font-size: 1.0625rem;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  color: var(--lp-forest);
-  text-wrap: balance;
+.lp-pfc__title {
+  font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.625rem);
 }
-.lp-pf__desc {
+.lp-pfc__summary {
+  color: var(--lp-fg-3);
   font-size: 0.9375rem;
   line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.lp-pf__proof {
-  align-self: end;
-  margin-top: 0.35rem;
-  padding-top: 0.75rem;
-  border-top: 1px dashed var(--lp-line);
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--lp-muted);
+.lp-pfc__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  margin-top: 0.4rem;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--lp-green);
+  transition: gap 0.5s var(--lp-ease), color 0.3s;
 }
-.lp-pf__proof-label {
-  display: block;
-  margin-bottom: 0.15rem;
+.lp-pfc__more:hover {
+  gap: 0.8rem;
+  color: var(--lp-green-bright);
+}
+
+/* module photograph: melts into the card from the right, never a box */
+.lp-pfc__photo {
+  position: absolute;
+  inset: 0 0 0 38%;
+  z-index: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left, var(--lp-ink) 30%, transparent 100%);
+  mask-image: linear-gradient(to left, var(--lp-ink) 30%, transparent 100%);
+}
+.lp-pfc__photo .lp-img {
+  height: 100%;
+  background: transparent;
+}
+.lp-pfc__photo .lp-img__fallback {
+  display: none;
+}
+.lp-pfc--feature .lp-pfc__photo {
+  inset: 0;
+  opacity: 0.42;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, var(--lp-ink) 60%);
+  mask-image: linear-gradient(to bottom, transparent 0%, var(--lp-ink) 60%);
+}
+.lp-pfc--feature .lp-pfc__card {
+  min-height: 24rem;
+}
+.lp-pfc--feature .lp-pfc__title {
+  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.25rem);
+}
+.lp-pfc--feature .lp-pfc__summary {
+  font-size: 1.0625rem;
+  -webkit-line-clamp: 4;
+}
+
+/* ---- bento ---------------------------------------------------------------- */
+@media (min-width: 720px) {
+  .lp-pf__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lp-pfc--feature {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 960px) {
+  .lp-pf__grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .lp-pfc--feature {
+    grid-column: 1 / span 7;
+    grid-row: span 2;
+  }
+  .lp-pfc--wide {
+    grid-column: span 5;
+  }
+  .lp-pfc--std {
+    grid-column: span 4;
+  }
+  .lp-pfc--feature .lp-pfc__card {
+    min-height: 30rem;
+  }
+}
+
+/* ---- and also + coming soon ------------------------------------------------- */
+.lp-pf__more {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: clamp(3rem, 2rem + 3vw, 5rem);
+  padding-top: clamp(1.75rem, 1.4rem + 1vw, 2.5rem);
+  border-top: 1px solid var(--lp-line);
+}
+.lp-pf__moretitle {
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lp-fg-3);
+}
+.lp-pf__also {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.lp-pf__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 1rem 0.55rem 0.8rem;
+  border: 1px solid var(--lp-line);
+  border-radius: 999px;
+  background: var(--lp-surface);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--lp-fg-2);
+  transition: border-color 0.5s, color 0.4s;
+}
+.lp-pf__chip svg {
+  color: var(--lp-green);
+}
+.lp-pf__chip:hover {
+  border-color: var(--lp-hair-strong);
+  color: var(--lp-fg);
+}
+.lp-pf__soon {
+  padding: 0;
+  margin-top: 1.75rem;
+  max-width: none;
+}
+.lp-pf__soonrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  color: var(--lp-fg-3);
+}
+.lp-pf__soontag {
+  flex: none;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--lp-hair-strong);
+  border-radius: 999px;
   font-size: 0.6875rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--lp-deep);
+  color: var(--lp-fg-3);
 }
-.lp-pf__ticket--muted {
-  background: var(--lp-canvas);
-  border-style: dashed;
-}
-.lp-pf__ticket--muted .lp-icon-tile {
-  background: var(--lp-mist);
-  color: var(--lp-body);
-}
-.lp-pf__ticket--muted .lp-pf__curious {
-  color: var(--lp-muted);
-}
-
-/* ---- default layout (phones, tablets, coarse pointers, reduced motion): plain grid --------------------- */
-.lp-pf__rail {
-  display: none;
-}
-.lp-pf__grid {
-  display: block;
-}
-.lp-pf__cards {
-  display: grid;
-  gap: 1.1rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19.5rem), 1fr));
-}
-.lp-pf__card {
-  min-width: 0;
-}
-.lp-pf-soon__head {
-  display: grid;
-  gap: 0.5rem;
-  max-width: 40rem;
-  margin-bottom: 1.5rem;
-}
-.lp-pf-soon__grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16.5rem), 1fr));
-}
-.lp-pf-soon__grid .lp-pf__body {
-  gap: 0.4rem;
-  padding-bottom: 1.1rem;
-}
-.lp-pf-soon__grid .lp-pf__title {
-  font-size: 1.125rem;
-}
-.lp-pf__deck {
-  padding-bottom: calc(var(--lp-section-y) * 0.2);
-}
-
-/* ---- STACK MODE (keep the query identical to STACK_MQ in Platform.tsx) ----------------------------------- */
-@media (min-width: 960px) and (min-height: 600px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .lp-pf {
-    /* one viewport of pin + ~52vh of scroll per extra card */
-    height: calc(100vh + (var(--n) - 1) * 52vh);
-  }
-  .lp-pf__stage {
-    position: sticky;
-    top: var(--lp-header-h);
-    height: calc(100vh - var(--lp-header-h));
-    display: flex;
-    align-items: center;
-  }
-  .lp-pf__grid {
-    display: grid;
-    grid-template-columns: minmax(13.5rem, 17rem) minmax(0, 1fr);
-    gap: clamp(2rem, 5vw, 5rem);
-    align-items: center;
-    height: 100%;
-  }
-  .lp-pf__deck {
-    perspective: 1700px;
-    perspective-origin: 50% 30%;
-    display: grid;
-    place-items: center;
-    height: 100%;
-    padding: 0;
-  }
-  .lp-pf__cards {
-    display: block;
-    position: relative;
-    transform-style: preserve-3d;
-    width: min(34rem, 100%);
-    height: min(25.5rem, calc(100vh - var(--lp-header-h) - 5rem));
-  }
-
-  .lp-pf__card {
-    /* position along the deck: 0 .. n-1, with a short dwell on the first and last card (DWELL_* in the TSX) */
-    --pos: calc(clamp(0, (var(--p, 0) - 0.05) / 0.9, 1) * (var(--n) - 1));
-    --d: calc(var(--i) - var(--pos)); /* signed distance from the active card: <0 already dealt, >0 still waiting */
-    --ad: max(var(--d), calc(var(--d) * -1));
-    position: absolute;
-    inset: 0;
-    transform-origin: 50% 115%;
-    transform: translate3d(calc(var(--d) * 3%), calc(var(--ad) * -12px + min(var(--d), 0) * 44px), calc(var(--ad) * -110px))
-      rotateY(calc(var(--d) * 8deg)) rotateZ(calc(var(--d) * 1.5deg));
-    opacity: clamp(0, calc(1.3 - var(--ad) * 0.5), 1);
-    backface-visibility: hidden;
-    will-change: transform, opacity;
-  }
-  .lp-pf__card::before {
-    /* soft drop shadow that follows the card (the ticket itself is masked, so it cannot carry one) */
-    content: "";
-    position: absolute;
-    inset: 6% 3% 0;
-    border-radius: var(--lp-radius-lg);
-    box-shadow: 0 1px 0 rgb(11 15 14 / 0.04), 0 40px 64px -32px rgb(11 15 14 / 0.3);
-    z-index: -1;
-  }
-  .lp-pf__card[data-active="true"] .lp-pf__ticket {
-    border-color: var(--lp-forest);
-  }
-  .lp-pf__card .lp-pf__body {
-    gap: 0.75rem;
-    padding: 1.4rem 1.75rem 1.6rem;
-  }
-  .lp-pf__card .lp-pf__desc {
-    font-size: 1.0625rem;
-  }
-  .lp-pf__card .lp-pf__curious {
-    font-size: 1.1875rem;
-  }
-  .lp-pf__card .lp-pf__proof {
-    font-size: 0.9375rem;
-  }
-  .lp-pf__title {
-    font-size: clamp(1.375rem, 1rem + 0.9vw, 1.75rem);
-  }
-
-  /* index rail: 01..N, highlights the card on top, click = scroll to it */
-  .lp-pf__rail {
-    display: block;
-  }
-  .lp-pf__count {
-    margin-bottom: 1rem;
-    font-size: 0.8125rem;
-    letter-spacing: 0.1em;
-    color: var(--lp-muted);
-  }
-  .lp-pf__count .lp-num {
-    font-size: 1.75rem;
-    font-family: var(--lp-font-display);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-  .lp-pf__rail-list {
-    display: grid;
-    gap: 0.1rem;
-    border-left: 1px solid var(--lp-line);
-  }
-  .lp-pf__rail-btn {
-    display: grid;
-    grid-template-columns: 2rem 1fr;
-    align-items: baseline;
-    width: 100%;
-    margin-left: -1px;
-    padding: 0.38rem 0.5rem 0.38rem 0.9rem;
-    border: 0;
-    border-left: 2px solid transparent;
-    background: none;
-    text-align: left;
-    font-size: 0.875rem;
-    line-height: 1.3;
-    color: var(--lp-muted);
-    cursor: pointer;
-    transition: color 0.45s var(--lx), border-color 0.45s var(--lx), background-color 0.45s var(--lx);
-  }
-  .lp-pf__rail-no {
-    font-size: 0.6875rem;
-    letter-spacing: 0.08em;
-    color: var(--lp-muted);
-  }
-  .lp-pf__rail-btn:hover {
-    color: var(--lp-text);
-    background: var(--lp-mint-wash);
-  }
-  .lp-pf__rail-btn[aria-current="true"] {
-    color: var(--lp-text);
-    font-weight: 700;
-    border-left-color: var(--lp-forest);
-  }
-  .lp-pf__rail-btn[aria-current="true"] .lp-pf__rail-no {
-    color: var(--lp-forest);
-  }
+.lp-pf__soonnote {
+  margin-top: 0.6rem;
+  font-size: 0.875rem;
+  color: var(--lp-fg-3);
+  opacity: 0.85;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-pf__rail-btn {
+  .lp-pfc__card,
+  .lp-pfc__more {
     transition: none;
   }
 }

@@ -1,12 +1,11 @@
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
-import { Container, Heading, ImageSlot, Section, Tag } from '../components';
+import { Container, Heading, ImageSlot, Section, SectionHead, Tag } from '../components';
 import { cx } from '../components/cx';
 import { BUILT_FOR, img, imgSrcSet } from '../content';
 import { prefersReducedMotion, useInView, useScrollProgress } from '../hooks';
 import '../styles/builtfor.css';
 import { headlineNode } from './_b/headline';
-import { SectionHead } from './_b/SectionHead';
 import { useMq } from './_b/useMq';
 
 /** Ring (3D) only from tablet up and with motion allowed; otherwise a scroll-snap strip. Keep identical to builtfor.css. */

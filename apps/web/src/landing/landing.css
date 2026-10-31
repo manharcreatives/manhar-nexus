@@ -1,11 +1,13 @@
 /* ==========================================================================
-   Manhar Nexus landing: foundation styles (tokens, base, primitives, header,
-   footer, prose). Imported ONLY by LandingApp (lazy chunk).
-   Rules: every selector is `.lp-*` / scoped under `.lp-root` (the only
-   exceptions are the three `html[data-surface="landing"]` rules). Brand v2:
-   #1DBA3C only green, never #22C55E/#16A34A/#4ADE80, never #000.
-   The app stylesheet is global and sits in `@layer base`; this file is
-   UNLAYERED so it always wins over Tailwind preflight/base rules.
+   Manhar Nexus landing: foundation styles (tokens, base, type, section system,
+   buttons, cards). DARK-NATIVE: the website carries the software's own identity
+   (apps/web/src/styles.css, ADR-031): paper #070a09, surface #0f1513, sunken #161e1b,
+   line #222d29, ink #f3f7f5, muted #94a09b, accent green #1DBA3C family.
+   Imported ONLY by LandingApp (lazy chunk). Companion files: styles/ui.css (fields, tags,
+   images, reveal, lockup) and styles/chrome.css (header, footer, prose, print).
+   Rules: every selector is `.lp-*` / scoped under `.lp-root`. Gradients: only the two allowed colour
+   pairs (#1DBA3C > #35D445, #0B0F0E > #121A16) and white-alpha / paper masks. No warm accents, no pure black.
+   The app stylesheet is global and sits in `@layer base`; this file is UNLAYERED so it always wins.
    ========================================================================== */
 
 @font-face {
@@ -26,16 +28,16 @@
 
 /* ---- page chrome while the landing is mounted (set by LandingApp) --------- */
 html[data-surface="landing"] {
-  color-scheme: light;
-  background: #f7f9f7;
-  scrollbar-color: #9aa5a0 transparent;
+  color-scheme: dark;
+  background: #070a09;
+  scrollbar-color: #222d29 #070a09;
 }
 html[data-surface="landing"] body {
-  background: #f7f9f7;
+  background: #070a09;
 }
 html[data-surface="landing"] body::before,
 html[data-surface="landing"] body::after {
-  display: none; /* the app's aurora + film grain */
+  display: none; /* the app's aurora + film grain: the landing paints its own */
 }
 @media (prefers-reduced-motion: no-preference) {
   html[data-surface="landing"] {
@@ -45,51 +47,62 @@ html[data-surface="landing"] body::after {
 
 /* ---- tokens --------------------------------------------------------------- */
 .lp-root {
-  /* Green family */
-  --lp-green: #1dba3c; /* Manhar Green: fills, icons, bars, accent words on dark */
-  --lp-green-bright: #35d445; /* button hover / glow edge only */
-  --lp-forest: #12802b; /* green TEXT on light */
-  --lp-deep: #106021; /* text on mint tags, link hover on light */
+  /* Green family. Text green on dark = #1DBA3C (7.5:1 on ink). */
+  --lp-green: #1dba3c; /* fills, icons, bars, accent words */
+  --lp-green-bright: #35d445; /* hover, glow edge */
+  --lp-forest: #1dba3c; /* legacy name: green TEXT (on dark this is the brand green) */
+  --lp-deep: #35d445; /* legacy name: emphasised green text / link hover on dark */
   --lp-glow: #69f361; /* artwork glow only, never text, never a flat fill */
-  --lp-mint: #c9f2d2; /* tag borders, selected states */
-  --lp-mint-wash: #eaf9ed; /* callouts, tags, hover panels */
-  /* Light surfaces */
-  --lp-white: #ffffff;
-  --lp-canvas: #f7f9f7; /* Soft White: page canvas */
-  --lp-grey: #eef2ef; /* Light Grey: alternate sections */
-  --lp-mist: #e3e9e5; /* input backgrounds, disabled */
-  --lp-line: #d5ddd8; /* borders on light */
-  --lp-silver: #9aa5a0; /* decoration only */
-  /* Dark surfaces */
-  --lp-ink: #0b0f0e;
-  --lp-night: #121a16; /* Night Panel */
-  --lp-night-card: #1b2620;
-  --lp-night-line: #2b3932;
+  --lp-mint: rgb(29 186 60 / 0.32); /* tag + selected borders */
+  --lp-mint-wash: rgb(29 186 60 / 0.1); /* tag + callout fills */
+
+  /* Surfaces: the software's dark tokens */
+  --lp-canvas: #070a09; /* paper */
+  --lp-white: #0f1513; /* legacy name: card / surface */
+  --lp-grey: #0b0f0e; /* alternate band */
+  --lp-mist: #161e1b; /* sunken: inputs, wells */
+  --lp-line: #222d29; /* hairline */
+  --lp-silver: #3a4944; /* decoration, hover borders */
+  --lp-surface: #0f1513;
+  --lp-surface-2: #161e1b;
+  --lp-hair: #222d29;
+  --lp-hair-strong: #33423c;
+  --lp-ink: #0b0f0e; /* the darkest brand tone: dark panels, text on green */
+  --lp-night: #121a16;
+  --lp-night-card: #161e1b;
+  --lp-night-line: #222d29;
+
   /* Text */
-  --lp-text: #0b0f0e; /* headings on light */
-  --lp-body: #2b3631; /* paragraphs on light */
-  --lp-muted: #55625b; /* helper text on light */
-  --lp-on-dark: #ffffff;
-  --lp-on-dark-soft: #a7b2ac;
-  --lp-on-dark-muted: #8a9690;
-  /* Functional (forms only) */
-  --lp-success: #12802b;
-  --lp-warning: #8a5a00;
-  --lp-error: #c62828;
-  --lp-info: #1f5f8b;
-  /* Aliases that mirror brand guide section 09 names */
+  --lp-fg: #f3f7f5; /* ink: headings, key text */
+  --lp-fg-2: #d5ddd9; /* body */
+  --lp-fg-3: #94a09b; /* muted */
+  --lp-text: var(--lp-fg);
+  --lp-body: var(--lp-fg-2);
+  --lp-muted: var(--lp-fg-3);
+  --lp-on-accent: #0b0f0e; /* text/glyph on green fills (7.5:1); never white on green */
+  --lp-on-dark: var(--lp-fg);
+  --lp-on-dark-soft: #b9c4bf;
+  --lp-on-dark-muted: var(--lp-fg-3);
+
+  /* Functional (forms, status). Same hues as the software. */
+  --lp-success: #1dba3c;
+  --lp-warning: #fbbf24;
+  --lp-error: #f87171;
+  --lp-info: #60a5fa;
+
+  /* Brand-guide section 09 aliases */
   --color-primary: var(--lp-green);
   --color-primary-hover: var(--lp-green-bright);
   --color-primary-text: var(--lp-forest);
   --color-primary-deep: var(--lp-deep);
   --color-secondary: var(--lp-ink);
   --bg: var(--lp-canvas);
-  --bg-card: var(--lp-white);
+  --bg-card: var(--lp-surface);
   --bg-alt: var(--lp-grey);
   --border: var(--lp-line);
-  --text: var(--lp-text);
-  --text-body: var(--lp-body);
-  --text-muted: var(--lp-muted);
+  --text: var(--lp-fg);
+  --text-body: var(--lp-fg-2);
+  --text-muted: var(--lp-fg-3);
   --dark-bg: var(--lp-ink);
   --dark-panel: var(--lp-night);
   --dark-card: var(--lp-night-card);
@@ -97,31 +110,44 @@ html[data-surface="landing"] body::after {
   --dark-text: var(--lp-on-dark);
   --dark-text-soft: var(--lp-on-dark-soft);
   --dark-text-muted: var(--lp-on-dark-muted);
+
   /* Fonts */
   --lp-font-display: "Clash Display", "Clash Display Fallback", "Space Grotesk", ui-sans-serif, sans-serif;
   --lp-font-body: "Satoshi", "Satoshi Fallback", "Inter", ui-sans-serif, sans-serif;
   --lp-font-mono: "JetBrains Mono", "JetBrains Mono Fallback", "Fira Code", ui-monospace, monospace;
-  /* Type scale: brand H1 64 / H2 40 / H3 24 on desktop, fluid below */
-  --lp-fs-h1: clamp(2.25rem, 1.2rem + 4.6vw, 4rem);
-  --lp-fs-h2: clamp(1.75rem, 1.1rem + 2.4vw, 2.5rem);
-  --lp-fs-h3: clamp(1.25rem, 1rem + 1vw, 1.5rem);
-  --lp-fs-lede: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
-  /* Layout */
-  --lp-gutter: clamp(1.25rem, 0.6rem + 3vw, 2.5rem);
+
+  /* Type scale: confident display sizes, light weight via size not boldness */
+  --lp-fs-h1: clamp(2.5rem, 1.1rem + 5.2vw, 5.25rem);
+  --lp-fs-h2: clamp(2rem, 1.15rem + 3vw, 3.5rem);
+  --lp-fs-h3: clamp(1.25rem, 1.05rem + 0.8vw, 1.5rem);
+  --lp-fs-lede: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+
+  /* Layout rhythm: one gutter, one container, one section padding, one gap scale */
+  --lp-gutter: clamp(1.25rem, 0.6rem + 3vw, 2.75rem);
   --lp-max: 1200px;
   --lp-max-narrow: 760px;
   --lp-max-wide: 1360px;
   --lp-header-h: 64px;
-  --lp-section-y: clamp(4rem, 2.5rem + 6vw, 7.5rem);
-  /* Shape + motion */
+  --lp-section-y: clamp(5rem, 2.5rem + 8vw, 9.5rem);
+  --lp-gap: clamp(1rem, 0.7rem + 1vw, 1.5rem);
+  --lp-head-gap: clamp(2.5rem, 1.6rem + 3vw, 4.5rem); /* header block to content */
+
+  /* Shape + depth */
   --lp-radius-sm: 0.5rem;
   --lp-radius: 0.75rem;
-  --lp-radius-lg: 1rem;
+  --lp-radius-lg: 1.125rem;
   --lp-radius-xl: 1.5rem;
-  --lp-shadow-card: 0 1px 2px rgb(11 15 14 / 0.04), 0 8px 24px -12px rgb(11 15 14 / 0.12);
-  --lp-shadow-lift: 0 2px 4px rgb(11 15 14 / 0.05), 0 18px 40px -16px rgb(11 15 14 / 0.22);
-  --lp-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --lp-edge: rgb(255 255 255 / 0.06); /* glass edge, top-left */
+  --lp-edge-faint: rgb(255 255 255 / 0.02);
+  --lp-shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(2 5 4 / 0.5), 0 28px 56px -28px rgb(2 5 4 / 0.9);
+  --lp-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 4px rgb(2 5 4 / 0.5), 0 36px 72px -28px rgb(2 5 4 / 1), 0 0 0 1px rgb(29 186 60 / 0.12);
+  --lp-shadow-pop: 0 40px 90px -30px rgb(2 5 4 / 1);
+
+  /* Motion: slow, weighted */
+  --lp-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --lp-ease-stamp: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --lp-dur: 0.7s;
+  --lp-dur-slow: 1.1s;
 }
 @media (min-width: 1024px) {
   .lp-root {
@@ -137,17 +163,19 @@ html[data-surface="landing"] body::after {
   min-height: 100vh;
   overflow-x: clip; /* clip, not hidden: keeps `position: sticky` descendants working */
   background: var(--lp-canvas);
-  color: var(--lp-body);
+  color: var(--lp-fg-2);
   font-family: var(--lp-font-body);
   font-size: 1rem;
   line-height: 1.6;
   font-weight: 400;
   word-spacing: normal;
   letter-spacing: normal;
-  color-scheme: light;
+  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lp-hair-strong) transparent;
 }
 .lp-root *,
 .lp-root *::before,
@@ -173,12 +201,8 @@ html[data-surface="landing"] body::after {
   color: inherit;
 }
 .lp-root ::selection {
-  background: var(--lp-mint);
-  color: var(--lp-ink);
-}
-.lp-root .lp-on-dark ::selection {
-  background: var(--lp-green);
-  color: var(--lp-ink);
+  background: rgb(29 186 60 / 0.38);
+  color: #fff;
 }
 .lp-root h1,
 .lp-root h2,
@@ -188,19 +212,22 @@ html[data-surface="landing"] body::after {
   font-weight: 600;
   letter-spacing: -0.02em;
   word-spacing: normal;
-  color: var(--lp-text);
+  color: var(--lp-fg);
   text-wrap: balance;
 }
 .lp-root h1,
 .lp-root .lp-h1 {
   font-size: var(--lp-fs-h1);
-  line-height: 1.04;
-  letter-spacing: -0.025em;
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+  font-weight: 500;
 }
 .lp-root h2,
 .lp-root .lp-h2 {
   font-size: var(--lp-fs-h2);
-  line-height: 1.1;
+  line-height: 1.07;
+  letter-spacing: -0.025em;
+  font-weight: 500;
 }
 .lp-root h3,
 .lp-root .lp-h3 {
@@ -217,23 +244,23 @@ html[data-surface="landing"] body::after {
   text-wrap: pretty;
 }
 .lp-root :focus-visible {
-  outline: 2px solid var(--lp-forest);
-  outline-offset: 2px;
+  outline: 2px solid var(--lp-green);
+  outline-offset: 3px;
   box-shadow: none;
-}
-.lp-root .lp-on-dark :focus-visible,
-.lp-root.lp-on-dark :focus-visible {
-  outline-color: var(--lp-green);
+  border-radius: 6px;
 }
 .lp-root :where(main):focus {
   outline: none;
 }
 
-/* ---- surfaces -------------------------------------------------------------- */
+/* ---- sections: one rhythm ---------------------------------------------------- */
 .lp-section {
   position: relative;
   padding-block: var(--lp-section-y);
   scroll-margin-top: var(--lp-header-h);
+}
+.lp-section + .lp-section {
+  border-top: 1px solid var(--lp-line);
 }
 .lp-section--pad-tight {
   padding-block: calc(var(--lp-section-y) * 0.6);
@@ -245,7 +272,7 @@ html[data-surface="landing"] body::after {
   background: var(--lp-canvas);
 }
 .lp-section--light {
-  background: var(--lp-white);
+  background: var(--lp-surface);
 }
 .lp-section--alt {
   background: var(--lp-grey);
@@ -256,18 +283,24 @@ html[data-surface="landing"] body::after {
 .lp-section--night {
   background: var(--lp-night);
 }
+/* 1px green top edge (CTA / register): a short bright segment on a hairline, not a full-width stripe */
 .lp-edge-green {
-  border-top: 1px solid var(--lp-green);
+  border-top: 1px solid var(--lp-line);
+}
+.lp-edge-green::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: min(22rem, 40%);
+  height: 1px;
+  transform: translateX(-50%);
+  background: var(--lp-green);
+  box-shadow: 0 0 22px 2px rgb(29 186 60 / 0.55);
 }
 .lp-on-dark {
-  color: var(--lp-on-dark-soft);
+  color: var(--lp-fg-2);
   color-scheme: dark;
-}
-.lp-on-dark h1,
-.lp-on-dark h2,
-.lp-on-dark h3,
-.lp-on-dark h4 {
-  color: var(--lp-on-dark);
 }
 .lp-root [data-anchor] {
   scroll-margin-top: calc(var(--lp-header-h) + 12px);
@@ -286,42 +319,96 @@ html[data-surface="landing"] body::after {
   max-width: calc(var(--lp-max-wide) + 2 * var(--lp-gutter));
 }
 
+/* ---- section header: ONE pattern for every section --------------------------- */
+.lp-section-header {
+  display: grid;
+  gap: 1.1rem;
+  max-width: 46rem;
+  margin-bottom: var(--lp-head-gap);
+}
+.lp-section-header--center {
+  margin-inline: auto;
+  text-align: center;
+  justify-items: center;
+}
+.lp-section-header .lp-lede {
+  max-width: 36rem;
+}
+.lp-sh__top {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+/* Section numbers are a CSS counter over every `.lp-section-header` inside <main>, so W2's sections number too. */
+.lp-root main {
+  counter-reset: lp-sec;
+}
+.lp-section-header {
+  counter-increment: lp-sec;
+}
+.lp-sh__no::before {
+  content: counter(lp-sec, decimal-leading-zero);
+}
+.lp-sh__no {
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: var(--lp-green);
+  font-variant-numeric: tabular-nums;
+}
+.lp-sh__rule {
+  flex: none;
+  width: 2.5rem;
+  height: 1px;
+  background: var(--lp-hair-strong);
+}
+.lp-section-header--center .lp-sh__top {
+  justify-content: center;
+}
+
 /* ---- typography helpers ---------------------------------------------------- */
 .lp-eyebrow {
   font-family: var(--lp-font-mono);
   font-weight: 500;
   font-size: 0.75rem;
   line-height: 1.4;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--lp-forest);
+  color: var(--lp-fg-3);
 }
-.lp-section--alt .lp-eyebrow {
-  color: var(--lp-deep); /* Forest is 4.48:1 on Light Grey: use Deep for small mono text there */
+/* sections that did not adopt SectionHead still get the editorial dash */
+.lp-section-header > .lp-eyebrow:not(.lp-sh__top) {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
 }
-.lp-on-dark .lp-eyebrow {
-  color: var(--lp-on-dark-muted);
+.lp-section-header > .lp-eyebrow:not(.lp-sh__top)::before {
+  content: counter(lp-sec, decimal-leading-zero);
+  order: -2;
+  color: var(--lp-green);
+  font-variant-numeric: tabular-nums;
+}
+.lp-section-header > .lp-eyebrow:not(.lp-sh__top)::after {
+  content: "";
+  order: -1;
+  flex: none;
+  width: 2.5rem;
+  height: 1px;
+  background: var(--lp-hair-strong);
 }
 .lp-accent {
-  color: var(--lp-forest);
-}
-.lp-on-dark .lp-accent {
   color: var(--lp-green);
 }
 .lp-lede {
   font-size: var(--lp-fs-lede);
-  line-height: 1.55;
-  color: var(--lp-body);
-  max-width: 42rem;
-}
-.lp-on-dark .lp-lede {
-  color: var(--lp-on-dark-soft);
+  line-height: 1.6;
+  color: var(--lp-fg-3);
+  max-width: 40rem;
 }
 .lp-muted {
-  color: var(--lp-muted);
-}
-.lp-on-dark .lp-muted {
-  color: var(--lp-on-dark-muted);
+  color: var(--lp-fg-3);
 }
 .lp-mono {
   font-family: var(--lp-font-mono);
@@ -331,41 +418,18 @@ html[data-surface="landing"] body::after {
 .lp-num {
   font-family: var(--lp-font-mono);
   font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--lp-forest);
-}
-.lp-section--alt .lp-num {
-  color: var(--lp-deep);
-}
-.lp-on-dark .lp-num {
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--lp-green);
 }
 .lp-link {
-  color: var(--lp-forest);
+  color: var(--lp-green);
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.2em;
-  transition: color 0.15s;
+  text-underline-offset: 0.22em;
+  transition: color 0.25s;
 }
 .lp-link:hover {
-  color: var(--lp-deep);
-}
-.lp-on-dark .lp-link {
-  color: var(--lp-green);
-}
-.lp-on-dark .lp-link:hover {
   color: var(--lp-green-bright);
-}
-.lp-section-header {
-  display: grid;
-  gap: 0.9rem;
-  max-width: 46rem;
-  margin-bottom: clamp(2rem, 1.4rem + 2.4vw, 3.5rem);
-}
-.lp-section-header--center {
-  margin-inline: auto;
-  text-align: center;
-  justify-items: center;
 }
 .lp-visually-hidden {
   position: absolute !important;
@@ -386,14 +450,14 @@ html[data-surface="landing"] body::after {
   z-index: 10001;
   padding: 0.75rem 1.1rem;
   border-radius: var(--lp-radius);
-  background: var(--lp-ink);
-  color: var(--lp-white);
+  background: var(--lp-green);
+  color: var(--lp-on-accent);
   font-weight: 700;
   transition: top 0.15s;
 }
 .lp-skip:focus {
   top: 1rem;
-  outline: 2px solid var(--lp-green);
+  outline: 2px solid var(--lp-fg);
   outline-offset: 2px;
 }
 
@@ -402,9 +466,9 @@ html[data-surface="landing"] body::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   min-height: 2.75rem;
-  padding: 0.6rem 1.35rem;
+  padding: 0.6rem 1.4rem;
   border: 1px solid transparent;
   border-radius: 999px;
   font-family: var(--lp-font-body);
@@ -415,17 +479,17 @@ html[data-surface="landing"] body::after {
   text-align: center;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s, transform 0.18s var(--lp-ease);
+  transition: background-color 0.35s var(--lp-ease), border-color 0.35s, color 0.3s, box-shadow 0.45s var(--lp-ease), transform 0.35s var(--lp-ease);
   -webkit-tap-highlight-color: transparent;
 }
 .lp-btn--sm {
   min-height: 2.5rem;
-  padding: 0.45rem 1.05rem;
+  padding: 0.45rem 1.1rem;
   font-size: 0.875rem;
 }
 .lp-btn--lg {
-  min-height: 3.25rem;
-  padding: 0.8rem 1.8rem;
+  min-height: 3.4rem;
+  padding: 0.8rem 1.9rem;
   font-size: 1rem;
 }
 .lp-btn--block {
@@ -434,34 +498,36 @@ html[data-surface="landing"] body::after {
 }
 .lp-btn--primary {
   background: var(--lp-green);
-  color: var(--lp-ink); /* never white on green (2.6:1) */
+  color: var(--lp-on-accent); /* never white on green (2.6:1) */
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 10px 28px -12px rgb(29 186 60 / 0.55);
 }
 .lp-btn--primary:hover {
   background: var(--lp-green-bright);
-  box-shadow: 0 6px 20px -6px rgb(29 186 60 / 0.55);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.32), 0 14px 34px -10px rgb(29 186 60 / 0.7);
 }
 .lp-btn--secondary {
-  background: transparent;
-  border-color: var(--lp-ink);
-  color: var(--lp-ink);
+  background: rgb(255 255 255 / 0.02);
+  border-color: var(--lp-hair-strong);
+  color: var(--lp-fg);
 }
 .lp-btn--secondary:hover {
-  background: var(--lp-mint-wash);
+  background: rgb(255 255 255 / 0.06);
+  border-color: var(--lp-fg-3);
 }
 .lp-btn--ghost {
   background: transparent;
-  color: var(--lp-forest);
+  color: var(--lp-green);
   padding-inline: 0.4rem;
   min-height: 2.5rem;
   border-radius: var(--lp-radius-sm);
 }
 .lp-btn--ghost .lp-btn__label {
   background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
-  transition: background-size 0.25s var(--lp-ease);
+  transition: background-size 0.5s var(--lp-ease);
   padding-bottom: 2px;
 }
 .lp-btn--ghost:hover {
-  color: var(--lp-deep);
+  color: var(--lp-green-bright);
 }
 .lp-btn--ghost:hover .lp-btn__label {
   background-size: 100% 1px;
@@ -469,79 +535,53 @@ html[data-surface="landing"] body::after {
 .lp-btn:active {
   transform: translateY(1px);
 }
-.lp-btn--dark.lp-btn--secondary,
-.lp-on-dark .lp-btn--secondary {
-  border-color: var(--lp-on-dark-muted);
-  color: var(--lp-on-dark);
-}
-.lp-btn--dark.lp-btn--secondary:hover,
-.lp-on-dark .lp-btn--secondary:hover {
-  background: rgb(255 255 255 / 0.07);
-  border-color: var(--lp-on-dark-soft);
-}
-.lp-btn--dark.lp-btn--ghost,
-.lp-on-dark .lp-btn--ghost {
-  color: var(--lp-green);
-}
-.lp-btn--dark.lp-btn--ghost:hover,
-.lp-on-dark .lp-btn--ghost:hover {
-  color: var(--lp-green-bright);
-}
 .lp-btn__arrow {
   flex: none;
-  transition: transform 0.2s var(--lp-ease);
+  transition: transform 0.45s var(--lp-ease);
 }
 .lp-btn:hover .lp-btn__arrow {
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
+.lp-btn { white-space: nowrap; }
+@media (max-width: 420px) { .lp-btn { white-space: normal; text-align: center; } }
 
-/* ---- tag, card, icon tile, fields ------------------------------------------ */
-.lp-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  border: 1px solid var(--lp-mint);
-  border-radius: 999px;
-  background: var(--lp-mint-wash);
-  color: var(--lp-deep);
-  font-family: var(--lp-font-mono);
-  font-weight: 500;
-  font-size: 0.6875rem;
-  line-height: 1.3;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.lp-tag--dark {
-  background: rgb(29 186 60 / 0.12);
-  border-color: var(--lp-night-line);
-  color: var(--lp-green);
-}
-.lp-tag--outline {
-  background: transparent;
-  border-color: var(--lp-line);
-  color: var(--lp-muted);
-}
+/* ---- card system: glass edge, hairline, deep shadow -------------------------- */
 .lp-card {
-  background: var(--lp-white);
+  position: relative;
+  background: var(--lp-surface);
   border: 1px solid var(--lp-line);
-  border-radius: var(--lp-radius-lg);
-  padding: clamp(1.25rem, 1rem + 1vw, 2rem);
+  border-radius: var(--lp-radius-xl);
+  padding: clamp(1.4rem, 1.1rem + 1vw, 2.1rem);
+  box-shadow: var(--lp-shadow-card);
 }
 .lp-card--lift {
-  transition: transform 0.25s var(--lp-ease), box-shadow 0.25s var(--lp-ease), border-color 0.25s;
+  transition: transform 0.7s var(--lp-ease), box-shadow 0.7s var(--lp-ease), border-color 0.5s;
 }
 .lp-card--lift:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--lp-shadow-lift);
-  border-color: var(--lp-silver);
+  border-color: var(--lp-hair-strong);
 }
 .lp-card--dark,
 .lp-on-dark .lp-card {
   background: var(--lp-night-card);
   border-color: var(--lp-night-line);
-  color: var(--lp-on-dark-soft);
+  color: var(--lp-fg-2);
+}
+/* the glass edge: a 1px white-alpha ring, brighter at the top-left corner */
+.lp-glass::before {
+  --lp-edge-grad: linear-gradient(150deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.03) 38%, rgb(255 255 255 / 0.02) 62%, rgb(255 255 255 / 0.08));
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--lp-edge-grad);
+  -webkit-mask: linear-gradient(var(--lp-ink) 0 0) content-box, linear-gradient(var(--lp-ink) 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(var(--lp-ink) 0 0) content-box exclude, linear-gradient(var(--lp-ink) 0 0);
+  pointer-events: none;
+  z-index: 2;
 }
 .lp-icon-tile {
   display: inline-grid;
@@ -549,13 +589,15 @@ html[data-surface="landing"] body::after {
   flex: none;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 0.75rem;
-  background: var(--lp-green);
-  color: var(--lp-ink);
+  border-radius: 0.8rem;
+  background: var(--lp-mint-wash);
+  border: 1px solid var(--lp-mint);
+  color: var(--lp-green);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 .lp-tilt {
   transform: perspective(900px) rotateX(var(--lp-rx, 0deg)) rotateY(var(--lp-ry, 0deg));
-  transition: transform 0.25s var(--lp-ease);
+  transition: transform 0.6s var(--lp-ease);
   transform-style: preserve-3d;
 }
 .lp-3d {
@@ -564,171 +606,26 @@ html[data-surface="landing"] body::after {
 .lp-preserve-3d {
   transform-style: preserve-3d;
 }
-
-.lp-label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: 700;
-  font-size: 0.9375rem;
-  color: var(--lp-text);
+/* ambient green glow: a blurred disc (no gradient), hidden on phones */
+.lp-orb {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  background: var(--lp-green);
+  opacity: 0.09;
+  filter: blur(110px);
+  pointer-events: none;
 }
-.lp-input,
-.lp-select,
-.lp-textarea {
-  display: block;
-  width: 100%;
-  min-height: 2.75rem;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid var(--lp-line);
-  border-radius: var(--lp-radius);
-  background: var(--lp-white);
-  color: var(--lp-text);
-  font: inherit;
-  color-scheme: light;
-}
-.lp-textarea {
-  min-height: 7rem;
-  resize: vertical;
-}
-.lp-input::placeholder,
-.lp-textarea::placeholder {
-  color: var(--lp-muted);
-  opacity: 1;
-}
-.lp-input:focus-visible,
-.lp-select:focus-visible,
-.lp-textarea:focus-visible {
-  outline: none;
-  border-color: var(--lp-forest);
-  box-shadow: 0 0 0 1px var(--lp-forest);
-}
-.lp-input[aria-invalid="true"],
-.lp-select[aria-invalid="true"],
-.lp-textarea[aria-invalid="true"] {
-  border-color: var(--lp-error);
-}
-.lp-field-help {
-  margin-top: 0.35rem;
-  font-size: 0.875rem;
-  color: var(--lp-muted);
-}
-.lp-field-error {
-  margin-top: 0.35rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--lp-error);
-}
-
-/* ---- reveal ---------------------------------------------------------------- */
-.lp-reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s var(--lp-ease), transform 0.7s var(--lp-ease);
-}
-.lp-reveal--fade {
-  transform: none;
-}
-.lp-reveal--scale {
-  transform: scale(0.96);
-}
-.lp-reveal.is-in {
-  opacity: 1;
-  transform: none;
+@media (max-width: 767px) {
+  .lp-orb {
+    display: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lp-reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
   .lp-btn,
   .lp-btn__arrow,
-  .lp-card--lift {
+  .lp-card--lift,
+  .lp-tilt {
     transition: none;
   }
 }
-
-/* ---- images ---------------------------------------------------------------- */
-.lp-img {
-  position: relative;
-  display: block;
-  overflow: hidden;
-  width: 100%;
-  background: var(--lp-grey);
-}
-.lp-img--ink {
-  background: var(--lp-ink);
-}
-.lp-img picture {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.lp-img__el {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.lp-img__el--contain {
-  object-fit: contain;
-}
-.lp-img__fallback {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 0.75rem;
-  border: 1px dashed var(--lp-line);
-  text-align: center;
-}
-.lp-img--ink .lp-img__fallback {
-  border-color: var(--lp-night-line);
-}
-.lp-img__label {
-  font-family: var(--lp-font-mono);
-  font-weight: 500;
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--lp-muted);
-  overflow-wrap: anywhere;
-}
-.lp-img--ink .lp-img__label {
-  color: var(--lp-on-dark-muted);
-}
-
-/* ---- brand lockup ---------------------------------------------------------- */
-.lp-lockup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.lp-lockup__word {
-  font-family: var(--lp-font-display);
-  font-weight: 600;
-  font-size: 1.25rem;
-  line-height: 1;
-  letter-spacing: -0.015em;
-  color: var(--lp-ink);
-  white-space: nowrap;
-}
-.lp-lockup__word b {
-  font-weight: 700;
-}
-.lp-lockup--dark .lp-lockup__word {
-  color: var(--lp-on-dark);
-}
-.lp-mark {
-  flex: none;
-  display: block;
-}
-
-
-/* ---- lead polish: buttons never wrap their arrow onto a second line ---- */
-.lp-btn { white-space: nowrap; }
-@media (max-width: 420px) { .lp-btn { white-space: normal; text-align: center; } }
-
-/* Forest on Light Grey is 4.47:1 (< AA); use Deep Green for links on the alternate surface. */
-.lp-root .lp-section--alt .lp-link { color: var(--lp-deep); }
-.lp-root .lp-section--alt .lp-link:hover { color: var(--lp-ink); }

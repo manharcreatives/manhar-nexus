@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
+import '../styles/w2-base.css';
 import '../styles/faq.css';
 import { FAQS, type Faq } from '../content';
 
@@ -77,7 +78,7 @@ export function Accordion({ items, idPrefix, openIds, onToggle, numbered = false
               <button
                 type="button"
                 id={buttonId}
-                className="lp-acc__btn"
+                className={numbered ? 'lp-acc__btn' : 'lp-acc__btn lp-acc__btn--plain'}
                 aria-expanded={open}
                 aria-controls={panelId}
                 onClick={() => onToggle(faq.id)}

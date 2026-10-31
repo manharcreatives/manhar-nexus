@@ -4,7 +4,7 @@ export const ABOUT: AboutContent = {
   header: {
     eyebrow: 'BUILT IN VISNAGAR, GUJARAT',
     headline: {
-      text: 'We build brands and software. We kept noticing the same quiet leak in restaurants.',
+      text: 'We build brands and software, and kept noticing one quiet leak in restaurants.',
       accent: 'leak',
     },
   },
@@ -18,16 +18,16 @@ export const ABOUT: AboutContent = {
       ownerConfirm: true,
     },
     {
-      text: 'So we built Nexus the way we build everything: start with the real hand-offs. The table to the kitchen. The kitchen to the floor. The floor to the Checkout. The Checkout to the day’s report. Then make each hand-off boring, visible and hard to get wrong.',
+      text: 'So we built Nexus the way we build everything: start with the real hand-offs, from table to kitchen to Checkout to the day’s report. Then make each one boring, visible and hard to get wrong.',
     },
   ],
   honestNote: {
     title: 'An honest note',
-    body: 'Nexus is new. It has been built carefully and tested hard, but it has not yet run a hundred restaurants. We are opening to our first Founding Restaurants, and we will set each one up by hand. If that sounds like the right kind of beginning, we would like to meet you.',
+    body: 'Nexus is new. It is built carefully and tested hard, but it has not yet run a hundred restaurants. We are opening to our first Founding Restaurants and will set each one up by hand.',
   },
   beliefsTitle: 'What we believe',
   beliefs: [
-    'Your numbers belong to you. You can take your reports with you.',
+    'Your numbers belong to you. Take your reports with you.',
     'A tool should explain itself in words, not just colours.',
     'Price should be written down where you can see it.',
   ],

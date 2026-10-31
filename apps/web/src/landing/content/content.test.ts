@@ -44,14 +44,14 @@ const wordCount = (s: string): number => s.trim().split(/\s+/).filter(Boolean).l
 describe('content counts', () => {
   it('has the planned number of items', () => {
     expect(C.POSTS).toHaveLength(6);
-    expect(C.FAQS).toHaveLength(16);
+    expect(C.FAQS).toHaveLength(C.QR_MENU_LIVE ? 17 : 16);
     expect(C.LEGAL_DOCUMENTS).toHaveLength(6);
     expect(C.IMAGES).toHaveLength(18);
-    expect(C.PLATFORM_MODULES).toHaveLength(12);
-    expect(C.COMING_SOON_MODULES).toHaveLength(8);
-    expect(C.COMPARE_MOMENTS).toHaveLength(8);
-    expect(C.HOW.steps).toHaveLength(5);
-    expect(C.TRUST.blocks).toHaveLength(8);
+    expect(C.PLATFORM_MODULES).toHaveLength(13);
+    expect(C.COMING_SOON_MODULES).toHaveLength(7);
+    expect(C.COMPARE_MOMENTS).toHaveLength(5);
+    expect(C.HOW.steps).toHaveLength(4);
+    expect(C.TRUST.blocks).toHaveLength(4);
     expect(C.BUILT_FOR.items).toHaveLength(6);
     expect(C.PLANS).toHaveLength(4);
     expect(C.NAV_ITEMS).toHaveLength(7);
@@ -436,7 +436,7 @@ describe('brand and honesty rules', () => {
     for (const m of C.COMING_SOON_MODULES) expect(m.status).toBe('coming-soon');
     for (const m of C.PLATFORM_MODULES) expect(m.status).toBe('live');
     const mustBeSoon = ['Card payments at Checkout', 'QR ordering / aggregator links', 'Receipt printing', 'Stock & recipes'];
-    for (const r of C.SCORECARD_ROWS.filter((x) => mustBeSoon.includes(x.criterion))) {
+    for (const r of C.SCORECARD_ROWS.filter((x) => mustBeSoon.includes(x.criterion) && !(C.QR_MENU_LIVE && x.criterion.startsWith('QR ordering')))) {
       expect(r.status).toBe('not-yet');
     }
   });

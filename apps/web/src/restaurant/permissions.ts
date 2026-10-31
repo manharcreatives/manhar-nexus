@@ -7,6 +7,7 @@ import { computeAccess } from '../shell/access';
  * offered that the API would answer with 403. The API stays the boundary.
  */
 const ORDER_MANAGE = new Set(['owner', 'location-manager', 'service-team']); // restaurant.order.manage
+const ORDER_EDIT = new Set(['owner', 'location-manager', 'service-team']); // restaurant.order.edit
 const SESSION_MANAGE = new Set(['owner', 'location-manager', 'service-team', 'host']); // restaurant.session.manage
 const DINING_MANAGE = new Set(['owner', 'location-manager', 'host']); // restaurant.dining.manage (reset table)
 const CHECKOUT = new Set(['owner', 'location-manager', 'checkout-associate']); // checkout.invoice.create / payment.process
@@ -14,6 +15,8 @@ const CHECKOUT = new Set(['owner', 'location-manager', 'checkout-associate']); /
 export interface RestaurantCaps {
   canManageKitchen: boolean;
   canManageOrders: boolean;
+  /** restaurant.order.edit: change an order before the kitchen starts it. */
+  canEditOrders: boolean;
   canManageSessions: boolean;
   canResetTable: boolean;
   canCheckout: boolean;
@@ -25,6 +28,7 @@ export function restaurantCaps(user: { realm: 'PLATFORM' | 'BUSINESS'; roles: { 
   return {
     canManageKitchen: computeAccess(user).canManageKitchen,
     canManageOrders: any(ORDER_MANAGE),
+    canEditOrders: any(ORDER_EDIT),
     canManageSessions: any(SESSION_MANAGE),
     canResetTable: any(DINING_MANAGE),
     canCheckout: any(CHECKOUT),

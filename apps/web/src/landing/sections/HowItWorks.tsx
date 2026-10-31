@@ -1,15 +1,13 @@
 import type { CSSProperties } from 'react';
-import { Heading, IconTile, Section, SectionButton, Tag } from '../components';
+import { Heading, Icon, Section, SectionButton, SectionHead } from '../components';
 import { HOW } from '../content';
 import { useScrollProgress } from '../hooks';
 import '../styles/how.css';
-import { HowChip } from './_b/HowChips';
 import { headlineNode } from './_b/headline';
-import { SectionHead } from './_b/SectionHead';
 import { iconFor } from './_b/icons';
 
 /**
- * How it works: five numbered steps joined by a rule that draws as the list scrolls through the viewport
+ * How it works: four numbered steps joined by a rule that draws as the list scrolls through the viewport
  * (--p from useScrollProgress('view'); the CSS falls back to the finished rule when --p is absent, as with
  * reduced motion). Honest about the manual part: a human provisions every Workspace, and the payment link is
  * sent by us until the Cashfree integration exists.
@@ -36,21 +34,18 @@ export default function HowItWorks() {
               <span className="lp-how__node lp-num" aria-hidden="true">
                 {s.number}
               </span>
-              <div className="lp-how__card">
-                <IconTile icon={iconFor(s.icon)} size={20} />
+              <div className="lp-how__card lp-glass">
+                <span className="lp-icon-tile">
+                  <Icon icon={iconFor(s.icon)} size={20} />
+                </span>
                 <Heading level={3} size="h3" className="lp-how__title">
                   {s.title}
                 </Heading>
                 <p className="lp-how__body">{s.body}</p>
-                <div className="lp-how__chip-wrap" aria-hidden="true">
-                  <HowChip id={s.id} />
-                </div>
                 {s.id === 'pay' ? (
                   // INTEGRATION POINT: Pay step. Replace this interim line with the Cashfree payment / subscription
                   // link flow once it exists (see HOW.integrationNote and docs 03b section 5).
-                  <p className="lp-how__interim">
-                    <Tag>Today</Tag> {HOW.payInterim}
-                  </p>
+                  <p className="lp-how__interim">{HOW.payInterim}</p>
                 ) : null}
                 <p className="lp-how__time lp-mono">{s.time}</p>
               </div>
@@ -60,8 +55,10 @@ export default function HowItWorks() {
       </div>
 
       <div className="lp-how__under">
-        <p className="lp-how__under-text">{HOW.underStrip}</p>
-        <p className="lp-how__guarantee">{HOW.guaranteeLine}</p>
+        <div className="lp-how__notes">
+          <p className="lp-how__under-text">{HOW.underStrip}</p>
+          <p className="lp-how__guarantee">{HOW.guaranteeLine}</p>
+        </div>
         <div className="lp-how__ctas">
           <SectionButton section="register" arrow>
             Register your restaurant

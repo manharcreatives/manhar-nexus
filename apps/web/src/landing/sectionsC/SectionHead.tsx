@@ -1,25 +1,5 @@
-import type { ReactNode } from 'react';
-import { Eyebrow, Heading } from '../components';
-
-export interface SectionHeadProps {
-  eyebrow?: ReactNode;
-  title: ReactNode;
-  titleId: string;
-  lede?: ReactNode;
-}
-
 /**
- * Same look as the Foundation SectionHeader (.lp-section-header) but a <div>: a <header> inside a <section>
- * is matched as an extra "banner" landmark by testing tools (App.test uses getByRole('banner')).
+ * The one section header (auto-numbered index, hairline, eyebrow, h2, lede) lives in components/SectionHead.tsx;
+ * this module keeps the old import path working for the sections in this layer.
  */
-export function SectionHead({ eyebrow, title, titleId, lede }: SectionHeadProps) {
-  return (
-    <div className="lp-section-header">
-      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-      <Heading level={2} id={titleId}>
-        {title}
-      </Heading>
-      {lede ? <p className="lp-lede">{lede}</p> : null}
-    </div>
-  );
-}
+export { SectionHead, type SectionHeadProps } from '../components';

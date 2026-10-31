@@ -1,0 +1,52 @@
+/* Closing banner (CtaBanner). Class prefix lp-band, so it never collides with W2's insights.css (.lp-cta*). */
+.lp-section.lp-band {
+  overflow: clip;
+}
+.lp-band__orb {
+  width: 40rem;
+  height: 40rem;
+  left: 50%;
+  top: 50%;
+  margin: -20rem 0 0 -20rem;
+  opacity: 0.1;
+}
+.lp-band__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  max-width: 62rem;
+  margin-inline: auto;
+  padding: clamp(2.5rem, 2rem + 4vw, 5.5rem) clamp(1.5rem, 1rem + 3vw, 4rem);
+  border: 1px solid var(--lp-line);
+  border-radius: calc(var(--lp-radius-xl) + 0.5rem);
+  background: var(--lp-night);
+  box-shadow: var(--lp-shadow-card);
+  text-align: center;
+}
+.lp-band__eyebrow {
+  color: var(--lp-green);
+}
+.lp-root .lp-band__title {
+  max-width: 18ch;
+  font-size: clamp(2rem, 1.1rem + 3.4vw, 4rem);
+  line-height: 1.04;
+}
+.lp-band__body {
+  max-width: 34rem;
+}
+.lp-band__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+.lp-band__fine {
+  margin-top: 0.5rem;
+  max-width: 40rem;
+  font-size: 0.8125rem;
+  color: var(--lp-fg-3);
+}

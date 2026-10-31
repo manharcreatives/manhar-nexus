@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import '../styles/w2-base.css';
 import '../styles/pages.css';
 import { Button, Icon, PolicyLayout, SectionButton } from '../components';
 import { INSIGHTS_HEADER, POSTS, blogPostingJsonLd, getPost, type Post } from '../content';

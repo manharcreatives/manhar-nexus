@@ -25,10 +25,10 @@ export const SITE = {
 /** Header navigation: `id` is the section id on the home page. */
 export const NAV_ITEMS = [
   { id: 'platform', label: 'Platform' },
+  { id: 'nexus-menu', label: 'Nexus Menu' },
   { id: 'why', label: 'Why Nexus' },
   { id: 'how', label: 'How it works' },
   { id: 'pricing', label: 'Pricing' },
-  { id: 'insights', label: 'Insights' },
   { id: 'faq', label: 'FAQ' },
 ] as const;
 

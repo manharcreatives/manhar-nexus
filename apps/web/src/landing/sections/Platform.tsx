@@ -1,120 +1,65 @@
-import { useCallback, useState, type CSSProperties } from 'react';
-import { Container, Heading, Section } from '../components';
+import { Container, Heading, Section, SectionHead } from '../components';
+import { Icon } from '../components/Icon';
 import { PLATFORM } from '../content';
-import { useScrollProgress } from '../hooks';
 import '../styles/platform.css';
+import { ModuleCard } from './_b/ModuleCard';
 import { headlineNode } from './_b/headline';
-import { SectionHead } from './_b/SectionHead';
-import { ModuleTicket } from './_b/ModuleTicket';
-import { useMq } from './_b/useMq';
-import { usePinScroll } from './_b/usePinScroll';
-import { clamp01, pad2 } from './_b/util';
+import { iconFor } from './_b/icons';
+
+const SLOTS = ['feature', 'wide', 'wide', 'std', 'std', 'std'] as const;
 
 /**
- * 3D "sticky fanned ticket stack" is only for fine-pointer desktops with room and no reduced-motion preference.
- * Everywhere else (phones, tablets, coarse pointers, reduced motion, tests) the SAME markup is a plain grid of cards.
- * Keep this string identical to the @media query in styles/platform.css.
+ * Platform: SIX highlighted modules in a bento grid (the first, Nexus Menu, is the tall feature card), then a
+ * compact "And also" strip for the rest of the live modules and one muted line for what is coming soon.
  */
-const STACK_MQ =
-  '(min-width: 960px) and (min-height: 600px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)';
-/** Fraction of the pinned scroll spent holding the first / last card (so both are readable). Mirrors platform.css. */
-const DWELL_START = 0.05;
-const DWELL_SPAN = 0.9;
-
 export default function Platform() {
-  const modules = PLATFORM.modules;
-  const n = modules.length;
-  const pinRef = useScrollProgress<HTMLDivElement>('pin');
-  const stack = useMq(STACK_MQ);
-  const [active, setActive] = useState(0);
-
-  const onProgress = useCallback(
-    (p: number) => {
-      const pos = clamp01((p - DWELL_START) / DWELL_SPAN) * (n - 1);
-      setActive(Math.round(pos));
-    },
-    [n],
-  );
-  usePinScroll(pinRef, stack, onProgress);
-
-  /** Rail click: scroll so the pinned stage lands exactly on card `i`. */
-  const goTo = (i: number) => {
-    const el = pinRef.current;
-    setActive(i);
-    if (!el) return;
-    const q = n > 1 ? i / (n - 1) : 0;
-    const p = DWELL_START + q * DWELL_SPAN;
-    const top = el.getBoundingClientRect().top + window.scrollY + p * (el.offsetHeight - window.innerHeight);
-    window.scrollTo({ top, behavior: 'smooth' });
-  };
+  const byId = new Map(PLATFORM.modules.map((m) => [m.id, m]));
+  const soonById = new Map(PLATFORM.comingSoon.map((m) => [m.id, m]));
+  const headline = PLATFORM.headlineIds.map((id) => byId.get(id) ?? soonById.get(id)).filter((m): m is NonNullable<typeof m> => Boolean(m));
+  const also = PLATFORM.modules.filter((m) => !PLATFORM.headlineIds.includes(m.id));
 
   return (
-    <Section id="platform" tone="canvas" labelledBy="platform-title" pad="none" bleed className="lp-platform">
-      <Container className="lp-platform__head">
-        <SectionHead
-          eyebrow={PLATFORM.header.eyebrow}
-          title={headlineNode(PLATFORM.header.headline)}
-          titleId="platform-title"
-          lede={PLATFORM.header.subhead}
-        />
-      </Container>
+    <Section id="platform" tone="alt" labelledBy="platform-title" className="lp-platform">
+      <SectionHead
+        eyebrow={PLATFORM.header.eyebrow}
+        title={headlineNode(PLATFORM.header.headline)}
+        titleId="platform-title"
+        lede={PLATFORM.header.subhead}
+      />
 
-      {/* Pinned scene: the tall wrapper gets --p (0..1); the sticky stage fans the tickets from it. */}
-      <div className="lp-pf" ref={pinRef} style={{ '--n': n } as CSSProperties}>
-        <div className="lp-pf__stage">
-          <Container className="lp-pf__grid">
-            <nav className="lp-pf__rail" aria-label="Jump to a module">
-              <p className="lp-pf__count lp-mono" aria-hidden="true">
-                <span className="lp-num">{pad2(active + 1)}</span> / {pad2(n)}
-              </p>
-              <ol className="lp-pf__rail-list">
-                {modules.map((m, i) => (
-                  <li key={m.id}>
-                    <button
-                      type="button"
-                      className="lp-pf__rail-btn"
-                      aria-current={i === active ? 'true' : undefined}
-                      onClick={() => goTo(i)}
-                    >
-                      <span className="lp-num lp-pf__rail-no">{m.number}</span>
-                      <span className="lp-pf__rail-title">{m.title}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </nav>
-            <div className="lp-pf__deck">
-              <ol className="lp-pf__cards" aria-label="Nexus modules, live today">
-                {modules.map((m, i) => (
-                  <li
-                    key={m.id}
-                    className="lp-pf__card"
-                    style={{ '--i': i } as CSSProperties}
-                    data-active={stack && i === active ? 'true' : undefined}
-                  >
-                    <ModuleTicket module={m} total={n} />
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </Container>
-        </div>
-      </div>
+      <ul className="lp-pf__grid" aria-label="Headline modules">
+        {headline.map((m, i) => (
+          <ModuleCard
+            key={m.id}
+            module={m}
+            slot={SLOTS[i] ?? 'std'}
+            delay={i * 90}
+            moreTo={m.id === 'nexus-menu' ? 'nexus-menu' : undefined}
+            moreLabel={m.id === 'nexus-menu' ? 'See Nexus Menu' : undefined}
+          />
+        ))}
+      </ul>
 
-      <Container className="lp-platform__soon">
-        <div className="lp-pf-soon__head">
-          <Heading level={3} size="h3" id="platform-soon-title">
-            {PLATFORM.comingSoonTitle}
-          </Heading>
-          <p className="lp-muted">{PLATFORM.comingSoonNote}</p>
-        </div>
-        <ul className="lp-pf-soon__grid" aria-labelledby="platform-soon-title">
-          {PLATFORM.comingSoon.map((m) => (
-            <li key={m.id}>
-              <ModuleTicket module={m} total={n} muted />
+      <div className="lp-pf__more">
+        <Heading level={3} size="h3" id="platform-also-title" className="lp-pf__moretitle">
+          {PLATFORM.alsoTitle}
+        </Heading>
+        <ul className="lp-pf__also" aria-labelledby="platform-also-title">
+          {also.map((m) => (
+            <li key={m.id} className="lp-pf__chip">
+              <Icon icon={iconFor(m.icon)} size={16} />
+              <span>{m.title}</span>
             </li>
           ))}
         </ul>
+      </div>
+
+      <Container className="lp-pf__soon" size="wide">
+        <p className="lp-pf__soonrow">
+          <span className="lp-pf__soontag lp-mono">{PLATFORM.comingSoonTitle}</span>
+          <span className="lp-pf__soonlist">{PLATFORM.comingSoon.map((m) => m.title).join(' · ')}</span>
+        </p>
+        <p className="lp-pf__soonnote">{PLATFORM.comingSoonNote}</p>
       </Container>
     </Section>
   );

@@ -1,14 +1,8 @@
-/* ==========================================================================
-   How it works: five steps, a rule that draws on scroll.
-   --p (0..1, view mode) sits on .lp-how__flow; --draw is derived from it and falls back to 1 (the finished
-   rule) when --p is missing (reduced motion, jsdom, no IntersectionObserver). Only transform / opacity move.
-   Mobile = vertical timeline (rule on the left, scaleY); >= 1024px = five columns (rule across the top, scaleX).
-   ========================================================================== */
+/* How it works: four steps, a rule that draws on scroll. Dark-native glass cards.
+   --p (0..1, view mode) sits on .lp-how__flow; --draw is derived from it and falls back to 1 (the finished rule)
+   when --p is missing (reduced motion, jsdom). Only transform / opacity move.
+   Mobile = vertical timeline (scaleY); >= 960px = four columns (rule across the top, scaleX). */
 
-.lp-how-section {
-  --lx: cubic-bezier(0.16, 1, 0.3, 1);
-  padding-block: clamp(5rem, 3rem + 6.5vw, 10rem);
-}
 .lp-how__flow {
   --draw: clamp(0, (var(--p, 1) - 0.22) / 0.4, 1);
   position: relative;
@@ -16,7 +10,7 @@
 .lp-how__steps {
   position: relative;
   display: grid;
-  gap: 1.5rem;
+  gap: var(--lp-gap);
 }
 .lp-how__rule {
   position: absolute;
@@ -24,13 +18,14 @@
   left: 1.2rem;
   top: 1.2rem;
   bottom: 1.2rem;
-  width: 2px;
+  width: 1px;
   background: var(--lp-line);
 }
 .lp-how__rule-fill {
   position: absolute;
   inset: 0;
-  background: var(--lp-forest);
+  background: var(--lp-green);
+  box-shadow: 0 0 12px rgb(29 186 60 / 0.6);
   transform-origin: 50% 0;
   transform: scaleY(var(--draw));
 }
@@ -47,148 +42,102 @@
   place-items: center;
   width: 2.4rem;
   height: 2.4rem;
-  border: 2px solid var(--lp-forest);
+  border: 1px solid var(--lp-green);
   border-radius: 50%;
   background: var(--lp-grey);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   letter-spacing: 0.02em;
-  color: var(--lp-deep);
-  opacity: calc(0.55 + clamp(0, var(--draw) * var(--n) - var(--i), 1) * 0.45);
+  color: var(--lp-green);
+  opacity: calc(0.5 + clamp(0, var(--draw) * var(--n) - var(--i), 1) * 0.5);
 }
 .lp-how__card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 1.4rem 1.35rem 1.5rem;
+  gap: 0.7rem;
+  height: 100%;
+  padding: clamp(1.25rem, 1rem + 1vw, 1.75rem);
   border: 1px solid var(--lp-line);
   border-radius: var(--lp-radius-xl);
-  background: var(--lp-white);
-  box-shadow: 0 1px 0 rgb(11 15 14 / 0.04), 0 24px 48px -24px rgb(11 15 14 / 0.14);
+  background: var(--lp-surface);
+  box-shadow: var(--lp-shadow-card);
 }
-.lp-how__card .lp-icon-tile {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.6rem;
-}
-.lp-how__time {
-  margin-top: auto;
-  padding-top: 0.75rem;
-  border-top: 1px dashed var(--lp-line);
-  font-size: 0.6875rem;
-  line-height: 1.4;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--lp-muted);
+.lp-how__title {
+  margin-top: 0.4rem;
 }
 .lp-how__body {
   font-size: 0.9375rem;
   line-height: 1.55;
-}
-.lp-how__chip-wrap {
-  margin-top: 0.25rem;
-}
-.lp-how__chip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 0.7rem;
-  border: 1px dashed var(--lp-silver);
-  border-radius: var(--lp-radius-sm);
-  background: var(--lp-canvas);
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--lp-body);
-}
-.lp-how__field {
-  flex: 1 1 4.5rem;
-  padding: 0.25rem 0.4rem;
-  border-bottom: 2px solid var(--lp-line);
-  color: var(--lp-muted);
-}
-.lp-how__chip-sub {
-  flex-basis: 100%;
-  color: var(--lp-muted);
-}
-.lp-how__chip--row span {
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--lp-line);
-  border-radius: 999px;
-  background: var(--lp-white);
-}
-.lp-how__chip--ticket {
-  justify-content: space-between;
-  border-style: solid;
-  border-color: var(--lp-ink);
-  background: var(--lp-white);
-  color: var(--lp-ink);
+  color: var(--lp-fg-3);
 }
 .lp-how__interim {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 0.8rem;
-  border-radius: var(--lp-radius-sm);
-  background: var(--lp-mint-wash);
-  font-size: 0.875rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed var(--lp-hair-strong);
+  border-radius: var(--lp-radius);
+  font-size: 0.8125rem;
   line-height: 1.45;
-  color: var(--lp-text);
+  color: var(--lp-fg-2);
+}
+.lp-how__time {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-green);
 }
 
-/* under the steps */
-.lp-how__under {
-  display: grid;
-  gap: 0.75rem;
-  max-width: 46rem;
-  margin-top: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
-}
-.lp-how__under-text {
-  font-family: var(--lp-font-display);
-  font-weight: 600;
-  font-size: var(--lp-fs-h3);
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-  color: var(--lp-text);
-  text-wrap: balance;
-}
-.lp-how__guarantee {
-  color: var(--lp-body);
-}
-.lp-how__ctas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-@media (min-width: 1024px) {
-  .lp-how__steps {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 1.25rem;
-  }
+@media (min-width: 960px) {
   .lp-how__rule {
     left: 1.2rem;
-    right: calc(20% - 1.2rem);
+    right: 1.2rem;
     top: 1.2rem;
     bottom: auto;
     width: auto;
-    height: 2px;
+    height: 1px;
   }
   .lp-how__rule-fill {
     transform-origin: 0 50%;
     transform: scaleX(var(--draw));
   }
-  .lp-how__step {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    gap: 0.9rem;
+  .lp-how__steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
   }
+  .lp-how__step {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 1.25rem;
+  }
 }
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .lp-how__card {
-    padding-inline: 1rem;
+
+.lp-how__under {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem 2rem;
+  margin-top: var(--lp-head-gap);
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--lp-line);
+}
+.lp-how__notes {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--lp-fg-3);
+}
+.lp-how__under-text {
+  color: var(--lp-fg-2);
+}
+.lp-how__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-how__rule-fill {
+    transform: none;
   }
 }

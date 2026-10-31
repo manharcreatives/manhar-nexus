@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Hero "The Pass" (SECTIONS-A). Ink block, tilted dashboard plane that flattens on scroll.
+   Hero "The Pass" (SECTIONS-A, dark-native). Paper canvas, tilted dashboard plane that flattens on scroll.
    3D chain (every link keeps preserve-3d, none has overflow/filter/opacity/mask):
      .lp-hero__pointer (perspective) > .lp-hero__flat (scroll flatten) > .lp-hero__para (pointer parallax)
        > .lp-hero__plane + .lp-hero__tk (translateZ)
@@ -77,7 +77,7 @@
   flex: none;
   width: 2.5rem;
   height: 1px;
-  background: var(--lp-on-dark-muted);
+  background: var(--lp-green);
 }
 .lp-root .lp-section .lp-hero__h1 {
   font-weight: 500;
@@ -171,14 +171,14 @@
 }
 .lp-hero__plane {
   position: relative;
-  box-shadow: 0 60px 120px -60px rgb(29 186 60 / 0.28);
+  box-shadow: 0 60px 120px -50px rgb(29 186 60 / 0.3), 0 40px 80px -40px rgb(2 5 4 / 1);
   border-radius: 1.4rem;
 }
 .lp-hero__tk {
   position: absolute;
   z-index: 2;
   font-size: clamp(8px, 0.55rem + 0.35vw, 11px);
-  filter: drop-shadow(0 18px 22px rgb(11 15 14 / 0.5));
+  filter: drop-shadow(0 22px 26px rgb(2 5 4 / 0.8));
   pointer-events: none;
 }
 .lp-hero__tk .lp-tk--mini {
@@ -364,4 +364,42 @@
   .lp-hero__magnet {
     transition: none;
   }
+}
+
+/* ---- dark-native additions (W1) --------------------------------------------- */
+.lp-hero__orb {
+  width: 42rem;
+  height: 42rem;
+  right: -12rem;
+  top: 6rem;
+  opacity: 0.1;
+}
+.lp-hero__proof {
+  border-top-color: var(--lp-line);
+}
+.lp-hero__pt,
+.lp-hero__pt + .lp-hero__pt {
+  border-color: var(--lp-line);
+}
+.lp-hero__ptt {
+  color: var(--lp-fg);
+}
+.lp-hero__ptb {
+  color: var(--lp-fg-3);
+  max-width: 24rem;
+}
+.lp-hero__pticon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: var(--lp-mint-wash);
+  border: 1px solid var(--lp-mint);
+}
+.lp-hero__cueline {
+  background: var(--lp-line);
+}
+.lp-hero__sub {
+  color: var(--lp-fg-3);
 }

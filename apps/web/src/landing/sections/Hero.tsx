@@ -27,7 +27,7 @@ const STAGE_LABEL =
   'Preview of the Manhar Nexus owner dashboard with live order tickets and a settled bill stamped PAID. Illustrative sample data.';
 
 /**
- * Hero "The Pass": copy on Ink, and a tilted HTML dashboard plane in CSS 3D that flattens as you scroll
+ * Hero "The Pass": copy on the dark canvas, and a tilted HTML dashboard plane in CSS 3D that flattens as you scroll
  * (native scroll() timeline where supported, otherwise the --p variable from useScrollProgress('hero')).
  * Three ticket stubs float at different translateZ with a subtle pointer parallax. The single h1 lives here.
  */
@@ -40,7 +40,7 @@ export default function Hero() {
   const rise = { ['--hd' as string]: `${delay}s` } as CSSProperties;
 
   return (
-    <Section id="hero" tone="ink" labelledBy="hero-title" bleed pad="none" className="lp-hero">
+    <Section id="hero" tone="canvas" labelledBy="hero-title" bleed pad="none" className="lp-hero">
       <div className="lp-hero__bg" aria-hidden="true">
         <div className="lp-hero__bgin">
           <ImageSlot
@@ -56,6 +56,8 @@ export default function Hero() {
           />
         </div>
       </div>
+
+      <span className="lp-orb lp-hero__orb" aria-hidden="true" />
 
       <div className="lp-container lp-container--wide lp-hero__grid">
         <div className="lp-hero__copy" style={rise}>

@@ -1,5 +1,5 @@
 import { SectionButton } from '../components/Button';
-import { Eyebrow, Heading, Section } from '../components';
+import { Section, SectionHead } from '../components';
 import { cx } from '../components/cx';
 import { INTRO } from '../content';
 import { useInView } from '../hooks/useInView';
@@ -75,12 +75,12 @@ export default function Intro() {
   const railRef = useScrollProgress<HTMLDivElement>('view', '--rp');
   return (
     <Section id="intro" tone="canvas" labelledBy="intro-title" className="lp-intro">
-      <div className="lp-intro__head">
-        <Eyebrow className="lp-intro__eyebrow">{INTRO.eyebrow}</Eyebrow>
-        <Heading level={2} id="intro-title" className="lp-intro__h2">
-          <LitText text={INTRO.headline.text} accent={INTRO.headline.accent} />
-        </Heading>
-      </div>
+      <SectionHead
+        eyebrow={INTRO.eyebrow}
+        titleId="intro-title"
+        className="lp-intro__head"
+        title={<LitText text={INTRO.headline.text} accent={INTRO.headline.accent} />}
+      />
 
       <div ref={railRef} className="lp-intro__narrative">
         <span className="lp-intro__rail" aria-hidden="true" />

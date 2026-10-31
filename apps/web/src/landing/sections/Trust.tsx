@@ -1,20 +1,19 @@
 import { useEffect, useRef, type PointerEvent } from 'react';
-import { Container, Heading, IconTile, ImageSlot, Reveal, Section } from '../components';
+import { Container, Heading, Icon, ImageSlot, Reveal, Section, SectionHead } from '../components';
 import { TRUST, img } from '../content';
 import { isCoarsePointer, prefersReducedMotion, useScrollProgress } from '../hooks';
 import '../styles/trust.css';
 import { RefundMock } from './_b/RefundMock';
 import { headlineNode } from './_b/headline';
-import { SectionHead } from './_b/SectionHead';
 import { iconFor } from './_b/icons';
 
-/** The six pillars shown as cards, in the order the story reads. The other two blocks are shown as plain facts. */
-const PILLAR_IDS = ['self-proving-record', 'finished-is-finished', 'no-double', 'own-job', 'walled-off', 'passwords'] as const;
+/** The four pillars shown as cards, in the order the story reads. */
+const PILLAR_IDS = ['self-proving-record', 'finished-is-finished', 'own-job', 'walled-off'] as const;
 
 /**
- * Trust on an Ink/Night block with a 1px green top edge. Behind the content sits a LAYERED DEPTH ROOM: flat photos
+ * Trust on a Night panel with a lit top edge. Behind the content sits a LAYERED DEPTH ROOM: flat photos
  * and HTML layers at different translateZ values inside one perspective box, moving with the pointer (fine pointers
- * only) and with scroll (--p). A flat Ink veil on top keeps every line of text AA-readable. On phones, coarse
+ * only) and with scroll (--p). A flat paper veil on top keeps every line of text AA-readable. On phones, coarse
  * pointers and reduced motion the room is a still, flat backdrop. No data-residency, blockchain or uptime claims.
  */
 export default function Trust() {
@@ -45,7 +44,6 @@ export default function Trust() {
 
   const byId = new Map(TRUST.blocks.map((b) => [b.id, b]));
   const pillars = PILLAR_IDS.map((id) => byId.get(id)).filter((b): b is NonNullable<typeof b> => Boolean(b));
-  const rest = TRUST.blocks.filter((b) => !PILLAR_IDS.some((id) => id === b.id));
   const back = img('restaurant-before-service');
   const mid = img('restaurant-dining-golden-hour');
 
@@ -78,8 +76,10 @@ export default function Trust() {
 
           <ul className="lp-tr__pillars">
             {pillars.map((b, i) => (
-              <Reveal as="li" key={b.id} delay={(i % 3) * 80} className="lp-tr__pillar">
-                <IconTile icon={iconFor(b.icon)} />
+              <Reveal as="li" key={b.id} delay={(i % 4) * 90} className="lp-tr__pillar lp-glass">
+                <span className="lp-icon-tile">
+                  <Icon icon={iconFor(b.icon)} size={22} />
+                </span>
                 <Heading level={3} size="h3" className="lp-tr__title">
                   {b.title}
                 </Heading>
@@ -89,21 +89,6 @@ export default function Trust() {
                   {b.backing}
                 </p>
               </Reveal>
-            ))}
-          </ul>
-
-          <ul className="lp-tr__facts">
-            {rest.map((b) => (
-              <li key={b.id} className="lp-tr__fact">
-                <Heading level={3} size="h3" className="lp-tr__fact-title">
-                  {b.title}
-                </Heading>
-                <p>{b.claim}</p>
-                <p className="lp-tr__evidence">
-                  <span className="lp-tr__evidence-label lp-mono">{TRUST.backingLabel}</span>
-                  {b.backing}
-                </p>
-              </li>
             ))}
           </ul>
 

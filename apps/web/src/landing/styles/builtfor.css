@@ -10,10 +10,10 @@
   --lx: cubic-bezier(0.16, 1, 0.3, 1);
 }
 .lp-bf__head {
-  padding-top: clamp(6rem, 3.5rem + 7vw, 10rem);
+  padding-top: var(--lp-section-y);
 }
 .lp-bf__foot {
-  padding-block: clamp(2.5rem, 1.5rem + 3vw, 4.5rem) clamp(6rem, 3.5rem + 7vw, 10rem);
+  padding-block: clamp(2.5rem, 1.5rem + 3vw, 4.5rem) var(--lp-section-y);
 }
 .lp-bf__closing {
   max-width: 40rem;
@@ -45,7 +45,7 @@
   border: 1px solid var(--lp-line);
   border-radius: var(--lp-radius-xl);
   background: var(--lp-white);
-  box-shadow: 0 1px 0 rgb(11 15 14 / 0.04), 0 24px 48px -24px rgb(11 15 14 / 0.14);
+  box-shadow: var(--lp-shadow-card);
   scroll-snap-align: center;
 }
 .lp-root .lp-bf__photo {
@@ -178,10 +178,10 @@
     position: absolute;
     inset: auto 0 0 0;
     height: 55%;
-    background: var(--lp-ink);
-    /* Ink fading to transparent: an allowed alpha mask, not a colour gradient */
-    -webkit-mask-image: linear-gradient(to top, #000 30%, transparent);
-    mask-image: linear-gradient(to top, #000 30%, transparent);
+    background: var(--lp-canvas);
+    /* Paper fading to transparent: an allowed alpha mask, not a colour gradient */
+    -webkit-mask-image: linear-gradient(to top, var(--lp-fg) 30%, transparent);
+    mask-image: linear-gradient(to top, var(--lp-fg) 30%, transparent);
   }
   .lp-bf__text {
     position: absolute;
@@ -190,7 +190,7 @@
     padding: 1.1rem 1.25rem 1.25rem;
   }
   .lp-bf__title {
-    color: var(--lp-white);
+    color: var(--lp-fg);
   }
   /* the card's one-liner and status stay in the DOM for assistive tech; sighted users read them in the list below */
   .lp-bf__line,
@@ -218,10 +218,10 @@
     place-items: center;
     width: 2.75rem;
     height: 2.75rem;
-    border: 1px solid var(--lp-ink);
+    border: 1px solid var(--lp-hair-strong);
     border-radius: 50%;
-    background: transparent;
-    color: var(--lp-ink);
+    background: var(--lp-surface);
+    color: var(--lp-fg);
     cursor: pointer;
     transition: background-color 0.18s;
   }
@@ -233,8 +233,8 @@
     color: var(--lp-body);
   }
   .lp-bf__btn[aria-pressed="true"] {
-    background: var(--lp-ink);
-    color: var(--lp-white);
+    background: var(--lp-green);
+    color: var(--lp-on-accent);
   }
 
   .lp-bf__lines {
@@ -250,11 +250,11 @@
     gap: 0.3rem;
     align-content: start;
     padding-top: 0.8rem;
-    border-top: 2px solid var(--lp-line);
+    border-top: 1px solid var(--lp-line);
     transition: border-color 0.3s;
   }
   .lp-bf__lineitem[data-front="true"] {
-    border-top-color: var(--lp-forest);
+    border-top-color: var(--lp-green);
   }
   .lp-bf__line-title {
     font-family: var(--lp-font-display);
@@ -271,7 +271,7 @@
     line-height: 1.4;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--lp-deep);
+    color: var(--lp-green);
   }
 }
 /* strip mode: the pause/prev/next buttons are not needed (native scrolling), the list is the cards themselves */
@@ -286,5 +286,19 @@
   .lp-bf__btn,
   .lp-bf__lineitem {
     transition: none;
+  }
+}
+
+/* ---- dark-native additions (W1): photos melt into the page --------------------------------------------- */
+.lp-root .lp-bf__photo .lp-img__el {
+  filter: saturate(0.92) brightness(0.92);
+}
+.lp-root .lp-bf__card {
+  box-shadow: var(--lp-shadow-card), 0 0 0 1px rgb(255 255 255 / 0.05);
+}
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .lp-bf__scene {
+    -webkit-mask-image: linear-gradient(to right, transparent, var(--lp-fg) 12%, var(--lp-fg) 88%, transparent);
+    mask-image: linear-gradient(to right, transparent, var(--lp-fg) 12%, var(--lp-fg) 88%, transparent);
   }
 }

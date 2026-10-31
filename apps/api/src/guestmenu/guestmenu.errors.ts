@@ -24,6 +24,12 @@ export class GuestTokenError extends DomainError {
   readonly httpStatus = 401;
 }
 
+/** A bill already exists for the table: new orders would never reach it, so ordering from the QR menu is locked. */
+export class OrderingLockedError extends DomainError {
+  readonly code = 'ORDERING_LOCKED';
+  readonly httpStatus = 409;
+}
+
 export class SoldOutError extends DomainError {
   readonly code = 'SOLD_OUT';
   readonly httpStatus = 409;

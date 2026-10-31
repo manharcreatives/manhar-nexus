@@ -64,6 +64,10 @@ export interface ServiceRequestLine {
   modifiers: { id: string; optionNameSnapshot: string; priceAdjMinorUnits: number }[];
   notes: string | null;
   status: ServiceLineStatus;
+  /** Order edit (A2): set when an edit added/changed this line while the kitchen could already see it. */
+  kitchenNote?: string | null;
+  editedAt?: string | null;
+  editKind?: 'ADDED' | 'CHANGED' | null;
 }
 
 export interface ServiceRequest {
@@ -75,6 +79,11 @@ export interface ServiceRequest {
   sentAt: string | null;
   notes: string | null;
   lines: ServiceRequestLine[];
+  /** Optimistic-concurrency version (ADR-017); order edits must echo it back. */
+  version?: number;
+  /** Edits made while the kitchen could see the order (drives the "edited" flag). */
+  editCount?: number;
+  lastEditedAt?: string | null;
 }
 
 export interface CatalogCategory {

@@ -1,0 +1,527 @@
+/* Nexus Menu showcase + the guest-phone mockups. Dark-native, layered CSS 3D (flat images and HTML).
+   Inside `.lp-dev`, "--lp-ink" is the LIGHT text colour (devices.css), so the screens use --lp-fg / literal darks. */
+
+/* ---- section -------------------------------------------------------------- */
+.lp-section.lp-nm {
+  overflow: clip;
+}
+.lp-nm__orb {
+  width: 38rem;
+  height: 38rem;
+  right: -10rem;
+  top: 8rem;
+}
+.lp-nm__grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(2.5rem, 2rem + 3vw, 5rem);
+  align-items: center;
+}
+@media (min-width: 960px) {
+  .lp-nm__grid {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  }
+}
+.lp-nm__copy .lp-section-header {
+  margin-bottom: 1.25rem;
+}
+.lp-nm__status {
+  margin-bottom: 1.75rem;
+}
+.lp-nm__features {
+  display: grid;
+  border-top: 1px solid var(--lp-line);
+}
+.lp-nm__feature {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--lp-line);
+}
+.lp-nm__ftitle {
+  font-family: var(--lp-font-display);
+  font-weight: 500;
+  font-size: 1.1875rem;
+  line-height: 1.3;
+  color: var(--lp-fg);
+}
+.lp-nm__fbody {
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--lp-fg-3);
+}
+.lp-nm__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.lp-nm__chips li {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--lp-line);
+  border-radius: 999px;
+  background: var(--lp-surface);
+  font-size: 0.8125rem;
+  color: var(--lp-fg-2);
+}
+.lp-nm__note {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--lp-fg-3);
+}
+.lp-nm__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 2rem;
+}
+
+/* ---- the 3D stage ------------------------------------------------------------- */
+.lp-nm__stage {
+  position: relative;
+  perspective: 1600px;
+  perspective-origin: 50% 40%;
+  height: clamp(30rem, 54vw, 38rem);
+  min-width: 0;
+}
+.lp-nm__scene {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(7deg) rotateY(calc(-20deg + var(--p, 0.5) * 26deg));
+  will-change: transform;
+}
+.lp-nm__layer {
+  position: absolute;
+  transform: translate3d(0, calc((var(--p, 0.5) - 0.5) * var(--par, 0) * 1px), var(--z, 0px));
+  transform-style: preserve-3d;
+}
+.lp-nm__plate {
+  right: -2%;
+  top: 2%;
+  width: 58%;
+}
+.lp-nm__main {
+  left: 20%;
+  top: 0;
+  width: 35%;
+  min-width: 11rem;
+  filter: drop-shadow(0 40px 40px rgb(2 5 4 / 0.85));
+}
+.lp-nm__side {
+  right: 3%;
+  bottom: 0;
+  width: 30%;
+  min-width: 9.5rem;
+  filter: drop-shadow(0 40px 40px rgb(2 5 4 / 0.85));
+}
+.lp-nm__tent {
+  left: 1%;
+  bottom: 5%;
+  width: 26%;
+  min-width: 7.5rem;
+  filter: drop-shadow(0 28px 28px rgb(2 5 4 / 0.8));
+}
+.lp-nm__ping {
+  left: -2%;
+  top: 10%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: 15rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--lp-hair-strong);
+  border-radius: 0.9rem;
+  background: var(--lp-surface-2);
+  box-shadow: var(--lp-shadow-pop);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--lp-fg);
+}
+.lp-nm__ping b {
+  font-weight: 700;
+}
+.lp-nm__ping em {
+  display: block;
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--lp-fg-3);
+}
+.lp-nm__pingdot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--lp-green);
+  box-shadow: 0 0 0 4px rgb(29 186 60 / 0.2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lp-nm__pingdot {
+    animation: lp-nm-pulse 2.4s var(--lp-ease) infinite;
+  }
+}
+@keyframes lp-nm-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgb(29 186 60 / 0.2); }
+  50% { box-shadow: 0 0 0 8px rgb(29 186 60 / 0); }
+}
+/* phones and reduced motion: the same layers, flat */
+@media (max-width: 959px) {
+  .lp-nm__stage {
+    height: clamp(26rem, 96vw, 34rem);
+  }
+  .lp-nm__scene,
+  .lp-nm__layer {
+    transform: none;
+    will-change: auto;
+  }
+  .lp-nm__main {
+    left: 14%;
+    width: 42%;
+  }
+  .lp-nm__side {
+    right: 2%;
+    width: 36%;
+  }
+  .lp-nm__tent {
+    width: 30%;
+  }
+  .lp-nm__ping {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-nm__scene,
+  .lp-nm__layer {
+    transform: none;
+    will-change: auto;
+  }
+}
+
+/* ---- guest phone: browsing ---------------------------------------------------- */
+.lp-nmp {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--lp-canvas);
+  color: var(--lp-fg);
+}
+.lp-nmp__island {
+  align-self: center;
+  width: 7em;
+  height: 1.7em;
+  margin-top: 0.8em;
+  border-radius: 999px;
+  background: #0b0f0e;
+  border: 1px solid rgb(255 255 255 / 0.06);
+}
+.lp-nmp__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0.9em 1.1em 0.5em;
+}
+.lp-nmp__rest {
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: 1.1em;
+  line-height: 1.15;
+}
+.lp-nmp__sub {
+  font-size: 0.66em;
+  color: var(--lp-fg-3);
+}
+.lp-nmp__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.25em 0.7em;
+  border: 1px solid var(--lp-mint);
+  border-radius: 999px;
+  background: var(--lp-mint-wash);
+  font-family: var(--lp-font-mono);
+  font-size: 0.56em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-green);
+  white-space: nowrap;
+}
+.lp-nmp__live i {
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--lp-green);
+}
+.lp-nmp__hero {
+  position: relative;
+  height: 13em;
+  margin: 0.5em 1em 0;
+  overflow: hidden;
+  border-radius: 1.2em;
+  background: var(--lp-mist);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+.lp-nmp__hero .lp-img {
+  height: 100%;
+}
+.lp-nmp__hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--lp-canvas);
+  opacity: 0.88;
+  -webkit-mask-image: linear-gradient(to top, var(--lp-fg) 0%, transparent 62%);
+  mask-image: linear-gradient(to top, var(--lp-fg) 0%, transparent 62%);
+}
+.lp-nmp__heroin {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+  padding: 0 1em 0.9em;
+}
+.lp-nmp__tag {
+  display: inline-block;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  background: rgb(7 10 9 / 0.7);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  font-family: var(--lp-font-mono);
+  font-size: 0.5em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.lp-nmp__hname {
+  margin-top: 0.4em;
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: 1.2em;
+}
+.lp-nmp__hrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.25em;
+}
+.lp-nmp__price {
+  font-weight: 700;
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+}
+.lp-nmp__add {
+  padding: 0.3em 1.1em;
+  border-radius: 999px;
+  background: var(--lp-green);
+  color: var(--lp-on-accent);
+  font-weight: 700;
+  font-size: 0.7em;
+}
+.lp-nmp__rail {
+  display: flex;
+  gap: 0.5em;
+  margin-top: 0.9em;
+  padding-inline: 1em;
+  overflow: hidden;
+}
+.lp-nmp__rail span {
+  padding: 0.35em 0.9em;
+  border: 1px solid var(--lp-line);
+  border-radius: 999px;
+  font-size: 0.62em;
+  font-weight: 700;
+  color: var(--lp-fg-3);
+  white-space: nowrap;
+}
+.lp-nmp__rail .is-on {
+  border-color: var(--lp-mint);
+  background: var(--lp-mint-wash);
+  color: var(--lp-green);
+}
+.lp-nmp__list {
+  display: grid;
+  gap: 0.6em;
+  margin-top: 0.8em;
+  padding-inline: 1em;
+}
+.lp-nmp__list li {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.5em;
+  border: 1px solid var(--lp-line);
+  border-radius: 0.9em;
+  background: var(--lp-surface);
+}
+.lp-nmp__thumb {
+  flex: none;
+  width: 3.6em;
+  height: 3.6em;
+  overflow: hidden;
+  border-radius: 0.7em;
+  background: var(--lp-mist);
+}
+.lp-nmp__thumb .lp-img {
+  height: 100%;
+}
+.lp-nmp__txt {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.lp-nmp__txt b {
+  font-size: 0.8em;
+  font-weight: 700;
+}
+.lp-nmp__txt em {
+  font-style: normal;
+  font-size: 0.6em;
+  color: var(--lp-fg-3);
+}
+.lp-nmp__cta {
+  margin: auto 1em 1em;
+  padding: 0.85em;
+  border-radius: 999px;
+  background: var(--lp-green);
+  color: var(--lp-on-accent);
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.72em;
+}
+
+/* ---- guest phone: live status --------------------------------------------------- */
+.lp-nmp__steps {
+  display: grid;
+  gap: 0.2em;
+  margin: 0.6em 1.1em 0;
+  padding: 0.8em 1em;
+  border: 1px solid var(--lp-line);
+  border-radius: 1em;
+  background: var(--lp-surface);
+}
+.lp-nmp__steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  padding-block: 0.4em;
+  font-size: 0.78em;
+  font-weight: 500;
+  color: var(--lp-fg-3);
+}
+.lp-nmp__steps li[data-state="done"],
+.lp-nmp__steps li[data-state="now"] {
+  color: var(--lp-fg);
+}
+.lp-nmp__dot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  border: 1px solid var(--lp-hair-strong);
+  border-radius: 50%;
+  color: var(--lp-on-accent);
+}
+[data-state="done"] .lp-nmp__dot {
+  background: var(--lp-green);
+  border-color: var(--lp-green);
+}
+[data-state="now"] .lp-nmp__dot {
+  border-color: var(--lp-green);
+  box-shadow: 0 0 0 0.25em rgb(29 186 60 / 0.22), inset 0 0 0 0.35em var(--lp-green);
+}
+.lp-nmp__bill {
+  margin: 0.7em 1.1em 0;
+  padding: 0.8em 1em;
+  border: 1px solid var(--lp-line);
+  border-radius: 1em;
+  background: var(--lp-surface);
+}
+.lp-nmp__billhead {
+  font-family: var(--lp-font-mono);
+  font-size: 0.55em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lp-fg-3);
+}
+.lp-nmp__bl {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 0.45em;
+  font-size: 0.7em;
+  font-variant-numeric: tabular-nums;
+  color: var(--lp-fg-2);
+}
+.lp-nmp__bl--tot {
+  margin-top: 0.5em;
+  padding-top: 0.6em;
+  border-top: 1px dashed var(--lp-hair-strong);
+  font-weight: 700;
+  color: var(--lp-fg);
+}
+.lp-nmp__btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5em;
+  margin: auto 1.1em 1em;
+}
+.lp-nmp__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.75em 0.4em;
+  border: 1px solid var(--lp-hair-strong);
+  border-radius: 999px;
+  font-size: 0.62em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.lp-nmp__btn--pri {
+  border-color: var(--lp-green);
+  background: var(--lp-green);
+  color: var(--lp-on-accent);
+}
+
+/* ---- table tent (decorative QR-shaped pattern) ----------------------------------- */
+.lp-nmt {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 1rem;
+  background: var(--lp-surface-2);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+.lp-nmt__top {
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lp-fg-3);
+  text-align: center;
+}
+.lp-nmt__qr {
+  width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+.lp-nmt__foot {
+  display: grid;
+  gap: 0.1rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--lp-fg-3);
+}
+.lp-nmt__foot b {
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--lp-fg);
+}

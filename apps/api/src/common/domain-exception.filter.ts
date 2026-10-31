@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
 import type { Request, Response } from 'express';
 import { REQUEST_ID_HEADER } from '@nexus/shared';
 import { logger } from '../logging/logger';
+import { redactUrl } from '../logging/redact-url';
 import { DomainError } from './errors';
 
 /** Stable error envelope returned for every failed request. */
@@ -28,9 +29,14 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (body.statusCode >= 500) {
       // Log via the project's structured logger (the Nest logger is disabled),
       // so server errors are never silently swallowed.
-      logger.child({ err: exception, http: { method: req.method, url: req.originalUrl } }).error(
+      logger.child({ err: exception, http: { method: req.method, url: redactUrl(req.originalUrl) } }).error(
         'unhandled error',
       );
+    }
+    // Rate-limit errors (429) carry details.retryAfterSeconds: surface it as the standard header too.
+    const retryAfter = (body.error.details as { retryAfterSeconds?: unknown } | undefined)?.retryAfterSeconds;
+    if (body.statusCode === 429 && typeof retryAfter === 'number' && retryAfter > 0 && !res.headersSent) {
+      res.setHeader('Retry-After', String(Math.ceil(retryAfter)));
     }
     res.status(body.statusCode).json(body);
   }

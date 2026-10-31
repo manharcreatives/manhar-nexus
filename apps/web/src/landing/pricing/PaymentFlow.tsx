@@ -4,6 +4,22 @@ import { FAILURE_MESSAGES, HOW, PRICING, faqsByIds } from '../content';
 import { Accordion, toggleId } from '../faq/Accordion';
 import { iconByName } from '../sectionsC/icons';
 
+/** One quiet line under the plan cards: the four stages and the promise that this page takes no money. */
+export function PaymentStrip() {
+  return (
+    <div className="lp-paystrip">
+      <ol className="lp-paystrip__steps" aria-label={PRICING.flowTitle}>
+        {PRICING.flow.map((step) => (
+          <li key={step.number}>
+            <span className="lp-num">{step.number}</span> {step.title}
+          </li>
+        ))}
+      </ol>
+      <p className="lp-paystrip__note">Nothing is charged on this page.</p>
+    </div>
+  );
+}
+
 /**
  * “How payment works”. Honest about what exists today: the visitor registers, a person reviews the request,
  * and a Cashfree payment link is sent by WhatsApp or email. Nothing on this page takes money.

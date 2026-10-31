@@ -93,7 +93,7 @@ describe('Intro', () => {
     expect(h2?.querySelectorAll('.lp-accent')).toHaveLength(1);
     expect(h2?.querySelector('.lp-accent')?.textContent).toBe(INTRO.headline.accent);
     const words = container.querySelectorAll('.lp-lit__w');
-    expect(words.length).toBeGreaterThan(150);
+    expect(words.length).toBeGreaterThan(80);
     expect((words[3] as HTMLElement).style.getPropertyValue('--i')).toBe('3');
     // reduced-motion / no-IO final state: the block progress is 1, i.e. everything lit
     const lit = container.querySelector('.lp-lit') as HTMLElement;
@@ -133,7 +133,7 @@ describe('About', () => {
     expect(text).not.toContain('Utsav');
     expect(text).not.toContain(ABOUT.internalNote.slice(0, 30));
     // the unflagged paragraph and honest note are shown
-    expect(text).toContain('Then make each hand-off boring, visible and hard to get wrong.');
+    expect(text).toContain('Then make each one boring, visible and hard to get wrong.');
     expect(text).toContain(ABOUT.honestNote.body);
   });
 

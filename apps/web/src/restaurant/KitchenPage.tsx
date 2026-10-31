@@ -15,6 +15,8 @@ import { useRestaurantCaps } from './permissions';
 import { LiveBadge } from '../realtime/LiveBadge';
 import { useLiveRefresh } from '../realtime/RealtimeProvider';
 import { formatElapsed, minutesSince } from './time';
+import { ElapsedTimeButton } from './kitchen/ElapsedTimeButton';
+import { agoLabel } from './kitchen/timelineFormat';
 import { type ServiceRequest, diningApi, kitchenApi, sessionApi } from './api';
 
 type KitchenStatus = 'SENT' | 'ACCEPTED' | 'PREPARING' | 'READY';
@@ -78,7 +80,13 @@ function KitchenTicket({
       <header className="flex flex-col gap-2 px-5 pt-5 pb-4">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p className="ticket-no min-w-0 text-sm break-all text-muted">{tableCode ? ticket : '\u00a0'}</p>
-          <p className={cn('tabular shrink-0 text-xl font-semibold', late && 'text-bad')}>{formatElapsed(mins, t)}</p>
+          <ElapsedTimeButton
+            orderId={order.id}
+            ticket={heading}
+            late={late}
+            label={agoLabel(mins, formatElapsed(mins, t), t)}
+            refreshKey={`${order.status}|${order.lines.map((l) => `${l.id}:${l.status}:${l.quantity}`).join(',')}`}
+          />
         </div>
         <h3 className="font-display text-[2rem] leading-[1.05] font-semibold tracking-[-0.02em]">{heading}</h3>
         <div className="flex flex-wrap items-center gap-2">

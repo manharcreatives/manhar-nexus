@@ -12,19 +12,24 @@ import { useSingleFlight } from './hooks';
 import { Field } from '../ui/Field';
 import { parseMoney } from '../lib/money';
 import { type GuestSession, type Invoice, type Payment, checkoutApi, formatMinorUnits } from './api';
+import { paymentApi, type PaymentRecord } from './checkout/paymentApi';
+import { PaymentKeyRing, classifyPayments, isConflict, isUnknownOutcome, type CheckoutMethod as Method } from './checkout/paymentFlow';
 
-type Method = 'CASH' | 'UPI';
 type Phase = 'loading' | 'review' | 'paid' | 'error';
 const METHODS: Method[] = ['CASH', 'UPI'];
+type Notice = { tone: 'info' | 'ok'; text: string };
 
 export function CheckoutDialog({
   session,
   tableCode,
   onDone,
   onCancel,
+  initialMethod = 'CASH',
 }: {
   session: GuestSession;
   tableCode: string;
+  /** Which method starts selected (the waiter's "payment QR" screen opens checkout on UPI). */
+  initialMethod?: Method;
   /** `closeTable` is true when the cashier chose to close the table after payment. */
   onDone: (closeTable: boolean) => void;
   onCancel: () => void;
@@ -32,19 +37,64 @@ export function CheckoutDialog({
   const { t } = useTranslation();
   const toast = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [method, setMethod] = useState<Method>('CASH');
+  const [method, setMethod] = useState<Method>(initialMethod);
   const [phase, setPhase] = useState<Phase>('loading');
   const [loadError, setLoadError] = useState('');
   const [payError, setPayError] = useState('');
   const [cashText, setCashText] = useState('');
   const [utr, setUtr] = useState('');
-  const [pending, setPending] = useState<Payment | null>(null);
+  const [pending, setPending] = useState<Payment | PaymentRecord | null>(null);
   const [changeDue, setChangeDue] = useState(0);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  // The last write got no answer (dropped connection / 5xx): we do not know whether it was recorded.
+  const [uncertain, setUncertain] = useState(false);
+  const [confirmChange, setConfirmChange] = useState(false);
+  const [alreadyRecorded, setAlreadyRecorded] = useState<PaymentRecord | null>(null);
   const loader = useSingleFlight();
   const payer = useSingleFlight();
-  // One idempotency key per payment attempt (reset when the method changes),
-  // so a retry after a dropped response can never capture the money twice.
-  const payKey = useRef(crypto.randomUUID());
+  // One idempotency key per payment INTENT (invoice + method + amount + cash tendered). A retry after a dropped
+  // response reuses it and so replays the original payment; a cancelled attempt retires it (see paymentFlow.ts).
+  const keys = useRef(new PaymentKeyRing());
+
+  /** Reads what the server already holds for this bill. `null` = could not find out (no permission or offline). */
+  const readRecorded = useCallback(async (invoiceId: string) => {
+    try {
+      return classifyPayments(await paymentApi.list(invoiceId));
+    } catch {
+      return null;
+    }
+  }, []);
+
+  /** Shows a payment that already exists instead of creating another one. Returns true when it took over the screen. */
+  const adopt = useCallback(
+    (recorded: NonNullable<Awaited<ReturnType<typeof readRecorded>>>, source: 'resume' | 'conflict' | 'check'): boolean => {
+      if (recorded.kind === 'captured') {
+        setPending(null);
+        setConfirmChange(false);
+        setUncertain(false);
+        setChangeDue(recorded.payment.changeMinorUnits ?? 0);
+        setAlreadyRecorded(recorded.payment);
+        setPhase('paid');
+        return true;
+      }
+      if (recorded.kind === 'pending') {
+        const m: Method = recorded.payment.method === 'CASH' ? 'CASH' : 'UPI';
+        setPending(recorded.payment);
+        setMethod(m);
+        setUncertain(false);
+        setPayError('');
+        setNotice({
+          tone: 'info',
+          text: t(source === 'resume' ? 'restaurant.checkout.resumedNotice' : 'restaurant.checkout.recordedNotice', {
+            amount: formatMinorUnits(recorded.payment.amountMinorUnits),
+          }),
+        });
+        return true;
+      }
+      return false;
+    },
+    [t],
+  );
 
   const { run: runLoad } = loader;
   const loadInvoice = useCallback(
@@ -62,21 +112,35 @@ export function CheckoutDialog({
           const ready = inv.status === 'FINALISED' || inv.status === 'PAID' ? inv : await checkoutApi.finalise(inv.id);
           setInvoice(ready);
           setPhase(ready.status === 'PAID' ? 'paid' : 'review');
+          // A payment may already exist (dialog closed mid-way, another device, a lost response): show it, never duplicate it.
+          if (ready.status === 'FINALISED') {
+            const recorded = await readRecorded(ready.id);
+            if (recorded) adopt(recorded, 'resume');
+          }
         } catch (err) {
           setLoadError(describeError(err, t, 'restaurant.errors.loadInvoice'));
           setPhase('error');
         }
       }),
-    [runLoad, session.id, t],
+    [runLoad, session.id, t, readRecorded, adopt],
   );
 
   useEffect(() => {
     void loadInvoice();
   }, [loadInvoice]);
 
+  /** Asks the server what is recorded and adopts it. Returns 'adopted' | 'none' | 'unknown'. */
+  async function checkRecorded(source: 'conflict' | 'check'): Promise<'adopted' | 'none' | 'unknown'> {
+    if (!invoice) return 'unknown';
+    const recorded = await readRecorded(invoice.id);
+    if (!recorded) return 'unknown';
+    return adopt(recorded, source) ? 'adopted' : 'none';
+  }
+
   async function pay() {
     if (!invoice) return;
     setPayError('');
+    setNotice(null);
     const total = invoice.grandTotalMinorUnits;
     let cashReceived: number | undefined;
     if (method === 'CASH') {
@@ -93,6 +157,8 @@ export function CheckoutDialog({
     }
     await payer.run(async () => {
       try {
+        // After a lost response, look before writing again: the earlier attempt may have landed.
+        if (uncertain && (await checkRecorded('check')) === 'adopted') return;
         if (method === 'UPI' && pending) {
           await checkoutApi.capture(pending.id, utr.trim());
         } else {
@@ -100,37 +166,93 @@ export function CheckoutDialog({
             invoice.id,
             method,
             total,
-            payKey.current,
+            keys.current.keyFor({ invoiceId: invoice.id, method, amountMinorUnits: total, cashReceivedMinorUnits: cashReceived }),
             cashReceived ? { cashReceivedMinorUnits: cashReceived } : {},
           );
           if (method === 'UPI' && created.status !== 'CAPTURED') {
             setPending(created);
+            setUncertain(false);
             return;
           }
           if (cashReceived) setChangeDue(cashReceived - total);
         }
+        setUncertain(false);
         toast.show(t('restaurant.checkout.paidToast', { amount: formatMinorUnits(total) }));
         setPhase('paid');
       } catch (err) {
-        setPayError(describeError(err, t, 'restaurant.errors.payment'));
+        if (isUnknownOutcome(err)) {
+          // Retrying is safe: same intent, same idempotency key, and the capture of a UTR is idempotent too.
+          setUncertain(true);
+        } else if (isConflict(err)) {
+          const r = await checkRecorded('conflict');
+          if (r !== 'adopted') setPayError(describeError(err, t, 'restaurant.errors.payment'));
+        } else {
+          setPayError(describeError(err, t, 'restaurant.errors.payment'));
+        }
       }
     });
   }
 
+  /** Switches between methods. Typed cash / UTR are kept; a recorded UPI request needs the explicit flow below. */
   function chooseMethod(m: Method) {
-    if (m === method) return;
+    if (m === method || payer.busy || pending) return;
     setMethod(m);
     setPayError('');
-    payKey.current = crypto.randomUUID();
+    setNotice(null);
+  }
+
+  async function changeAfterUncertainty() {
+    await payer.run(async () => {
+      setPayError('');
+      const r = await checkRecorded('check');
+      if (r === 'none') {
+        setUncertain(false);
+        setNotice({ tone: 'info', text: t('restaurant.checkout.nothingRecorded') });
+      } else if (r === 'unknown') {
+        setPayError(t('restaurant.checkout.checkFailed'));
+      }
+    });
+  }
+
+  /** Cancels the pending UPI request (after the cashier confirmed the guest has not paid) and returns to method choice. */
+  async function cancelPendingAndChange() {
+    if (!pending || !invoice) return;
+    await payer.run(async () => {
+      setPayError('');
+      try {
+        await paymentApi.cancel(pending.id);
+        keys.current.retireMethod(pending.method === 'CASH' ? 'CASH' : 'UPI');
+        setPending(null);
+        setConfirmChange(false);
+        setUncertain(false);
+        setMethod('CASH');
+        setNotice({ tone: 'info', text: utr.trim() ? t('restaurant.checkout.switchedKeptNotice') : t('restaurant.checkout.switchedNotice') });
+      } catch (err) {
+        // Whatever went wrong, the server is the truth: look at it.
+        const recorded = await readRecorded(invoice.id);
+        if (recorded?.kind === 'captured') {
+          adopt(recorded, 'check');
+          setNotice({ tone: 'ok', text: t('restaurant.checkout.cancelRaced') });
+        } else if (recorded?.kind === 'none') {
+          keys.current.retireMethod('UPI');
+          setPending(null);
+          setConfirmChange(false);
+          setMethod('CASH');
+          setNotice({ tone: 'info', text: t('restaurant.checkout.switchedNotice') });
+        } else {
+          setPayError(isUnknownOutcome(err) || recorded === null ? t('restaurant.checkout.cancelUnknown') : describeError(err, t, 'restaurant.errors.payment'));
+        }
+      }
+    });
   }
 
   const footer =
     phase === 'review' && invoice ? (
       <>
-        <Button variant="secondary" size="lg" onClick={onCancel} disabled={payer.busy || pending !== null}>
-          {t('restaurant.common.cancel')}
+        <Button variant="secondary" size="lg" onClick={onCancel} disabled={payer.busy}>
+          {pending ? t('restaurant.common.close') : t('restaurant.common.cancel')}
         </Button>
-        <Button size="lg" loading={payer.busy} onClick={() => void pay()}>
+        <Button size="lg" loading={payer.busy} disabled={confirmChange} onClick={() => void pay()}>
           {payer.busy
             ? t('restaurant.checkout.processing')
             : method === 'UPI'
@@ -162,6 +284,7 @@ export function CheckoutDialog({
       title={t('restaurant.checkout.title', { code: tableCode })}
       className="w-[min(40rem,calc(100vw-1rem))]!"
       footer={footer}
+      closeOnBackdrop={!payer.busy}
     >
       <div aria-live="polite">
         {phase === 'loading' && (
@@ -188,7 +311,11 @@ export function CheckoutDialog({
             <p className="mt-3">
               <LedgerFigure minor={invoice.grandTotalMinorUnits} rule="double" className="text-[2.75rem]" />
             </p>
-            <p className="mx-auto mt-4 max-w-xs text-sm text-ink">{t('restaurant.checkout.paidBody')}</p>
+            <p className="mx-auto mt-4 max-w-xs text-sm text-ink">
+              {alreadyRecorded
+                ? t('restaurant.checkout.alreadyPaidBody', { method: t(`restaurant.checkout.methods.${alreadyRecorded.method === 'CASH' ? 'CASH' : 'UPI'}`) })
+                : t('restaurant.checkout.paidBody')}
+            </p>
             {changeDue > 0 && (
               <p className="tabular mt-3 inline-block rounded-control bg-surface px-3 py-1.5 text-lg font-semibold">
                 {t('restaurant.checkout.changeGiven', { amount: formatMinorUnits(changeDue) })}
@@ -231,6 +358,18 @@ export function CheckoutDialog({
                 </div>
               </dl>
             </div>
+
+            {notice && (
+              <p
+                role="status"
+                className={cn(
+                  'rounded-control border px-3 py-2 text-sm',
+                  notice.tone === 'ok' ? 'border-ok/30 bg-ok-soft text-ink' : 'border-info/30 bg-info-soft text-ink',
+                )}
+              >
+                {notice.text}
+              </p>
+            )}
 
             <fieldset disabled={payer.busy || pending !== null}>
               <legend className="mb-2 text-sm font-medium">{t('restaurant.checkout.method')}</legend>
@@ -285,6 +424,38 @@ export function CheckoutDialog({
                   onChange={(e) => setUtr(e.target.value)}
                   disabled={payer.busy}
                 />
+                {!confirmChange ? (
+                  <Button variant="ghost" className="mt-3 -ml-2" disabled={payer.busy} onClick={() => setConfirmChange(true)}>
+                    {t('restaurant.checkout.changeMethod')}
+                  </Button>
+                ) : (
+                  <div role="group" aria-label={t('restaurant.checkout.changeConfirmTitle')} className="mt-3 rounded-control border border-warn/40 bg-warn-soft p-3">
+                    <p className="text-sm font-semibold text-warn">{t('restaurant.checkout.changeConfirmTitle')}</p>
+                    <p className="mt-1 text-sm text-ink">{t('restaurant.checkout.changeConfirmBody', { amount: formatMinorUnits(invoice.grandTotalMinorUnits) })}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="secondary" data-autofocus disabled={payer.busy} onClick={() => setConfirmChange(false)}>
+                        {t('restaurant.checkout.changeKeep')}
+                      </Button>
+                      <Button variant="danger" loading={payer.busy} onClick={() => void cancelPendingAndChange()}>
+                        {payer.busy ? t('restaurant.checkout.changing') : t('restaurant.checkout.changeYes')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!pending && utr.trim() !== '' && method === 'UPI' && (
+              <p className="text-sm text-muted">{t('restaurant.checkout.utrKept', { utr: utr.trim() })}</p>
+            )}
+
+            {uncertain && (
+              <div role="alert" className="rounded-control border border-warn/40 bg-warn-soft p-3">
+                <p className="text-sm font-semibold text-warn">{t('restaurant.checkout.uncertainTitle')}</p>
+                <p className="mt-1 text-sm text-ink">{t('restaurant.checkout.uncertainBody')}</p>
+                <Button variant="secondary" className="mt-3" loading={payer.busy} onClick={() => void changeAfterUncertainty()}>
+                  {payer.busy ? t('restaurant.checkout.checking') : t('restaurant.checkout.checkStatus')}
+                </Button>
               </div>
             )}
 

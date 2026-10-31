@@ -1,0 +1,104 @@
+{
+  "restaurant": {
+    "orderZones": {
+      "menu": {
+        "heading": "Menu items",
+        "hint": "Tap + to add. What you add moves to the order panel.",
+        "searchLabel": "Search the menu",
+        "searchPlaceholder": "Search dishes",
+        "noMatch": "Nothing on the menu matches \"{{query}}\".",
+        "clearSearch": "Clear search",
+        "inOrder_one": "{{count}} in order",
+        "inOrder_other": "{{count}} in order",
+        "add": "Add {{name}}"
+      },
+      "order": {
+        "heading": "Added to order",
+        "count_one": "{{count}} item",
+        "count_other": "{{count}} items",
+        "emptyTitle": "Nothing added yet",
+        "emptyBody": "Pick dishes from the menu. They land here, with quantities and notes.",
+        "undoRemove": "Undo remove {{name}}",
+        "undo": "Undo",
+        "removedNote": "Removed when you save."
+      },
+      "note": {
+        "add": "Add note",
+        "edit": "Edit note",
+        "label": "Note for {{name}}",
+        "placeholder": "For example: no onion",
+        "done": "Done"
+      },
+      "mobile": {
+        "backToMenu": "Back to menu",
+        "openOrder": "Order ({{count}})",
+        "openOrderHint": "View what is added"
+      },
+      "chip": {
+        "new": "New",
+        "saved": "Saved, not sent",
+        "sent": "Sent to kitchen",
+        "preparing": "Preparing",
+        "ready": "Ready",
+        "served": "Served",
+        "removing": "Removing"
+      }
+    },
+    "orderEdit": {
+      "button": "Edit order",
+      "buttonLabel": "Edit order, {{round}}",
+      "edited": "Edited",
+      "editedTimes_one": "Edited {{count}} time",
+      "editedTimes_other": "Edited {{count}} times",
+      "lineAdded": "Added",
+      "lineChanged": "Changed",
+      "title": "Edit {{round}} - table {{code}}",
+      "intro": {
+        "SENT": "The kitchen has not started this order. Your changes reach the kitchen screen marked as edited.",
+        "DRAFT": "This order has not been sent yet, so the changes apply to the draft."
+      },
+      "lock": {
+        "heading": "This order can no longer be edited",
+        "KITCHEN_STARTED": "The kitchen has started this order, so it can no longer be edited. Cancel the items that are still waiting or add a new round instead.",
+        "ORDER_SERVED": "This order has been served, so it can no longer be edited.",
+        "ORDER_CANCELLED": "This order was cancelled, so it can no longer be edited.",
+        "SESSION_NOT_OPEN": "The table session is closed, so this order can no longer be edited.",
+        "INVOICE_EXISTS": "A bill has been generated for this table. Void the bill first if the order really has to change.",
+        "unknown": "This order can no longer be edited."
+      },
+      "loading": "Loading the latest version of the order",
+      "loadErrorTitle": "Could not open the order",
+      "close": "Close",
+      "cancel": "Discard changes",
+      "save": "Save changes",
+      "saving": "Saving",
+      "changes_one": "{{count}} change",
+      "changes_other": "{{count}} changes",
+      "noChanges": "No changes yet",
+      "totalWas": "Was {{amount}}",
+      "totalNow": "New total",
+      "emptyBlocked": "An order must keep at least one item. Cancel the whole order instead.",
+      "history_one": "Edited {{count}} time before.",
+      "history_other": "Edited {{count}} times before.",
+      "details": "Order details",
+      "orderNote": "Order note",
+      "orderNotePlaceholder": "Note for the whole order",
+      "reason": "Reason for the change (optional)",
+      "reasonPlaceholder": "For example: guest asked for one more",
+      "notice": {
+        "conflict": "Someone else changed this order while you were editing. The latest version is loaded and your changes are kept where they still apply. Review them, then save again.",
+        "live": "This order was updated by someone else. The latest version is shown and your changes are kept.",
+        "dropped_one": "{{count}} of your changes no longer applies because that line was removed elsewhere.",
+        "dropped_other": "{{count}} of your changes no longer apply because those lines were removed elsewhere.",
+        "lockedMidEdit": "This order can no longer be edited, so your changes were not saved."
+      },
+      "savedToast": "Order updated.",
+      "replayedToast": "That change was already saved.",
+      "errors": {
+        "save": "Could not save the changes. Nothing was changed; try again.",
+        "refresh": "Could not reload the order. Check the connection and try again.",
+        "keyReused": "That edit could not be matched. Review the order and save again."
+      }
+    }
+  }
+}

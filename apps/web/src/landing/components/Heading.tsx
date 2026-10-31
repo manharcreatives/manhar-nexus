@@ -37,12 +37,12 @@ export interface SectionHeaderProps {
 /** Eyebrow + heading + lede stack used at the top of most sections. */
 export function SectionHeader({ eyebrow, title, titleId, lede, level = 2, align = 'left', className }: SectionHeaderProps) {
   return (
-    <header className={cx('lp-section-header', align === 'center' && 'lp-section-header--center', className)}>
+    <div className={cx('lp-section-header', align === 'center' && 'lp-section-header--center', className)}>
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
       <Heading level={level} id={titleId}>
         {title}
       </Heading>
       {lede ? <p className="lp-lede">{lede}</p> : null}
-    </header>
+    </div>
   );
 }

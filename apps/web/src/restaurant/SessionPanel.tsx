@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { Textarea } from '../ui/Textarea';
 import { useToast } from '../ui/Toast';
 import { CheckoutDialog } from './CheckoutDialog';
+import { BillShowActions } from './bill-show/BillShowActions';
 import { EmptyOrderArt } from '../brand/illustrations';
 import { OrderBuilder } from './OrderBuilder';
 import { OrderStatusPill } from './StatusPills';
@@ -14,6 +15,8 @@ import { describeError } from './errors';
 import { useSingleFlight } from './hooks';
 import { useRestaurantCaps } from './permissions';
 import { useLiveRefresh } from '../realtime/RealtimeProvider';
+import { OrderEditDialog } from './order/OrderEditDialog';
+import { clientLockReason, showsEditButton } from './order/editRules';
 import {
   type CatalogCategory,
   type CatalogItem,
@@ -36,19 +39,27 @@ function orderTitle(order: ServiceRequest, t: (k: string, o?: Record<string, unk
 function OrderCard({
   order,
   canManage,
+  canEdit,
   onChanged,
   onRequestCancel,
+  onRequestEdit,
 }: {
   order: ServiceRequest;
   /** restaurant.order.manage: cancel and serve are hidden for roles that would get a 403. */
   canManage: boolean;
+  /** restaurant.order.edit: "Edit order" is offered (enabled before the kitchen starts, otherwise disabled with the reason). */
+  canEdit: boolean;
   onChanged: (o: ServiceRequest) => void;
   onRequestCancel: (o: ServiceRequest) => void;
+  onRequestEdit: (o: ServiceRequest) => void;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
   const serving = useSingleFlight();
+  const reasonId = useId();
   const canCancel = canManage && (order.status === 'DRAFT' || order.status === 'SENT');
+  const showEdit = canEdit && showsEditButton(order);
+  const lockReason = showEdit ? clientLockReason(order) : null;
 
   async function serve() {
     await serving.run(async () => {
@@ -69,23 +80,54 @@ function OrderCard({
             <span className="ticket-no text-xs font-normal text-muted">{t('restaurant.session.ticketNumber', { number: order.requestNumber })}</span>
           )}
         </h3>
-        <OrderStatusPill status={order.status} />
+        <span className="flex flex-wrap items-center justify-end gap-2">
+          {(order.editCount ?? 0) > 0 && (
+            <span className="eyebrow rounded-full border border-warn/40 px-2 py-0.5 text-warn" title={t('restaurant.orderEdit.editedTimes', { count: order.editCount })}>
+              {t('restaurant.orderEdit.edited')}
+            </span>
+          )}
+          <OrderStatusPill status={order.status} />
+        </span>
       </div>
       <div className="nx-tear" />
       <ul className="space-y-1.5 px-4 pt-3 pb-4">
         {order.lines
           .filter((l) => l.status !== 'CANCELLED')
           .map((line) => (
-            <li key={line.id} className="flex items-baseline gap-2 text-base">
-              <span className="tabular w-7 shrink-0 font-semibold">{line.quantity}×</span>
-              <span className="min-w-0">{line.itemNameSnapshot}</span>
-              <span aria-hidden className="mb-1 min-w-4 flex-1 border-b border-dotted border-muted/45" />
-              <span className="tabular shrink-0 text-muted">{formatMinorUnits(line.unitPriceMinorUnits * line.quantity)}</span>
+            <li key={line.id} className="text-base">
+              <div className="flex items-baseline gap-2">
+                <span className="tabular w-7 shrink-0 font-semibold">{line.quantity}×</span>
+                <span className="min-w-0">
+                  {line.itemNameSnapshot}
+                  {line.editKind && (
+                    <span className="eyebrow ml-2 text-warn">{line.editKind === 'ADDED' ? t('restaurant.orderEdit.lineAdded') : t('restaurant.orderEdit.lineChanged')}</span>
+                  )}
+                </span>
+                <span aria-hidden className="mb-1 min-w-4 flex-1 border-b border-dotted border-muted/45" />
+                <span className="tabular shrink-0 text-muted">{formatMinorUnits(line.unitPriceMinorUnits * line.quantity)}</span>
+              </div>
+              {line.notes && (
+                <p className="ml-9 text-sm text-muted">
+                  {t('restaurant.builder.notePrefix')} {line.notes}
+                </p>
+              )}
             </li>
           ))}
       </ul>
-      {(canCancel || (canManage && order.status === 'READY')) && (
+      {(canCancel || showEdit || (canManage && order.status === 'READY')) && (
         <div className="flex flex-wrap justify-end gap-2 px-4 pb-4">
+          {showEdit && (
+            <Button
+              variant="secondary"
+              className="min-h-11"
+              disabled={lockReason !== null}
+              aria-describedby={lockReason ? reasonId : undefined}
+              aria-label={t('restaurant.orderEdit.buttonLabel', { round: t('restaurant.session.round', { n: order.roundNumber }) })}
+              onClick={() => onRequestEdit(order)}
+            >
+              {t('restaurant.orderEdit.button')}
+            </Button>
+          )}
           {canCancel && (
             <Button variant="secondary" onClick={() => onRequestCancel(order)} className="min-h-11">
               {t('restaurant.session.cancelOrder')}
@@ -97,6 +139,11 @@ function OrderCard({
             </Button>
           )}
         </div>
+      )}
+      {lockReason && (
+        <p id={reasonId} className="px-4 pb-4 text-right text-sm text-muted">
+          {t(`restaurant.orderEdit.lock.${lockReason}`)}
+        </p>
       )}
     </article>
   );
@@ -125,6 +172,7 @@ export function SessionPanel({
   const [showCheckout, setShowCheckout] = useState(false);
   const [showClose, setShowClose] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<ServiceRequest | null>(null);
+  const [editTarget, setEditTarget] = useState<ServiceRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelReasonError, setCancelReasonError] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
@@ -221,6 +269,15 @@ export function SessionPanel({
                 {t('restaurant.session.checkout')}
               </Button>
             )}
+            <BillShowActions
+              session={session}
+              tableCode={table.code}
+              disabled={!hasBillable}
+              onPaymentDone={(closeTable) => {
+                void loadOrders();
+                if (closeTable) setShowClose(true);
+              }}
+            />
             {caps.canManageOrders && (
               <Button size="lg" data-autofocus onClick={() => setShowOrder(true)}>
                 {t('restaurant.session.newOrder')}
@@ -251,7 +308,15 @@ export function SessionPanel({
             <EmptyState illustration={<EmptyOrderArt />} title={t('restaurant.session.noOrdersTitle')} body={t('restaurant.session.noOrdersBody')} />
           )}
           {list.map((order) => (
-            <OrderCard key={order.id} order={order} canManage={caps.canManageOrders} onChanged={replaceOrder} onRequestCancel={(o) => setCancelTarget(o)} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              canManage={caps.canManageOrders}
+              canEdit={caps.canEditOrders}
+              onChanged={replaceOrder}
+              onRequestCancel={(o) => setCancelTarget(o)}
+              onRequestEdit={(o) => setEditTarget(o)}
+            />
           ))}
         </div>
 
@@ -273,6 +338,24 @@ export function SessionPanel({
             toast.show(t('restaurant.builder.sentToast'));
           }}
           onCancel={() => setShowOrder(false)}
+        />
+      )}
+
+      {editTarget && (
+        <OrderEditDialog
+          order={editTarget}
+          tableCode={table.code}
+          categories={categories}
+          items={items}
+          onSaved={(saved) => {
+            replaceOrder(saved);
+            setEditTarget(null);
+            void loadOrders();
+          }}
+          onClose={() => {
+            setEditTarget(null);
+            void loadOrders();
+          }}
         />
       )}
 

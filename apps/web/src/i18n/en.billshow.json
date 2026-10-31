@@ -1,0 +1,145 @@
+{
+  "restaurant": {
+    "kitchenTimeline": {
+      "title": "Order timeline",
+      "open": "{{ticket}}: waiting {{ago}}. Show order timeline",
+      "close": "Close timeline",
+      "loading": "Loading the timeline",
+      "errorTitle": "Could not load the timeline",
+      "errorBody": "Check the connection and try again.",
+      "empty": "Nothing has been recorded for this order yet.",
+      "stale": "Could not refresh. Showing the last loaded steps.",
+      "by": "by {{actor}}",
+      "after": "{{duration}} after the step before",
+      "total": "Total time",
+      "totalSoFar": "Total so far",
+      "ago": "{{elapsed}} ago",
+      "justNow": "just now",
+      "actorSystem": "System",
+      "actorUnknown": "Not recorded",
+      "detailEdit": "Edit {{n}}",
+      "detailChanges_one": "{{count}} change",
+      "detailChanges_other": "{{count}} changes",
+      "detailItems_one": "{{count}} item",
+      "detailItems_other": "{{count}} items",
+      "detailReason": "Reason: {{reason}}",
+      "steps": {
+        "created": "Order started",
+        "items_changed": "Items changed",
+        "sent": "Sent to the kitchen",
+        "edited": "Order edited",
+        "accepted": "Accepted",
+        "preparing": "Preparing",
+        "ready": "Ready",
+        "served": "Served",
+        "cancelled": "Cancelled",
+        "item_cancelled": "Item cancelled"
+      }
+    },
+    "checkout": {
+      "changeMethod": "Change payment method",
+      "changeConfirmTitle": "Change the payment method?",
+      "changeConfirmBody": "This cancels the pending UPI request for {{amount}}. Only continue if the guest has not already paid by UPI.",
+      "changeKeep": "Keep waiting for UPI",
+      "changeYes": "Yes, change method",
+      "changing": "Cancelling the UPI request",
+      "switchedNotice": "UPI request cancelled. Choose how the guest will pay.",
+      "switchedKeptNotice": "UPI request cancelled. The reference you typed is kept in case you return to UPI.",
+      "resumedNotice": "A UPI payment of {{amount}} was already started for this bill. Enter the reference to confirm it, or change the method.",
+      "recordedNotice": "A UPI payment of {{amount}} is already recorded for this bill. Showing it instead of creating another one.",
+      "alreadyPaidBody": "This bill was already paid ({{method}}). Nothing more to collect, and nothing was charged twice.",
+      "uncertainTitle": "Not sure the last attempt was recorded",
+      "uncertainBody": "The connection dropped before we got an answer. Trying again is safe: the same attempt cannot be charged twice. You can also check the status first.",
+      "checking": "Checking",
+      "checkStatus": "Check payment status",
+      "nothingRecorded": "Nothing was recorded for this bill. You can try again or pick another method.",
+      "checkFailed": "Could not check the status right now. Try again in a moment.",
+      "cancelRaced": "The payment went through before it could be cancelled. It is recorded as paid.",
+      "cancelUnknown": "Could not confirm that the UPI request was cancelled. Check the payment status before choosing another method.",
+      "utrKept": "Reference {{utr}} from the earlier attempt is kept. Check it matches before you confirm."
+    }
+  },
+  "billShow": {
+    "title": "Bill - table {{code}}",
+    "qrTitle": "Pay by UPI - table {{code}}",
+    "billLabel": "Bill",
+    "showBill": "Show bill",
+    "showQr": "Show payment QR",
+    "back": "Back to the bill",
+    "loading": "Loading",
+    "errorTitle": "Could not load the bill",
+    "errorBody": "Check the connection and try again.",
+    "staleError": "Could not refresh. This is the last loaded bill.",
+    "noBillTitle": "No bill yet",
+    "noBillBody": "The cashier generates the bill first. Ask them to prepare it, then open this screen again.",
+    "notFinalisedTitle": "The bill is not ready yet",
+    "notFinalisedBody": "The cashier is still preparing it. It can change until it is finalised, so it is not shown to the guest yet.",
+    "gstin": "GSTIN {{gstin}}",
+    "table": "Table",
+    "reference": "Bill no.",
+    "date": "Date",
+    "itemsCaption": "Items on the bill",
+    "colItem": "Item",
+    "colQty": "Quantity",
+    "colAmount": "Amount",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "rounding": "Rounding",
+    "totalDue": "Total to pay",
+    "totalPaid": "Total paid",
+    "paidStamp": "Paid",
+    "paymentPending": "A UPI payment is being confirmed by the cashier.",
+    "upiSetup": {
+      "label": "Restaurant UPI ID",
+      "hint": "For example name@bank. Guests pay to this ID.",
+      "save": "Save UPI ID",
+      "invalid": "Enter a valid UPI ID such as name@bank.",
+      "noAccess": "Your role cannot change this setting. Ask the owner.",
+      "failed": "Could not save the UPI ID. Try again."
+    },
+    "qr": {
+      "errorTitle": "Could not load the payment QR",
+      "errorBody": "Check the connection and try again.",
+      "receivedTitle": "Payment received",
+      "receivedBody": "Thank you. The bill is settled.",
+      "unavailableTitle": "Payment QR is not available",
+      "reasons": {
+        "NOT_FINALISED": "The bill is not final yet. Ask the cashier to finalise it.",
+        "PAID": "This bill is already paid.",
+        "VOID": "This bill was voided, so there is nothing to pay.",
+        "UPI_NOT_CONFIGURED": "The restaurant's UPI ID is not set up yet, so a payment QR cannot be shown.",
+        "UPI_INVALID": "The saved UPI ID is not valid, so a payment QR cannot be shown."
+      },
+      "askManager": "Ask the owner or a manager to add the UPI ID in Configuration, under Checkout.",
+      "openConfig": "Open Configuration",
+      "amountLabel": "Amount to pay",
+      "qrLabel": "UPI payment QR code for {{amount}}",
+      "scanHint": "Scan with any UPI app. The amount is filled in for you.",
+      "payee": "Paying to",
+      "upiId": "UPI ID",
+      "reference": "Bill reference",
+      "openApp": "Pay with a UPI app on this phone",
+      "waiting": "Waiting for payment",
+      "pendingConfirm": "Payment started. Waiting for the cashier to confirm it.",
+      "staleError": "Could not refresh the payment status. Showing the last known state.",
+      "markCollected": "Mark as collected",
+      "markCollectedHint": "Opens checkout with UPI selected. Enter the guest's UTR to record the payment.",
+      "cashierConfirms": "The cashier confirms the payment once it arrives. This screen updates by itself."
+    }
+  },
+  "config": {
+    "groups": {
+      "checkout": "Checkout and payments"
+    },
+    "settings": {
+      "checkout_upi_vpa": {
+        "title": "Restaurant UPI ID",
+        "hint": "Guests pay to this UPI ID when staff show the payment QR, for example name@bank."
+      },
+      "checkout_upi_payee_name": {
+        "title": "Name shown in the UPI app",
+        "hint": "Leave empty to use the restaurant name."
+      }
+    }
+  }
+}

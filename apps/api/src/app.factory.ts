@@ -22,7 +22,13 @@ export function applyHttpDefaults(app: INestApplication): void {
   // staging; CORS headers provide the actual origin control.
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   // credentials:true so the httpOnly refresh cookie flows on the allowed origin.
-  app.enableCors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173', credentials: true });
+  // exposedHeaders: the public QR menu (ADR-035) reads Retry-After / ETag / Idempotent-Replay; only matters cross-origin (dev),
+  // production is same-origin behind Caddy.
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+    credentials: true,
+    exposedHeaders: ['Retry-After', 'ETag', 'Idempotent-Replay'],
+  });
   app.use(cookieParser());
   app.use(loggingMiddleware());
   app.useGlobalInterceptors(new SerializeInterceptor());

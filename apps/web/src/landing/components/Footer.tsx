@@ -7,8 +7,9 @@ import { NexusLockup } from './NexusMark';
 import { SectionLink } from './SectionLink';
 
 const PRODUCT = [
-  { id: 'why', label: 'Why Nexus' },
   { id: 'platform', label: 'Platform' },
+  { id: 'nexus-menu', label: 'Nexus Menu' },
+  { id: 'why', label: 'Why Nexus' },
   { id: 'how', label: 'How it works' },
   { id: 'builtfor', label: 'Built for' },
   { id: 'pricing', label: 'Pricing' },
@@ -16,7 +17,7 @@ const PRODUCT = [
   { id: 'faq', label: 'FAQ' },
 ] as const;
 
-/** Ink footer with a 1px Manhar Green top edge. */
+/** Dark footer: brand, three link columns, contact, one offer line. */
 export function Footer() {
   return (
     <footer className="lp-footer lp-on-dark" aria-labelledby="lp-footer-title">
@@ -142,12 +143,13 @@ export function Footer() {
           <p>
             &copy; {SITE.year} Manhar Creatives. Manhar Nexus is a product of Manhar Creatives.
           </p>
-          <ul className="lp-footer__legal" aria-label="Legal shortcuts">
-            {POLICY_ROUTES.slice(0, 4).map((r) => (
-              <li key={r.path}>
-                <Link to={r.path}>{r.short}</Link>
-              </li>
-            ))}
+          <ul className="lp-footer__legal" aria-label="Footer shortcuts">
+            <li>
+              <Link to="/privacy">Privacy</Link>
+            </li>
+            <li>
+              <Link to="/terms">Terms</Link>
+            </li>
             <li>
               <a href="/sitemap.xml">Sitemap</a>
             </li>

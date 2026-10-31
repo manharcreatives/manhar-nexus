@@ -167,3 +167,41 @@ export function toApiLines(cart: CartLine[]): OrderLineInput[] {
     modifiers: l.optionIds.map((modifierOptionId) => ({ modifierOptionId })),
   }));
 }
+
+// ── Line-level edits used by the order panes (builder and edit dialog) ──────────
+
+/** "Half, Extra cheese": variant and option names of a line, for the second row of a line. */
+export function lineDetail(line: Pick<CartLine, 'variantName' | 'optionNames'>): string {
+  return [line.variantName, ...line.optionNames].filter(Boolean).join(', ');
+}
+
+export function lineSubtotal(line: Pick<CartLine, 'unitPriceMinorUnits' | 'quantity'>): number {
+  return line.unitPriceMinorUnits * line.quantity;
+}
+
+/** Drops one line outright (the trash button; a stepper at 1 does the same through adjustLine). */
+export function removeLine(cart: CartLine[], key: string): CartLine[] {
+  return cart.filter((l) => l.key !== key);
+}
+
+/** Sets an exact quantity (clamped to 1..MAX_QTY). Use removeLine to delete. */
+export function setLineQuantity(cart: CartLine[], key: string, quantity: number): CartLine[] {
+  const q = Math.max(1, Math.min(MAX_QTY, Math.trunc(quantity) || 1));
+  return cart.map((l) => (l.key === key ? { ...l, quantity: q } : l));
+}
+
+/**
+ * Changes a line's note. The note is part of the line identity, so the key is recomputed; when the new key
+ * equals another line's, the two collapse into one (quantities add), exactly as if it had been added that way.
+ */
+export function setLineNote(cart: CartLine[], key: string, note: string): CartLine[] {
+  const target = cart.find((l) => l.key === key);
+  if (!target) return cart;
+  const clean = note.trim().slice(0, MAX_NOTE);
+  if (clean === target.note) return cart;
+  const next: CartLine = { ...target, note: clean, key: lineKey(target.itemId, target.variantId, target.optionIds, clean) };
+  const rest = cart.filter((l) => l.key !== key);
+  const i = rest.findIndex((l) => l.key === next.key);
+  if (i < 0) return cart.map((l) => (l.key === key ? next : l));
+  return rest.map((l, idx) => (idx === i ? { ...l, quantity: Math.min(MAX_QTY, l.quantity + next.quantity) } : l));
+}

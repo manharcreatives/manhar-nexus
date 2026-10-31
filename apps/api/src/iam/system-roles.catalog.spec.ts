@@ -41,6 +41,17 @@ describe('system role catalog', () => {
     for (const r of ['kitchen-team', 'host', 'checkout-associate', 'accountant']) expect(perms(r).has('restaurant.order.edit')).toBe(false);
   });
 
+  it('QR digital menu: managers run it, waiters answer guest orders, nobody else', () => {
+    expect(perms('location-manager').has('restaurant.qr.manage')).toBe(true);
+    expect(perms('location-manager').has('restaurant.guestorder.manage')).toBe(true);
+    expect(perms('service-team').has('restaurant.guestorder.manage')).toBe(true);
+    expect(perms('service-team').has('restaurant.qr.manage')).toBe(false);
+    for (const r of ['kitchen-team', 'host', 'checkout-associate', 'accountant']) {
+      expect(perms(r).has('restaurant.qr.manage')).toBe(false);
+      expect(perms(r).has('restaurant.guestorder.manage')).toBe(false);
+    }
+  });
+
   it('waiters can read but never advance the kitchen queue', () => {
     expect(perms('service-team').has('restaurant.kitchen.manage')).toBe(false);
   });

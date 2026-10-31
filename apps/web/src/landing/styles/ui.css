@@ -1,0 +1,206 @@
+/* Manhar Nexus landing: UI atoms on the dark surface (tags, form base, reveal, images, lockup).
+   Loaded by LandingApp right after landing.css. */
+
+/* ---- tags ------------------------------------------------------------------ */
+.lp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--lp-mint);
+  border-radius: 999px;
+  background: var(--lp-mint-wash);
+  color: var(--lp-green);
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.lp-tag--dark {
+  background: var(--lp-mint-wash);
+  border-color: var(--lp-mint);
+  color: var(--lp-green);
+}
+.lp-tag--outline {
+  background: transparent;
+  border-color: var(--lp-hair-strong);
+  color: var(--lp-fg-3);
+}
+
+/* ---- form base (W2's register.css refines) -------------------------------- */
+.lp-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--lp-fg);
+}
+.lp-input,
+.lp-select,
+.lp-textarea {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--lp-hair-strong);
+  border-radius: var(--lp-radius);
+  background: var(--lp-mist);
+  color: var(--lp-fg);
+  font: inherit;
+  color-scheme: dark;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.lp-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+.lp-input::placeholder,
+.lp-textarea::placeholder {
+  color: var(--lp-fg-3);
+  opacity: 1;
+}
+.lp-input:focus-visible,
+.lp-select:focus-visible,
+.lp-textarea:focus-visible {
+  outline: none;
+  border-color: var(--lp-green);
+  box-shadow: 0 0 0 3px rgb(29 186 60 / 0.22);
+}
+.lp-input[aria-invalid="true"],
+.lp-select[aria-invalid="true"],
+.lp-textarea[aria-invalid="true"] {
+  border-color: var(--lp-error);
+}
+.lp-field-help {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--lp-fg-3);
+}
+.lp-field-error {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--lp-error);
+}
+
+/* ---- reveal: slow, weighted ---------------------------------------------------- */
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.9s var(--lp-ease), transform 1s var(--lp-ease);
+}
+.lp-reveal--fade {
+  transform: none;
+}
+.lp-reveal--scale {
+  transform: scale(0.965);
+}
+.lp-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---- images: always blended into the paper, never a light box ------------------ */
+.lp-img {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  background: var(--lp-mist);
+}
+.lp-img--ink {
+  background: var(--lp-ink);
+}
+.lp-img picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.lp-img__el {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lp-img__el--contain {
+  object-fit: contain;
+}
+.lp-img__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  border: 1px dashed var(--lp-hair-strong);
+  text-align: center;
+}
+.lp-img__label {
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lp-fg-3);
+  overflow-wrap: anywhere;
+}
+/* Photo frame: rounded, hairline, with a paper vignette so the picture melts into the page. */
+.lp-photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--lp-radius-xl);
+  background: var(--lp-mist);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.07), var(--lp-shadow-pop);
+  isolation: isolate;
+}
+.lp-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 70px 14px var(--lp-canvas), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  pointer-events: none;
+  z-index: 2;
+}
+.lp-photo .lp-img {
+  height: 100%;
+  background: transparent;
+}
+.lp-photo .lp-img__el {
+  filter: saturate(0.92) brightness(0.9);
+}
+
+/* ---- brand lockup ---------------------------------------------------------- */
+.lp-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.lp-lockup__word {
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--lp-fg);
+  white-space: nowrap;
+}
+.lp-lockup__word b {
+  font-weight: 700;
+}
+.lp-lockup--dark .lp-lockup__word {
+  color: var(--lp-fg);
+}
+.lp-mark {
+  flex: none;
+  display: block;
+}

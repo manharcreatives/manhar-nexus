@@ -95,7 +95,11 @@ export function mediaMaxBytes(): number {
 export function mediaPublicBase(req: { protocol: string; get(name: string): string | undefined }): string {
   const fixed = process.env.MEDIA_PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
   if (fixed) return fixed;
-  return `${req.protocol}://${req.get('host') ?? 'localhost'}`;
+  const host = req.get('host') ?? 'localhost';
+  // Behind Caddy (`handle_path /api/*` strips the prefix) the API sends X-Forwarded-Prefix: /api. Only honoured when a
+  // proxy is trusted, and only as a plain path (letters, digits, `-`, `_`, `/`), so a client cannot inject a URL.
+  const prefix = Number(process.env.TRUST_PROXY ?? 0) > 0 ? (req.get('x-forwarded-prefix') ?? '').trim().replace(/\/+$/, '') : '';
+  return `${req.protocol}://${host}${/^\/[A-Za-z0-9_\-/]{0,60}$/.test(prefix) ? prefix : ''}`;
 }
 
 /** Optional web origin used to build the printable guest URL (QR_PUBLIC_BASE_URL, e.g. https://app.example.com). */

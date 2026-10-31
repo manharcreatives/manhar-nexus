@@ -11,6 +11,7 @@ import Hero from './sections/Hero';
 import HowItWorks from './sections/HowItWorks';
 import Insights from './sections/Insights';
 import Intro from './sections/Intro';
+import NexusMenu from './sections/NexusMenu';
 import Platform from './sections/Platform';
 import Preloader from './sections/Preloader';
 import Pricing from './sections/Pricing';
@@ -19,7 +20,7 @@ import Trust from './sections/Trust';
 
 /**
  * The single-page marketing site. Composition order is fixed by the plan:
- * Hero, Intro, Platform, Compare(#why), About, HowItWorks, BuiltFor, Trust, Pricing, Register, Faq, Insights, CtaBanner.
+ * Hero, Intro, Platform, NexusMenu, Compare(#why), About, HowItWorks, BuiltFor, Trust, Pricing, Register, Faq, Insights, CtaBanner.
  * (Pricing sits before Register so the chosen plan can pre-fill the form via useRegistrationIntent.)
  */
 export default function LandingPage() {
@@ -32,6 +33,7 @@ export default function LandingPage() {
         <Hero />
         <Intro />
         <Platform />
+        <NexusMenu />
         <Compare />
         <About />
         <HowItWorks />

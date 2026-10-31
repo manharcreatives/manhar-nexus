@@ -51,5 +51,7 @@ import { OrderEditService } from './order/order-edit.service';
     OrderTimelineController,
   ],
   providers: [CatalogService, DiningService, PeopleService, BookingService, SessionService, OrderService, OrderEditService, OrderTimelineService],
+  // Used by the QR digital menu (GuestMenuModule, ADR-035): same pricing/validation and audited edit path as staff orders.
+  exports: [OrderService, OrderEditService],
 })
 export class RestaurantModule {}

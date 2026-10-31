@@ -63,6 +63,8 @@ export const BUILT_IN_MODULES: ModuleManifest[] = [
       { module: 'restaurant', resource: 'kitchen', action: 'view', description: 'View kitchen queue' },
       { module: 'restaurant', resource: 'kitchen', action: 'manage', description: 'Update kitchen order status' },
       { module: 'restaurant', resource: 'bill', action: 'show', description: 'Show the customer-facing bill at the table' },
+      { module: 'restaurant', resource: 'qr', action: 'manage', description: 'Manage table QR codes, the guest menu appearance/policy and menu photos' },
+      { module: 'restaurant', resource: 'guestorder', action: 'manage', description: 'Confirm, reject or edit orders guests placed from the QR menu, and acknowledge waiter calls' },
       { module: 'restaurant', resource: 'production', action: 'view', description: 'View production areas' },
       { module: 'restaurant', resource: 'production', action: 'manage', description: 'Manage production areas' },
     ],

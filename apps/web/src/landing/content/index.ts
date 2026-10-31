@@ -12,6 +12,7 @@ export * from './intro';
 export * from './about';
 export * from './compare';
 export * from './platform';
+export * from './menu';
 export * from './how';
 export * from './builtfor';
 export * from './trust';

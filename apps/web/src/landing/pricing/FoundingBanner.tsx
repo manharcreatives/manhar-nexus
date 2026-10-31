@@ -1,6 +1,12 @@
 import { FOUNDING_OFFER } from '../content';
 import { foundingEyebrow, foundingWindowLabel, type FoundingState } from './pricingMath';
 
+/** First sentence of the offer copy: enough for the compact banner; the rest sits in the disclosure. */
+function firstSentence(text: string): string {
+  const at = text.indexOf('. ');
+  return at < 0 ? text : text.slice(0, at + 1);
+}
+
 /**
  * Founding Restaurants offer. Renders nothing once the window has closed (31 Jan 2027, 23:59 IST), and says
  * "opens" instead of "until" before it begins, so it can never advertise an offer that is not running.
@@ -15,7 +21,7 @@ export function FoundingBanner({ state }: { state: FoundingState }) {
         <h3 id="founding-title" className="lp-founding__title">
           {FOUNDING_OFFER.title}
         </h3>
-        <p className="lp-founding__body">{FOUNDING_OFFER.body}</p>
+        <p className="lp-founding__body">{firstSentence(FOUNDING_OFFER.body)}</p>
         <p className="lp-founding__window">
           <strong>{open ? 'Open now' : 'Opens soon'}</strong>
           <span aria-hidden="true"> · </span>

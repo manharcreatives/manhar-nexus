@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import '../styles/w2-base.css';
 import '../styles/pages.css';
 import { PolicyLayout } from '../components';
 import { LEGAL_NAV, LEGAL_UI, getLegalDocumentByPath, seoForPath } from '../content';
@@ -22,6 +23,12 @@ function LegalMissing({ path }: { path: string }) {
     </PolicyLayout>
   );
 }
+
+/** Shown on every policy until a lawyer has reviewed it (the owner asked for this to stay visible). */
+const DRAFT_NOTE = {
+  label: 'Draft, pending legal review',
+  text: 'This policy is a working draft. Items in [brackets] will be completed before it takes effect.',
+} as const;
 
 /**
  * A legal document from content/legal.ts: title, “Last updated”, summary, sticky in-page contents, one anchored
@@ -53,6 +60,10 @@ export default function LegalPage({ path }: LegalPageProps) {
       lede={doc.summary}
     >
       <div className="lp-legal">
+        <p className="lp-legal__draft" role="note">
+          <strong>{DRAFT_NOTE.label}</strong>
+          <span>{DRAFT_NOTE.text}</span>
+        </p>
         <Toc title={LEGAL_UI.onThisPage} items={tocItems} />
         <div className="lp-legal__body">
           {doc.intro.map((block, i) => (

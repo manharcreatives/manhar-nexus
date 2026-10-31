@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import '../styles/w2-base.css';
 import '../styles/register.css';
 import { Icon, Section } from '../components';
 import { SectionHead } from '../sectionsC/SectionHead';
@@ -8,13 +9,13 @@ import { renderHeadline } from '../sectionsC/headline';
 import { Mail, MapPin, MessageCircle, Phone, ShieldCheck } from '../sectionsC/icons';
 
 const TRUST_NOTES = [
-  'No spam. We use your details only to reply to this request and to set up your Workspace.',
-  'We never ask for a card or UPI PIN here. Payment happens later, on a secure Cashfree page.',
-  'You can ask us to delete your details at any time.',
+  'No spam. We use your details only to reply and to set up your Workspace.',
+  'No card or UPI PIN here. Payment comes later, on a secure Cashfree page.',
+  'Ask us to delete your details at any time.',
 ] as const;
 
 /**
- * Register: a dark enquiry block (Ink, 1px green top edge) holding a white form card. On phones the order is
+ * Register: a dark section (1px green top edge) holding the form on a surface card. On phones the order is
  * heading, form, then the trust notes and contact details; from 1024 px the notes sit beside the form.
  */
 export default function Register() {

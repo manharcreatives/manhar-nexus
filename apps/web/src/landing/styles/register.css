@@ -1,10 +1,11 @@
-/* Manhar Nexus landing: Register section (#register). Dark enquiry block, white form card. */
+/* Manhar Nexus landing: Register section (#register). Dark-luxury: the form sits on a surface card with
+   hairline borders; fields are sunken wells. Tokens --w2-* from styles/w2-base.css. */
 
 .lp-reg__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "intro" "form" "side";
-  gap: 2rem;
+  gap: clamp(2rem, 1.5rem + 2vw, 3rem);
 }
 .lp-reg__intro {
   grid-area: intro;
@@ -23,21 +24,22 @@
   align-content: start;
   min-width: 0;
   font-size: 0.9375rem;
+  color: var(--w2-ink-2);
 }
 @media (min-width: 1024px) {
   .lp-reg__grid {
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
     grid-template-areas: "intro form" "side form";
     grid-template-rows: auto 1fr;
-    column-gap: clamp(2.5rem, 5vw, 4.5rem);
+    column-gap: clamp(3rem, 6vw, 6rem);
     align-items: start;
   }
   .lp-reg__side {
-    margin-top: 1rem;
+    margin-top: 1.5rem;
   }
 }
 
-/* ---- side column (on Ink) ---------------------------------------------------- */
+/* ---- side column ---------------------------------------------------------------------------- */
 .lp-reg__trust {
   display: grid;
   gap: 0.9rem;
@@ -52,18 +54,24 @@
 .lp-reg__trust svg,
 .lp-reg__contact svg {
   margin-top: 0.2rem;
-  color: var(--lp-green);
+  color: var(--w2-green);
 }
 .lp-reg__privacy {
-  margin-top: -1rem;
+  margin-top: -1.1rem;
+  color: var(--w2-muted);
 }
-.lp-reg__side-title {
-  margin-bottom: 0.75rem;
-  font-size: 1.125rem;
+.lp-root .lp-reg__side-title {
+  margin-bottom: 0.9rem;
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--w2-muted);
 }
 .lp-reg__next ol {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.5rem;
   counter-reset: lp-step;
 }
 .lp-reg__next li {
@@ -76,64 +84,74 @@
   font-family: var(--lp-font-mono);
   font-weight: 500;
   font-size: 0.8125rem;
-  color: var(--lp-green);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--w2-green);
 }
 .lp-reg__contact ul {
   display: grid;
   gap: 0.6rem;
 }
+.lp-reg__side > * + * {
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--w2-line);
+}
+.lp-reg__side > .lp-reg__privacy {
+  padding-top: 0;
+  border-top: 0;
+}
 
-/* ---- the white card ------------------------------------------------------------- */
-/* Inside the Ink section everything defaults to light-on-dark; the card resets it to dark-on-white. */
+/* ---- the form card: a dark surface with a hairline brand edge -------------------------------- */
 .lp-root .lp-reg-card {
-  padding: clamp(1.25rem, 0.8rem + 2vw, 2.25rem);
-  border-radius: var(--lp-radius-xl);
-  background: var(--lp-white);
-  color: var(--lp-body);
-  color-scheme: light;
-  box-shadow: 0 24px 60px -24px rgb(11 15 14 / 0.55);
+  padding: clamp(1.5rem, 1rem + 2.2vw, 2.75rem);
+  border: 1px solid var(--w2-line);
+  border-radius: 1.75rem;
+  background: var(--w2-surface);
+  color: var(--w2-ink-2);
+  color-scheme: dark;
+  box-shadow: var(--w2-shadow-lift);
 }
 .lp-root .lp-reg-card :focus-visible {
-  outline-color: var(--lp-forest);
+  outline-color: var(--w2-green);
 }
 .lp-root .lp-reg-card ::selection {
-  background: var(--lp-mint);
-  color: var(--lp-ink);
+  background: rgb(29 186 60 / 0.35);
+  color: var(--w2-ink);
 }
-.lp-root .lp-reg-card h3,
-.lp-root .lp-reg-card h4 {
-  color: var(--lp-text);
+.lp-root .lp-reg-card :is(h3, h4) {
+  color: var(--w2-ink);
 }
 .lp-root .lp-reg-card .lp-link {
-  color: var(--lp-forest);
+  color: var(--w2-green);
 }
 .lp-root .lp-reg-card .lp-link:hover {
-  color: var(--lp-deep);
+  color: var(--w2-green-hi);
+}
+.lp-root .lp-reg-card .lp-btn--primary {
+  background: linear-gradient(135deg, #1dba3c, #35d445);
+  color: var(--w2-on-green);
 }
 .lp-root .lp-reg-card .lp-btn--secondary {
-  border-color: var(--lp-ink);
-  color: var(--lp-ink);
+  border-color: var(--w2-line-2);
+  background: transparent;
+  color: var(--w2-ink);
 }
 .lp-root .lp-reg-card .lp-btn--secondary:hover {
-  background: var(--lp-mint-wash);
-  border-color: var(--lp-ink);
+  border-color: var(--w2-green);
+  background: var(--w2-green-wash);
 }
 .lp-root .lp-reg-card .lp-btn--ghost {
-  color: var(--lp-forest);
-}
-.lp-root .lp-reg-card .lp-btn--ghost:hover {
-  color: var(--lp-deep);
+  color: var(--w2-green);
 }
 
 .lp-reg-form__note {
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: var(--lp-muted);
+  margin-bottom: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--w2-muted);
 }
 .lp-reg-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1rem 1.25rem;
+  gap: 1.1rem 1.25rem;
 }
 @media (min-width: 640px) {
   .lp-reg-grid {
@@ -144,23 +162,69 @@
   min-width: 0;
 }
 .lp-field--wide {
-  margin-top: 1rem;
+  margin-top: 1.1rem;
+}
+.lp-root .lp-reg-card .lp-label {
+  margin-bottom: 0.45rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+  color: var(--w2-ink);
+}
+.lp-root .lp-reg-card :is(.lp-input, .lp-select, .lp-textarea) {
+  border: 1px solid var(--w2-line);
+  border-radius: 0.875rem;
+  background: var(--w2-sunken);
+  color: var(--w2-ink);
+  color-scheme: dark;
+  transition: border-color 400ms var(--w2-ease), box-shadow 400ms var(--w2-ease), background-color 400ms var(--w2-ease);
+}
+.lp-root .lp-reg-card :is(.lp-input, .lp-textarea)::placeholder {
+  color: var(--w2-muted);
+  opacity: 0.8;
+}
+.lp-root .lp-reg-card :is(.lp-input, .lp-select, .lp-textarea):hover {
+  border-color: var(--w2-line-2);
+}
+.lp-root .lp-reg-card :is(.lp-input, .lp-select, .lp-textarea):focus-visible {
+  outline: none;
+  border-color: var(--w2-green);
+  background: var(--w2-surface);
+  box-shadow: 0 0 0 3px rgb(29 186 60 / 0.2);
+}
+.lp-root .lp-reg-card :is(.lp-input, .lp-select, .lp-textarea)[aria-invalid="true"] {
+  border-color: var(--w2-error);
+}
+.lp-root .lp-reg-card .lp-select option {
+  background: var(--w2-surface);
+  color: var(--w2-ink);
+}
+.lp-root .lp-reg-card .lp-field-help {
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--w2-muted);
+}
+.lp-root .lp-reg-card .lp-field-error {
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--w2-error);
 }
 .lp-field__req {
-  color: var(--lp-error);
+  color: var(--w2-error);
 }
 .lp-reg-linkbtn {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--lp-forest);
+  color: var(--w2-green);
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 0.2em;
   cursor: pointer;
 }
 .lp-reg-linkbtn:hover {
-  color: var(--lp-deep);
+  color: var(--w2-green-hi);
 }
 
 /* honeypot: out of sight and out of the tab order for real visitors */
@@ -179,32 +243,32 @@
   gap: 0.75rem;
   align-items: start;
   min-height: 2.75rem;
-  margin-top: 1rem;
+  margin-top: 1.1rem;
   font-size: 0.9375rem;
 }
 .lp-check input {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.4rem;
+  height: 1.4rem;
   margin: 0.1rem 0 0;
-  accent-color: var(--lp-forest);
+  accent-color: var(--w2-green);
   cursor: pointer;
 }
 .lp-check label {
   cursor: pointer;
-  color: var(--lp-body);
+  color: var(--w2-ink-2);
 }
 
 .lp-reg-summary {
   margin-bottom: 1.25rem;
-  padding: 0.9rem 1.1rem;
-  border: 1px solid var(--lp-error);
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--w2-error);
   border-left-width: 4px;
-  border-radius: var(--lp-radius);
-  background: var(--lp-white);
-  color: var(--lp-ink);
+  border-radius: 0.875rem;
+  background: var(--w2-error-wash);
+  color: var(--w2-ink);
 }
 .lp-reg-summary:focus {
-  outline: 2px solid var(--lp-error);
+  outline: 2px solid var(--w2-error);
   outline-offset: 2px;
 }
 .lp-reg-summary__title {
@@ -218,7 +282,7 @@
   list-style: disc;
 }
 .lp-reg-summary a {
-  color: var(--lp-error);
+  color: var(--w2-error);
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
@@ -228,14 +292,15 @@
   gap: 0.9rem;
   margin-top: 1.25rem;
   padding: 1rem 1.1rem;
-  border: 1px solid var(--lp-line);
-  border-radius: var(--lp-radius);
-  background: var(--lp-grey);
-  color: var(--lp-ink);
+  border: 1px solid var(--w2-line-2);
+  border-radius: 0.875rem;
+  background: var(--w2-sunken);
+  color: var(--w2-ink);
 }
 .lp-fallback {
   display: grid;
   gap: 0.5rem;
+  border-radius: 1rem;
 }
 .lp-fallback__line {
   font-weight: 700;
@@ -250,7 +315,7 @@
 }
 
 .lp-reg-submit {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
 }
 .lp-reg-submit[disabled] {
   opacity: 0.7;
@@ -259,11 +324,11 @@
 .lp-reg-form__fine {
   margin-top: 1rem;
   font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--lp-muted);
+  line-height: 1.55;
+  color: var(--w2-muted);
 }
 
-/* ---- confirmation ticket ---------------------------------------------------------- */
+/* ---- confirmation ticket (stub with a dashed perforation) -------------------------------------- */
 .lp-ticket {
   display: grid;
   gap: 1.5rem;
@@ -277,15 +342,15 @@
 .lp-stamp {
   justify-self: start;
   padding: 0.3rem 0.85rem;
-  border: 3px double var(--lp-forest);
+  border: 3px double var(--w2-green);
   border-radius: 0.4rem;
-  color: var(--lp-forest);
+  color: var(--w2-green);
   font-family: var(--lp-font-mono);
   font-weight: 500;
   font-size: 1rem;
   letter-spacing: 0.2em;
   transform: rotate(-6deg);
-  animation: lp-stamp-in 0.55s var(--lp-ease-stamp) both;
+  animation: lp-stamp-in 900ms var(--w2-ease) both;
 }
 @keyframes lp-stamp-in {
   from {
@@ -297,7 +362,7 @@
     transform: scale(1) rotate(-6deg);
   }
 }
-.lp-ticket__title {
+.lp-root .lp-ticket__title {
   font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
 }
 .lp-ticket__title:focus {
@@ -309,9 +374,9 @@
 .lp-ticket__lead strong {
   font-family: var(--lp-font-mono);
   font-weight: 500;
-  color: var(--lp-text);
+  color: var(--w2-ink);
 }
-.lp-ticket__next {
+.lp-root .lp-ticket__next {
   margin-top: 0.5rem;
   font-size: 1rem;
 }
@@ -330,7 +395,7 @@
   font-family: var(--lp-font-mono);
   font-weight: 500;
   font-size: 0.8125rem;
-  color: var(--lp-forest);
+  color: var(--w2-green);
   padding-top: 0.15rem;
 }
 .lp-ticket__stub {
@@ -339,7 +404,7 @@
   align-content: start;
   justify-items: center;
   padding-top: 1.25rem;
-  border-top: 2px dashed var(--lp-line);
+  border-top: 2px dashed var(--w2-line-2);
   text-align: center;
 }
 .lp-ticket__label {
@@ -348,21 +413,22 @@
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--lp-muted);
+  color: var(--w2-muted);
 }
 .lp-ticket__ref {
   font-family: var(--lp-font-mono);
   font-weight: 500;
   font-size: 1.5rem;
-  letter-spacing: 0.06em;
-  color: var(--lp-text);
+  letter-spacing: 0.08em;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--w2-ink);
   overflow-wrap: anywhere;
   user-select: all;
 }
 .lp-ticket__copied {
   min-height: 1.25rem;
   font-size: 0.8125rem;
-  color: var(--lp-deep);
+  color: var(--w2-green);
 }
 .lp-ticket__actions {
   display: flex;
@@ -375,7 +441,7 @@
 }
 .lp-ticket__hint {
   font-size: 0.875rem;
-  color: var(--lp-muted);
+  color: var(--w2-muted);
 }
 @media (min-width: 720px) {
   .lp-ticket {
@@ -386,7 +452,7 @@
     padding-top: 0;
     padding-left: 1.5rem;
     border-top: 0;
-    border-left: 2px dashed var(--lp-line);
+    border-left: 2px dashed var(--w2-line-2);
   }
   .lp-ticket__actions,
   .lp-ticket__hint {
@@ -398,72 +464,7 @@
   .lp-stamp {
     animation: none;
   }
-}
-
-/* ─────────── Luxury layer ─────────── */
-.lp-root #register.lp-section {
-  padding-block: clamp(6rem, 3.5rem + 8vw, 10rem);
-}
-.lp-root #register .lp-section-header,
-.lp-reg__intro {
-  max-width: 44rem;
-}
-.lp-root #register :is(h2, h3) {
-  text-wrap: balance;
-}
-.lp-root #register .lp-eyebrow {
-  letter-spacing: 0.12em;
-}
-.lp-reg__grid {
-  gap: clamp(2.5rem, 1.5rem + 4vw, 5rem);
-}
-.lp-root .lp-reg-card {
-  padding: clamp(1.75rem, 1.2rem + 2.2vw, 3rem);
-  border: 1px solid rgb(255 255 255 / 0.08);
-  border-radius: var(--lp-radius-xl);
-  box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 40px 80px -40px rgb(11 15 14 / 0.5);
-}
-.lp-field {
-  gap: 0.5rem;
-}
-.lp-field label {
-  letter-spacing: 0.01em;
-}
-.lp-field :is(input, select, textarea) {
-  border-radius: var(--lp-radius);
-  transition:
-    border-color 400ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.lp-reg__side {
-  padding-top: 0.5rem;
-}
-.lp-reg__trust > * + *,
-.lp-reg__contact > * + * {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--lp-night-line);
-}
-.lp-ticket {
-  border-radius: var(--lp-radius-xl);
-  box-shadow: 0 1px 0 rgb(11 15 14 / 0.04), 0 24px 48px -28px rgb(11 15 14 / 0.18);
-}
-.lp-ticket__ref {
-  font-variant-numeric: lining-nums tabular-nums;
-  letter-spacing: 0.08em;
-}
-.lp-ticket__stub {
-  border-left: 1px dashed var(--lp-line);
-}
-.lp-stamp {
-  animation-duration: 900ms;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-.lp-fallback {
-  border-radius: var(--lp-radius-lg);
-}
-@media (prefers-reduced-motion: reduce) {
-  .lp-field :is(input, select, textarea) {
+  .lp-root .lp-reg-card :is(.lp-input, .lp-select, .lp-textarea) {
     transition: none;
   }
 }

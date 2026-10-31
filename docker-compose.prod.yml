@@ -65,6 +65,11 @@ services:
       PORT: "3000"
       # Exactly one proxy (Caddy) in front of the API.
       TRUST_PROXY: "1"
+      # Menu pictures uploaded from the staff app (QR digital menu, ADR-035).
+      # Must be a persistent volume: without MEDIA_DIR uploads answer 503.
+      MEDIA_DIR: /data/media
+    volumes:
+      - media:/data/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -114,5 +119,6 @@ networks:
 
 volumes:
   pgdata:
+  media:
   caddy_data:
   caddy_config:

@@ -1,0 +1,144 @@
+/* ==========================================================================
+   Manhar Nexus landing: W2 shared layer (dark-luxury). Used by Pricing, FAQ, Insights, Register, CTA and the
+   legal / article pages. Tokens are literal values of the software palette (apps/web/src/styles.css, ADR-031)
+   under their own `--w2-*` names, so this file never depends on how the global `--lp-*` tokens are themed.
+   Rules: only the green #1DBA3C family as accent; allowed gradients are #1DBA3C -> #35D445 (hairline borders
+   and buttons) and #0B0F0E -> #121A16; no gold; no pure black.
+   ========================================================================== */
+
+.lp-root {
+  --w2-paper: #070a09;
+  --w2-surface: #0f1513;
+  --w2-sunken: #161e1b;
+  --w2-line: #222d29;
+  --w2-line-2: #2f3d37;
+  --w2-ink: #f3f7f5;
+  --w2-ink-2: #d5ddd9;
+  --w2-muted: #94a09b;
+  --w2-green: #1dba3c;
+  --w2-green-hi: #35d445;
+  --w2-on-green: #0b0f0e;
+  --w2-green-wash: rgb(29 186 60 / 0.1);
+  --w2-green-line: rgb(29 186 60 / 0.34);
+  --w2-error: #f87171;
+  --w2-error-wash: #2d1415;
+  --w2-edge: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --w2-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 28px 56px -28px rgb(1 3 2 / 0.85);
+  --w2-shadow-lift: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 40px 72px -28px rgb(1 3 2 / 0.95);
+  --w2-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --w2-section-y: clamp(5rem, 3rem + 6vw, 8.5rem);
+}
+
+/* ---- section shell: the global landing.css owns padding, tone backgrounds and the section header ----- */
+.lp-root :is(#pricing, #faq, #insights, #register, #cta) :is(h2, h3, h4) {
+  color: var(--w2-ink);
+}
+.lp-root :is(#pricing, #faq, #insights, #register, #cta) .lp-accent {
+  color: var(--w2-green);
+}
+
+/* ---- surfaces ---------------------------------------------------------------------------- */
+.lp-root .w2-card {
+  border: 1px solid var(--w2-line);
+  border-radius: 1.5rem;
+  background: var(--w2-surface);
+  box-shadow: var(--w2-shadow);
+}
+
+/* ---- hairline gradient border (the one allowed brand gradient) ---------------------------- */
+.lp-root .w2-glow-edge {
+  position: relative;
+}
+.lp-root .w2-glow-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(160deg, #1dba3c, #35d445);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box exclude, linear-gradient(#fff 0 0);
+  pointer-events: none;
+}
+
+/* ---- disclosure: native <details>, quiet and tidy ---------------------------------------- */
+.lp-root .w2-disc {
+  border-top: 1px solid var(--w2-line);
+}
+.lp-root .w2-disc:last-of-type {
+  border-bottom: 1px solid var(--w2-line);
+}
+.lp-root .w2-disc > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  min-height: 3.75rem;
+  padding: 1rem 0.25rem;
+  list-style: none;
+  cursor: pointer;
+}
+.lp-root .w2-disc > summary::-webkit-details-marker {
+  display: none;
+}
+.lp-root .w2-disc__title {
+  font-family: var(--lp-font-display);
+  font-weight: 500;
+  font-size: clamp(1.125rem, 1.05rem + 0.4vw, 1.375rem);
+  letter-spacing: -0.015em;
+  color: var(--w2-ink);
+}
+.lp-root .w2-disc__hint {
+  grid-column: 1;
+  font-size: 0.9375rem;
+  color: var(--w2-muted);
+}
+.lp-root .w2-disc__chev {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--w2-line-2);
+  border-radius: 999px;
+  transition: border-color 500ms var(--w2-ease), background-color 500ms var(--w2-ease);
+}
+.lp-root .w2-disc__chev::before,
+.lp-root .w2-disc__chev::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.7rem;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--w2-ink);
+  transform: translate(-50%, -50%);
+  transition: transform 500ms var(--w2-ease);
+}
+.lp-root .w2-disc__chev::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.lp-root .w2-disc[open] > summary .w2-disc__chev::after {
+  transform: translate(-50%, -50%) rotate(0deg);
+}
+.lp-root .w2-disc > summary:hover .w2-disc__chev {
+  border-color: var(--w2-green);
+}
+.lp-root .w2-disc > summary:focus-visible {
+  outline: 2px solid var(--w2-green);
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+.lp-root .w2-disc__body {
+  padding: 0.5rem 0.25rem clamp(1.75rem, 1.4rem + 1.5vw, 2.75rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-root .w2-disc__chev,
+  .lp-root .w2-disc__chev::before,
+  .lp-root .w2-disc__chev::after {
+    transition: none;
+  }
+}

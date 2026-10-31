@@ -509,3 +509,10 @@ export function getPost(slug: string): Post | undefined {
 export function relatedPosts(slug: string, count = 2): readonly Post[] {
   return POSTS.filter((post) => post.slug !== slug).slice(0, count);
 }
+
+/** The three articles shown as cards on the home page; the rest sit behind “More articles”. */
+export const INSIGHTS_FEATURED_SLUGS: readonly string[] = [
+  'hidden-cost-of-order-mistakes',
+  'qr-ordering-without-losing-the-human-touch',
+  'seven-numbers-restaurant-owners-read-nightly',
+];

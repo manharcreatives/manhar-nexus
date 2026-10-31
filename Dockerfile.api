@@ -80,8 +80,11 @@ COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
 WORKDIR /app/apps/api
+# Menu pictures (QR digital menu, ADR-035) are written here. A named volume mounted
+# on /data/media inherits this ownership on first use.
+RUN mkdir -p /data/media && chown node:node /data/media
 # `node` (uid 1000) ships with the official image; app files stay root-owned
-# and read-only to the process.
+# and read-only to the process (only /data/media is writable).
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \

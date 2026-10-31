@@ -79,6 +79,9 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'restaurant.booking.view',
       'restaurant.booking.manage',
       'restaurant.bill.show',
+      // QR digital menu (ADR-035): QR codes + photos + policy, and the guest-order inbox
+      'restaurant.qr.manage',
+      'restaurant.guestorder.manage',
       // Checkout (module-manifest keys)
       'checkout.invoice.view',
       'checkout.invoice.create',
@@ -143,6 +146,8 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'restaurant.order.view',
       'restaurant.order.manage',
       'restaurant.order.edit',
+      // QR digital menu: waiters confirm / reject / edit guest orders and acknowledge waiter calls.
+      'restaurant.guestorder.manage',
       // Read-only kitchen queue: waiters see when their tickets are ready.
       'restaurant.kitchen.view',
       // Take the generated bill and the payment QR to the table (cannot generate bills or record payments).

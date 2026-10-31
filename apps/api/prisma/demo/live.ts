@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import type { PrismaService } from '../../src/prisma/prisma.service';
 import { AuditService } from '../../src/core/audit/audit.service';
 import { NumberingService } from '../../src/core/numbering/numbering.service';
+import { RealtimeBus } from '../../src/realtime/realtime.bus';
 import { SessionService } from '../../src/restaurant/session/session.service';
 import { OrderService } from '../../src/restaurant/order/order.service';
 import { CostsService } from '../../src/costs/costs.service';
@@ -35,7 +36,8 @@ export function buildServices(db: PrismaService): DemoServices {
   return {
     audit,
     numbering,
-    sessions: new SessionService(db, audit),
+    // The bus has no subscribers in a one-shot script; it only has to exist (SessionService publishes to it, ADR-032).
+    sessions: new SessionService(db, audit, new RealtimeBus()),
     orders: new OrderService(db, audit, numbering),
     costs: new CostsService(db, audit),
     invoices: new InvoiceService(db, audit, numbering),

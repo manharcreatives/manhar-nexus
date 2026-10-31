@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import '../styles/w2-base.css';
 import '../styles/pricing.css';
 import '../styles/pricing-lux.css';
 import { Reveal, Section, SectionButton } from '../components';
@@ -7,17 +8,19 @@ import { PLANS, PRICING, type Plan } from '../content';
 import { useRegistrationIntent } from '../hooks/useRegistrationIntent';
 import { BillingToggle } from '../pricing/BillingToggle';
 import { CompareTable } from '../pricing/CompareTable';
+import { Disclosure } from '../pricing/Disclosure';
+import { EnquiryCard } from '../pricing/EnquiryCard';
 import { FoundingBanner } from '../pricing/FoundingBanner';
-import { PaymentFlow, BillingFaq } from '../pricing/PaymentFlow';
+import { BillingFaq, PaymentFlow, PaymentStrip } from '../pricing/PaymentFlow';
 import { PlanCard } from '../pricing/PlanCard';
 import { AddOnsTable, IncludedList, OnboardingTable, TryBeforePaying } from '../pricing/PricingExtras';
 import { foundingState } from '../pricing/pricingMath';
 import { renderHeadline } from '../sectionsC/headline';
 
 /**
- * Pricing: Monthly/Yearly radiogroup, GST switch, three priced plans plus the Many Doors enquiry card,
- * the Founding Restaurants banner (time-aware), a comparison table, fees and add-ons, and an honest
- * explanation of how payment works. Choosing a plan writes the visitor's intent (plan + cycle) for the form.
+ * Pricing: Monthly/Yearly radiogroup, GST switch, three priced plan cards (the middle one lifted), the Many Doors
+ * enquiry card, a slim Founding Restaurants banner (time-aware), and three quiet disclosures (compare plans,
+ * setup and add-ons, trying and paying). Choosing a plan writes the visitor's intent (plan + cycle) for the form.
  */
 export default function Pricing() {
   const { cycle, setCycle, choosePlan, setBegin } = useRegistrationIntent();
@@ -26,6 +29,8 @@ export default function Pricing() {
   const state = foundingState(now);
 
   const choose = (plan: Plan): void => choosePlan(plan.key, cycle);
+  const priced = PLANS.filter((p) => !p.enquiryOnly);
+  const enquiry = PLANS.find((p) => p.enquiryOnly);
 
   return (
     <Section id="pricing" tone="canvas" labelledBy="pricing-title" className="lp-pricing">
@@ -51,12 +56,20 @@ export default function Pricing() {
       </div>
 
       <div className="lp-plans">
-        {PLANS.map((plan, i) => (
-          <Reveal key={plan.key} delay={i * 70} className="lp-plans__item">
+        {priced.map((plan, i) => (
+          <Reveal key={plan.key} delay={i * 80} className="lp-plans__item">
             <PlanCard plan={plan} cycle={cycle} inclusive={inclusive} state={state} onChoose={choose} />
           </Reveal>
         ))}
       </div>
+
+      {enquiry ? (
+        <Reveal delay={120} className="lp-plans__wide">
+          <EnquiryCard plan={enquiry} onChoose={choose} />
+        </Reveal>
+      ) : null}
+
+      <PaymentStrip />
 
       <p className="lp-pricing__under">
         <span>{PRICING.underGrid.lead}</span>{' '}
@@ -64,27 +77,30 @@ export default function Pricing() {
           {PRICING.underGrid.label}
         </SectionButton>
       </p>
+
+      <div className="lp-pricing__discs">
+        <Disclosure id="compare-plans" title="Compare plans" hint="Every feature, side by side.">
+          <IncludedList />
+          <div className="lp-pricing__gap">
+            <CompareTable title="Plan comparison" />
+          </div>
+        </Disclosure>
+        <Disclosure id="setup-addons" title="Setup and add-ons" hint="One-time onboarding and optional extras. All prices exclude GST.">
+          <div className="lp-pricing__two">
+            <OnboardingTable state={state} />
+            <AddOnsTable />
+          </div>
+        </Disclosure>
+        <Disclosure id="trial-payment" title="Trying it, paying, and billing" hint="Honest ways to start, and how payment works.">
+          <TryBeforePaying />
+          <div className="lp-pricing__two lp-pricing__gap">
+            <PaymentFlow />
+            <BillingFaq />
+          </div>
+        </Disclosure>
+      </div>
+
       <p className="lp-pricing__footnote">{PRICING.footnote}</p>
-
-      <div className="lp-pricing__block">
-        <h3 className="lp-extra__title">Compare the plans</h3>
-        <CompareTable title="Plan comparison" />
-      </div>
-
-      <div className="lp-pricing__block lp-pricing__two">
-        <IncludedList />
-        <TryBeforePaying />
-      </div>
-
-      <div className="lp-pricing__block lp-pricing__two">
-        <OnboardingTable state={state} />
-        <AddOnsTable />
-      </div>
-
-      <div className="lp-pricing__block lp-pricing__two">
-        <PaymentFlow />
-        <BillingFaq />
-      </div>
     </Section>
   );
 }

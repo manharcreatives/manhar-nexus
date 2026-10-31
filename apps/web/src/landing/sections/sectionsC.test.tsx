@@ -8,12 +8,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   FAILURE_MESSAGES,
   FAQS,
+  FAQ_FEATURED_IDS,
+  INSIGHTS_FEATURED_SLUGS,
   LEGAL_DOCUMENTS,
   LEGAL_UI,
   POSTS,
+  QR_MENU_LIVE,
+  QR_MENU_NAME,
   TERMS,
   faqPageJsonLd,
   getLegalDocumentByPath,
+  getPost,
   type LegalBlock,
 } from '../content';
 import { getRegistrationIntent, resetRegistrationIntent } from '../hooks/useRegistrationIntent';
@@ -40,6 +45,11 @@ function at(iso: string): void {
 
 function inRouter(ui: React.ReactElement, path = '/') {
   return render(<MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>);
+}
+
+/** Pricing keeps comparison, fees and payment details inside native <details>; open them so role queries see them. */
+function openDisclosures(root: ParentNode = document): void {
+  root.querySelectorAll('details').forEach((d) => d.setAttribute('open', ''));
 }
 
 beforeEach(() => {
@@ -195,9 +205,52 @@ describe('Pricing', () => {
     expect(container.textContent).not.toMatch(/most chosen|most popular|trusted by|customers love/i);
   });
 
+  it('lifts the middle plan with a brand-gradient edge and gives every plan at most five bullets', () => {
+    at(CLOSED);
+    const { container } = inRouter(<Pricing />);
+    const cards = Array.from(container.querySelectorAll<HTMLElement>('[data-plan]'));
+    const featured = cards.filter((c) => c.classList.contains('lp-plan--featured'));
+    expect(featured.map((c) => c.getAttribute('data-plan'))).toEqual(['floor']);
+    expect(featured[0]?.classList.contains('w2-glow-edge')).toBe(true);
+    // the featured card is the second of the three priced cards (the middle one)
+    expect(cards.slice(0, 3).indexOf(featured[0] as HTMLElement)).toBe(1);
+    for (const c of cards) expect(c.querySelectorAll('.lp-plan__features li').length).toBeLessThanOrEqual(5);
+  });
+
+  it('puts Many Doors in a wide enquiry card, outside the priced grid, with one call to action', () => {
+    at(CLOSED);
+    const { container } = inRouter(<Pricing />);
+    const grid = container.querySelector('.lp-plans') as HTMLElement;
+    expect(grid.querySelector('[data-plan="many-doors"]')).toBeNull();
+    const enquiry = container.querySelector('.lp-plans__wide [data-plan="many-doors"]') as HTMLElement;
+    expect(enquiry).not.toBeNull();
+    expect(enquiry.querySelectorAll('a.lp-btn')).toHaveLength(1);
+  });
+
+  it('keeps compare plans, fees and payment details in three closed disclosures', () => {
+    at(CLOSED);
+    const { container } = inRouter(<Pricing />);
+    const discs = Array.from(container.querySelectorAll<HTMLDetailsElement>('.lp-pricing__discs > details'));
+    expect(discs.map((d) => d.querySelector('summary .w2-disc__title')?.textContent)).toEqual([
+      'Compare plans',
+      'Setup and add-ons',
+      'Trying it, paying, and billing',
+    ]);
+    expect(discs.every((d) => !d.open)).toBe(true);
+  });
+
+  it('mentions Nexus Menu as included in every plan when the flag is on', () => {
+    at(CLOSED);
+    const { container } = inRouter(<Pricing />);
+    expect(QR_MENU_LIVE).toBe(true);
+    expect(card(container, 'counter').textContent).toContain(`${QR_MENU_NAME}: QR menu and table ordering`);
+    expect(container.textContent).toContain(`${QR_MENU_NAME}: QR menu and table ordering, in every plan`);
+  });
+
   it('has a real comparison table with caption, column headers, row headers and row groups', () => {
     at(CLOSED);
     inRouter(<Pricing />);
+    openDisclosures();
     const table = screen.getByRole('table', { name: 'Plan comparison' });
     expect(within(table).getAllByRole('columnheader')).toHaveLength(5);
     expect(within(table).getAllByRole('rowheader').length).toBeGreaterThan(15);
@@ -213,13 +266,14 @@ describe('Pricing', () => {
   it('labels roadmap items as Coming soon and does not sell them', () => {
     at(CLOSED);
     inRouter(<Pricing />);
-    expect(screen.getAllByText('Coming soon').length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText('Coming soon').length).toBeGreaterThanOrEqual(4);
     expect(screen.getByText(/Printer & kitchen-ticket setup/)).toBeTruthy();
   });
 
   it('lists onboarding fees and add-ons as tables', () => {
     at(CLOSED);
     inRouter(<Pricing />);
+    openDisclosures();
     expect(screen.getByRole('table', { name: /Onboarding \(one-time\), prices exclude GST/ })).toBeTruthy();
     expect(screen.getByRole('table', { name: /Add-ons, prices exclude GST/ })).toBeTruthy();
     expect(screen.getByText('₹3,499')).toBeTruthy();
@@ -228,6 +282,7 @@ describe('Pricing', () => {
   it('explains how payment works honestly and marks the Cashfree integration point', () => {
     at(CLOSED);
     const { container } = inRouter(<Pricing />);
+    openDisclosures();
     expect(screen.getByRole('heading', { level: 3, name: 'How payment works' })).toBeTruthy();
     const pay = container.querySelector('[data-integration="cashfree-subscription"]');
     expect(pay).not.toBeNull();
@@ -280,13 +335,28 @@ describe('Register section', () => {
 
 describe('Faq', () => {
   const buttons = (container: HTMLElement): HTMLButtonElement[] => Array.from(container.querySelectorAll<HTMLButtonElement>('button.lp-acc__btn'));
+  const moreBtn = (): HTMLButtonElement => screen.getByRole('button', { name: /^(More questions|Show fewer questions)/ });
 
-  it('keeps the contract: id, aria-labelledby and one h2; all questions render', () => {
+  it('keeps the contract and shows only the five featured questions, in order', () => {
     const { container } = inRouter(<Faq />);
     expect(container.querySelector('section#faq')?.getAttribute('aria-labelledby')).toBe('faq-title');
     expect(container.querySelectorAll('h2')).toHaveLength(1);
+    expect(FAQ_FEATURED_IDS).toHaveLength(5);
+    expect(buttons(container).map((b) => b.id)).toEqual(FAQ_FEATURED_IDS.map((id) => `faq-q-${id}`));
+  });
+
+  it('reveals the remaining questions behind “More questions” and hides them again', () => {
+    const { container } = inRouter(<Faq />);
+    const rest = FAQS.length - FAQ_FEATURED_IDS.length;
+    const more = moreBtn();
+    expect(more.textContent).toContain(`(${rest})`);
+    expect(more.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(more);
     expect(buttons(container)).toHaveLength(FAQS.length);
-    expect(screen.getByRole('status').textContent).toBe(`Showing all ${FAQS.length} questions`);
+    expect(moreBtn().getAttribute('aria-expanded')).toBe('true');
+    expect(moreBtn().textContent).toBe('Show fewer questions');
+    fireEvent.click(moreBtn());
+    expect(buttons(container)).toHaveLength(FAQ_FEATURED_IDS.length);
   });
 
   it('accordion buttons expose aria-expanded / aria-controls and toggle (several can be open)', () => {
@@ -320,43 +390,16 @@ describe('Faq', () => {
     expect(document.activeElement).toBe(all[all.length - 1]);
   });
 
-  it('filters as you type, announces the count and handles no matches', () => {
-    const { container } = inRouter(<Faq />);
-    const box = screen.getByRole('searchbox', { name: /Search the questions/ });
-    fireEvent.change(box, { target: { value: 'refund' } });
-    const expected = filterFaqs(FAQS, 'refund', 'all');
-    expect(expected.length).toBeGreaterThan(0);
-    expect(expected.length).toBeLessThan(FAQS.length);
-    expect(buttons(container)).toHaveLength(expected.length);
-    expect(screen.getByRole('status').textContent).toBe(`Showing ${expected.length} of ${FAQS.length} questions`);
-    fireEvent.change(box, { target: { value: 'zzzz-nothing' } });
-    expect(buttons(container)).toHaveLength(0);
-    expect(screen.getByText(/No question matches/)).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toBe(`Showing 0 of ${FAQS.length} questions`);
-    fireEvent.click(screen.getByRole('button', { name: 'Clear search and filter' }));
-    expect(buttons(container)).toHaveLength(FAQS.length);
-  });
-
-  it('filters by topic with pressed-state chips', () => {
-    const { container } = inRouter(<Faq />);
-    const billing = screen.getByRole('button', { name: /^Billing/ });
-    expect(billing.getAttribute('aria-pressed')).toBe('false');
-    fireEvent.click(billing);
-    expect(billing.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: /^All/ }).getAttribute('aria-pressed')).toBe('false');
-    expect(buttons(container)).toHaveLength(topicCounts().billing);
-    expect(topicCounts().billing).toBe(5);
-  });
-
-  it('opens the question named by #faq-<id> and scrolls to it', async () => {
+  it('opens the question named by #faq-<id> (also one behind “More”) and scrolls to it', async () => {
     window.history.pushState({}, '', '/#faq-gst');
     const scroll = vi.fn();
     Element.prototype.scrollIntoView = scroll;
     const { container } = inRouter(<Faq />);
+    expect(FAQ_FEATURED_IDS).not.toContain('gst');
     const gst = container.querySelector<HTMLButtonElement>('#faq-q-gst');
     expect(gst?.getAttribute('aria-expanded')).toBe('true');
+    expect(moreBtn().getAttribute('aria-expanded')).toBe('true');
     await waitFor(() => expect(scroll).toHaveBeenCalled());
-    expect(container.querySelector('#faq-gst')).not.toBeNull();
     // a later hash change opens another one
     act(() => {
       window.history.pushState({}, '', '/#faq-refund-policy');
@@ -365,19 +408,14 @@ describe('Faq', () => {
     expect(container.querySelector('#faq-q-refund-policy')?.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('ignores unknown hashes', () => {
+  it('ignores unknown hashes and keeps “More” closed', () => {
     window.history.pushState({}, '', '/#faq-not-a-question');
     const { container } = inRouter(<Faq />);
     expect(buttons(container).every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true);
+    expect(moreBtn().getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('a deep link clears a filter that would hide the question', () => {
-    window.history.pushState({}, '', '/#faq-gst');
-    const { container } = inRouter(<Faq />);
-    expect(container.querySelector('#faq-q-gst')).not.toBeNull();
-  });
-
-  it('injects FAQPage JSON-LD built from the visible answers, and removes it on unmount', () => {
+  it('lists every question in the FAQPage JSON-LD (not only the five on screen), and removes it on unmount', () => {
     const { unmount } = inRouter(<Faq />);
     const script = document.head.querySelector('script[data-lp-ld="faq"]');
     expect(script?.getAttribute('type')).toBe('application/ld+json');
@@ -399,8 +437,18 @@ describe('Faq', () => {
     expect(ld.mainEntity).toHaveLength(1);
   });
 
+  it('filter helpers still work (used by the pricing billing mini-FAQ and future search)', () => {
+    const expected = filterFaqs(FAQS, 'refund', 'all');
+    expect(expected.length).toBeGreaterThan(0);
+    expect(expected.length).toBeLessThan(FAQS.length);
+    expect(filterFaqs(FAQS, 'zzzz-nothing', 'all')).toHaveLength(0);
+    expect(topicCounts().billing).toBe(5);
+    expect(filterFaqs(FAQS, '', 'billing')).toHaveLength(5);
+  });
+
   it('never renders internal notes', () => {
     const { container } = inRouter(<Faq />);
+    fireEvent.click(moreBtn());
     for (const f of FAQS) {
       if (f.internalNote) expect(container.textContent).not.toContain(f.internalNote.slice(0, 40));
     }
@@ -410,25 +458,39 @@ describe('Faq', () => {
 /* ───────────────────────────────── Insights ───────────────────────────────── */
 
 describe('Insights', () => {
-  it('lists every article once with a real link, category, read time and date', () => {
+  it('shows exactly three article cards, each with a real link, category, read time and date', () => {
     const { container } = inRouter(<Insights />);
     expect(container.querySelector('section#insights')?.getAttribute('aria-labelledby')).toBe('insights-title');
     expect(container.querySelectorAll('h2')).toHaveLength(1);
+    const expected = INSIGHTS_FEATURED_SLUGS.map((slug) => getPost(slug)?.path);
+    expect(expected).toHaveLength(3);
     const links = Array.from(container.querySelectorAll<HTMLAnchorElement>('a.lp-post__link'));
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(POSTS.map((p) => p.path));
-    expect(container.querySelectorAll('article')).toHaveLength(POSTS.length);
-    expect(container.querySelectorAll('article time')).toHaveLength(POSTS.length);
-    expect(container.querySelectorAll('.lp-post--featured')).toHaveLength(1);
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(expected);
+    expect(container.querySelectorAll('article')).toHaveLength(3);
+    expect(container.querySelectorAll('article time')).toHaveLength(3);
     expect(container.textContent).toMatch(/\d+ min read/);
+  });
+
+  it('keeps the other articles one click away behind “More articles”', () => {
+    const { container } = inRouter(<Insights />);
+    const disc = container.querySelector('details.w2-disc') as HTMLDetailsElement;
+    expect(disc.querySelector('summary')?.textContent).toContain('More articles');
+    expect(disc.open).toBe(false);
+    const hrefs = Array.from(disc.querySelectorAll('a')).map((a) => a.getAttribute('href'));
+    const rest = POSTS.filter((p) => !INSIGHTS_FEATURED_SLUGS.includes(p.slug)).map((p) => p.path);
+    expect(hrefs).toEqual(rest);
+    // every article is reachable from the home page
+    const all = new Set([...container.querySelectorAll<HTMLAnchorElement>('a.lp-post__link')].map((a) => a.getAttribute('href')).concat(hrefs));
+    expect(all.size).toBe(POSTS.length);
   });
 
   it('stays typographic when a cover photo is missing', () => {
     const { container } = inRouter(<Insights />);
     const photos = Array.from(container.querySelectorAll('img.lp-post__photo'));
-    expect(photos.length).toBe(POSTS.length);
+    expect(photos.length).toBe(3);
     fireEvent.error(photos[0] as Element);
-    expect(container.querySelectorAll('img.lp-post__photo')).toHaveLength(POSTS.length - 1);
-    expect(container.querySelectorAll('.lp-post__numeral')).toHaveLength(POSTS.length);
+    expect(container.querySelectorAll('img.lp-post__photo')).toHaveLength(2);
+    expect(container.querySelectorAll('.lp-post__numeral')).toHaveLength(3);
   });
 });
 
@@ -713,16 +775,22 @@ describe('source hygiene for the sections-C files', () => {
     sources.push({ file: `sections/${name}.tsx`, text: readFileSync(root(`sections/${name}.tsx`), 'utf8') });
   }
   sources.push({ file: 'routes.tsx', text: readFileSync(root('routes.tsx'), 'utf8') });
-  const styles = ['pricing', 'pricing-lux', 'register', 'faq', 'insights', 'pages'].map((n) => ({
+  const styles = ['w2-base', 'pricing', 'pricing-lux', 'register', 'faq', 'insights', 'pages'].map((n) => ({
     file: `styles/${n}.css`,
     text: readFileSync(root(`styles/${n}.css`), 'utf8'),
   }));
 
-  it('uses no banned greens, no pure black and no gradients in the new CSS', () => {
+  it('uses no banned greens, no pure black, and only the two brand gradients (plus opaque mask helpers)', () => {
+    const brand = /^linear-gradient\((?:\d+deg,\s*)?#1dba3c,\s*#35d445\)$/i;
+    const ink = /^linear-gradient\((?:\d+deg,\s*)?#0b0f0e,\s*#121a16\)$/i;
+    const maskHelper = /^linear-gradient\(#fff 0 0\)$/i;
     for (const { file, text } of styles) {
       expect(text, file).not.toMatch(/#22c55e|#16a34a|#4ade80/i);
       expect(text, file).not.toMatch(/#000(?![0-9a-f])|#000000|rgb\(0 0 0|rgba\(0,\s*0,\s*0/i);
-      expect(text, file).not.toMatch(/gradient\(/i);
+      expect(text, file).not.toMatch(/radial-gradient|conic-gradient/i);
+      for (const g of text.match(/linear-gradient\([^)]*\)/gi) ?? []) {
+        expect(brand.test(g) || ink.test(g) || maskHelper.test(g), `${file}: ${g}`).toBe(true);
+      }
     }
   });
 

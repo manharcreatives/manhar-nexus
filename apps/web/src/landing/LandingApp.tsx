@@ -1,19 +1,20 @@
 import { Suspense, useEffect, useRef } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import './landing.css';
+import './styles/ui.css';
 import './styles/chrome.css';
 import { applyIntentFromHash } from './hooks/useRegistrationIntent';
 import LandingPage from './LandingPage';
 import { LANDING_ROUTES } from './routes';
 
-/** Mark the document as the light marketing surface (overscroll/scrollbars/inputs) while mounted. */
+/** Mark the document as the dark marketing surface (overscroll/scrollbars/inputs) while mounted. */
 function useLandingSurface(): void {
   useEffect(() => {
     const root = document.documentElement;
     const prevSurface = root.dataset.surface;
     const prevScheme = root.style.colorScheme;
     root.dataset.surface = 'landing';
-    root.style.colorScheme = 'light';
+    root.style.colorScheme = 'dark';
     return () => {
       if (prevSurface === undefined) delete root.dataset.surface;
       else root.dataset.surface = prevSurface;

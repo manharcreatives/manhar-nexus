@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import { redactUrl } from './redact-url';
 import { REQUEST_ID_HEADER, resolveRequestId, runWithRequestContext, logger } from './logger';
 
 /**
@@ -11,13 +12,13 @@ export function loggingMiddleware(): RequestHandler {
     const requestId = resolveRequestId(req.header(REQUEST_ID_HEADER));
     res.setHeader(REQUEST_ID_HEADER, requestId);
     const startedAt = process.hrtime.bigint();
-    const log = logger.child({ http: { method: req.method, url: req.originalUrl } });
+    const log = logger.child({ http: { method: req.method, url: redactUrl(req.originalUrl) } });
     log.info('request started');
     res.on('finish', () => {
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
       logger
         .child({
-          http: { method: req.method, url: req.originalUrl, statusCode: res.statusCode },
+          http: { method: req.method, url: redactUrl(req.originalUrl), statusCode: res.statusCode },
           durationMs,
         })
         .info('request finished');
