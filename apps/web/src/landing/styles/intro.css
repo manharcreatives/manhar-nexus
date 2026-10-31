@@ -1,0 +1,222 @@
+/* ==========================================================================
+   Intro "Between the chair and the last report" (SECTIONS-A). Typography is the star.
+   Progressive light-up: each text block gets --p (0..1) from useScrollProgress('view'); every word
+   carries --i (index) and its block --n (word count). Opacity only. No --p (no JS / reduced motion) => lit.
+   ========================================================================== */
+
+.lp-section.lp-intro {
+  --lux: cubic-bezier(0.16, 1, 0.3, 1);
+  padding-block: clamp(6rem, 4rem + 8vw, 10rem);
+}
+
+/* ---- the light-up ---------------------------------------------------------- */
+.lp-lit {
+  --q: clamp(0, calc((var(--p, 1) - 0.08) / 0.4), 1);
+  display: block;
+}
+.lp-lit__w {
+  opacity: calc(0.16 + 0.84 * clamp(0, calc((var(--q) * (var(--n) + 7) - var(--i)) / 7), 1));
+  transition: opacity 0.7s var(--lux);
+}
+
+/* ---- head ------------------------------------------------------------------ */
+.lp-intro__head {
+  display: grid;
+  gap: clamp(1.5rem, 1rem + 1.5vw, 2.5rem);
+  margin-bottom: clamp(4rem, 3rem + 5vw, 8rem);
+}
+.lp-intro__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  letter-spacing: 0.12em;
+}
+.lp-intro__eyebrow::before {
+  content: "";
+  width: 2.5rem;
+  height: 1px;
+  background: var(--lp-silver);
+}
+.lp-root .lp-section .lp-intro__h2 {
+  max-width: 21ch;
+  font-weight: 500;
+  font-size: clamp(2rem, 1.1rem + 3.7vw, 4.5rem);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+}
+
+/* ---- narrative with progress rail ------------------------------------------ */
+.lp-intro__narrative {
+  position: relative;
+  display: grid;
+  gap: clamp(2.75rem, 2rem + 3.5vw, 5rem);
+  padding-left: clamp(2.75rem, 2rem + 3vw, 5.5rem);
+  max-width: 54rem;
+  margin-left: clamp(0rem, 6vw, 7rem);
+}
+.lp-intro__rail {
+  position: absolute;
+  left: 0;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 1px;
+  background: var(--lp-line);
+}
+.lp-intro__rail::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--lp-forest);
+  transform-origin: top center;
+  transform: scaleY(clamp(0, calc((var(--rp, 1) - 0.15) / 0.55), 1));
+}
+.lp-intro__row {
+  position: relative;
+}
+.lp-intro__no {
+  position: absolute;
+  left: calc(-1 * clamp(2.75rem, 2rem + 3vw, 5.5rem));
+  top: 0.55em;
+  width: 2rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--lp-muted);
+  background: var(--lp-canvas);
+  padding-block: 0.4rem;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.lp-intro__p {
+  font-size: clamp(1.3125rem, 1rem + 1.15vw, 2rem);
+  line-height: 1.42;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  color: var(--lp-ink);
+  max-width: 34rem;
+}
+
+/* ---- closing question + slip ----------------------------------------------- */
+.lp-intro__close {
+  display: grid;
+  gap: clamp(3rem, 2rem + 4vw, 6rem);
+  align-items: center;
+  margin-top: clamp(5rem, 4rem + 6vw, 10rem);
+  padding-top: clamp(3rem, 2rem + 3vw, 5rem);
+  border-top: 1px solid var(--lp-line);
+}
+.lp-intro__qcol {
+  display: grid;
+  justify-items: start;
+  gap: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+}
+.lp-intro__q {
+  font-family: var(--lp-font-display);
+  font-weight: 500;
+  font-size: clamp(1.9rem, 1.1rem + 3vw, 3.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: var(--lp-ink);
+  max-width: 19ch;
+  text-wrap: balance;
+}
+
+.lp-intro__slipwrap {
+  justify-self: center;
+  width: min(100%, 22rem);
+  padding: 1.5rem 0 2rem;
+}
+.lp-intro__slipstage {
+  position: relative;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+.lp-intro__slipback,
+.lp-intro__slip {
+  transform: perspective(900px) rotateX(var(--lp-rx, 0deg)) rotateY(calc(-8deg + var(--lp-ry, 0deg))) rotateZ(2deg);
+  transition: transform 0.9s var(--lux);
+}
+.lp-intro__slipback {
+  position: absolute;
+  inset: 0;
+  transform: perspective(900px) rotateX(var(--lp-rx, 0deg)) rotateY(calc(-8deg + var(--lp-ry, 0deg))) rotateZ(-4deg) translate(0.9rem, 0.9rem);
+  border: 1px solid var(--lp-line);
+  border-radius: 0.5rem;
+  background: var(--lp-white);
+  opacity: 0.7;
+}
+.lp-section .lp-intro__slip.lp-tk {
+  position: relative;
+  font-size: 15px;
+  padding: 0.8em 1em 1.1em;
+  background: var(--lp-white);
+  border: 1px solid var(--lp-line);
+  filter: drop-shadow(0 1px 0 rgb(11 15 14 / 0.04)) drop-shadow(0 24px 24px rgb(11 15 14 / 0.1));
+}
+.lp-intro__sl {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75em;
+  padding-block: 0.55em;
+  border-bottom: 1px dashed var(--lp-line);
+  font-size: 0.95em;
+  font-weight: 700;
+}
+.lp-intro__sl:first-of-type {
+  margin-top: 0.7em;
+}
+.lp-intro__sl em {
+  font-style: normal;
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.72em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+  text-align: right;
+}
+.lp-intro__stamprow {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.4em;
+}
+.lp-intro__stamp {
+  font-size: 1.35em;
+  border-color: var(--lp-ink);
+  color: var(--lp-ink);
+  opacity: 0;
+  transform: rotate(-9deg) scale(1.8);
+}
+.lp-intro__slipwrap[data-in="true"] .lp-intro__stamp {
+  opacity: 1;
+  transform: rotate(-9deg);
+  transition: opacity 0.5s var(--lux) 0.7s, transform 0.8s var(--lux) 0.7s;
+}
+
+@media (min-width: 900px) {
+  .lp-intro__close {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  }
+  .lp-intro__slipwrap {
+    justify-self: end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-lit__w {
+    opacity: 1;
+    transition: none;
+  }
+  .lp-intro__rail::after {
+    transform: none;
+  }
+  .lp-intro__slipback,
+  .lp-intro__slip {
+    transition: none;
+  }
+  .lp-intro__stamp {
+    opacity: 1;
+    transform: rotate(-9deg);
+    transition: none;
+  }
+}

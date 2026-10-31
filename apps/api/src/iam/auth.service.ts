@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ForbiddenError, UnauthorizedError, ValidationError } from '../common/errors';
 import { PasswordService } from './password.service';
 import { TokenService, hashRefresh } from './token.service';
+import { selectSlotCookiesToDrop } from './session-cookie';
 
 export interface AuthContext {
   ip?: string;
@@ -168,6 +169,35 @@ export class AuthService {
         data: { revokedAt: new Date() },
       });
     });
+  }
+
+  /**
+   * Housekeeping for tab-session cookies (ADR-034): given the `nexus_rt_*` cookies the browser sent, return the
+   * names to expire - cookies whose token is unknown or whose session is revoked/expired, plus the least recently
+   * used live ones beyond the per-browser cap. Never throws for unknown input: a bad cookie is simply dead.
+   * `cookies` maps cookie name -> raw refresh token (already filtered to well-formed slot names by the caller).
+   */
+  async deadSlotCookies(cookies: Record<string, string>): Promise<string[]> {
+    const names = Object.keys(cookies);
+    if (names.length === 0) return [];
+    const byHash = new Map(names.map((n) => [hashRefresh(cookies[n]), n]));
+    const rows = await this.prisma.refreshToken.findMany({
+      where: { tokenHash: { in: [...byHash.keys()] } },
+      select: { tokenHash: true, revokedAt: true, expiresAt: true, session: { select: { revokedAt: true, expiresAt: true, lastSeenAt: true } } },
+    });
+    const now = Date.now();
+    const state = new Map(
+      rows.map((r) => [
+        r.tokenHash,
+        {
+          alive: !r.revokedAt && r.expiresAt.getTime() > now && !r.session.revokedAt && r.session.expiresAt.getTime() > now,
+          lastSeenMs: r.session.lastSeenAt.getTime(),
+        },
+      ]),
+    );
+    return selectSlotCookiesToDrop(
+      [...byHash.entries()].map(([hash, name]) => ({ name, alive: state.get(hash)?.alive ?? false, lastSeenMs: state.get(hash)?.lastSeenMs ?? 0 })),
+    );
   }
 
   /** Profile + effective access for the authenticated user (`/auth/me`). */

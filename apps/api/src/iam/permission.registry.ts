@@ -101,6 +101,8 @@ export const CORE_PERMISSIONS: PermissionDefinition[] = [
   p('platform', 'activation', 'manage', 'Manage the activation request workflow', true),
   p('platform', 'onboarding', 'view', 'View client onboarding progress', true),
   p('platform', 'onboarding', 'manage', 'Manage client onboarding milestones', true),
+  p('platform', 'registration', 'view', 'View public registration requests (landing-page leads)', true),
+  p('platform', 'registration', 'manage', 'Triage public registration requests (status, owner, notes)', true),
 
   // ── Core / IAM (business realm) ──
   p('core', 'user', 'view', 'View users'),

@@ -4,7 +4,7 @@ const modifierSchema = z.object({
   modifierOptionId: z.string().uuid(),
 });
 
-const lineSchema = z.object({
+export const lineSchema = z.object({
   catalogItemId: z.string().uuid(),
   variantId: z.string().uuid().optional(),
   quantity: z.number().int().min(1).max(999),

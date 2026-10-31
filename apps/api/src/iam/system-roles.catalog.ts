@@ -73,16 +73,19 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'restaurant.session.manage',
       'restaurant.order.view',
       'restaurant.order.manage',
+      'restaurant.order.edit',
       'restaurant.kitchen.view',
       'restaurant.kitchen.manage',
       'restaurant.booking.view',
       'restaurant.booking.manage',
+      'restaurant.bill.show',
       // Checkout (module-manifest keys)
       'checkout.invoice.view',
       'checkout.invoice.create',
       'checkout.payment.view',
       'checkout.payment.process',
       'checkout.shift.manage',
+      'checkout.paymentqr.show',
       // Operating Costs (module-manifest keys)
       'costs.category.view',
       'costs.category.manage',
@@ -109,12 +112,15 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'restaurant.dining.view',
       'restaurant.session.view',
       'restaurant.order.view',
+      // Show the bill / payment QR to a guest from the cashier desk
+      'restaurant.bill.show',
       // Checkout (module-manifest keys)
       'checkout.invoice.view',
       'checkout.invoice.create',
       'checkout.payment.view',
       'checkout.payment.process',
       'checkout.shift.manage',
+      'checkout.paymentqr.show',
     ],
   },
   {
@@ -136,8 +142,12 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'restaurant.session.manage',
       'restaurant.order.view',
       'restaurant.order.manage',
+      'restaurant.order.edit',
       // Read-only kitchen queue: waiters see when their tickets are ready.
       'restaurant.kitchen.view',
+      // Take the generated bill and the payment QR to the table (cannot generate bills or record payments).
+      'restaurant.bill.show',
+      'checkout.paymentqr.show',
     ],
   },
   {

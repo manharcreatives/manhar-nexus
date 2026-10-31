@@ -86,6 +86,7 @@ Edit `deploy/api.env` and replace every value marked `[PROD]`:
 | `JWT_ACCESS_SECRET` | ≥ 64 random chars: `openssl rand -base64 64 \| tr -d '\n'` |
 | `PLATFORM_BOOTSTRAP_EMAIL` | a real operator mailbox (not `platform@manhar.local`) |
 | `PLATFORM_BOOTSTRAP_PASSWORD` | ≥ 16 chars, unique; rotate in the app after first login |
+| `REGISTRATION_IP_SALT` | ≥ 32 random chars (HMAC key for the stored visitor-IP hash; landing registration form, ADR-033): `openssl rand -base64 48 \| tr -d '\n'` |
 | `LOG_LEVEL` | `info` (or `warn`) |
 
 Compose forces `NODE_ENV=production`, `PORT=3000` and `TRUST_PROXY=1`. Do not set `NEXUS_DEMO_SEED`.

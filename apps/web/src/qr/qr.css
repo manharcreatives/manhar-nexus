@@ -1,0 +1,288 @@
+/*
+ * Table QR print + preview layouts.
+ * These cards are PRINTED, so they do not use the dark UI tokens: warm paper, near-black ink and
+ * a single accent hairline (--qr-accent, the restaurant's colour) keep codes scannable and
+ * ink-cheap on any printer. Sizes are in millimetres on purpose.
+ *   A4 sheet: 6 or 8 cards per page (2 columns), table tent: one card, 100mm wide.
+ */
+@page sheet {
+  size: A4 portrait;
+  margin: 0;
+}
+@page tent {
+  size: 100mm 150mm;
+  margin: 0;
+}
+
+/* The print host never shows on screen. */
+.qr-print-root {
+  display: none;
+}
+
+.qr-print-page {
+  --qr-ink: #0b0f0e;
+  --qr-paper: #fbfaf7;
+  --qr-mute: #5a645f;
+  --qr-line: #d6d3ca;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: var(--qr-ink);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  break-inside: avoid;
+}
+
+/* ── A4 sheets ── */
+.qr-sheet {
+  page: sheet;
+  width: 210mm;
+  height: 297mm;
+  padding: 9mm;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  break-after: page;
+  page-break-after: always;
+}
+.qr-sheet--6 {
+  grid-template-rows: repeat(3, 1fr);
+  --qr-size: 50mm;
+}
+.qr-sheet--8 {
+  grid-template-rows: repeat(4, 1fr);
+  --qr-size: 38mm;
+}
+.qr-sheet--8 .qr-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "frame top" "frame bottom";
+  align-content: center;
+  align-items: center;
+  column-gap: 5mm;
+  row-gap: 2mm;
+  text-align: left;
+  padding: 5mm 6mm;
+}
+.qr-sheet--8 .qr-card__frame {
+  grid-area: frame;
+}
+.qr-sheet--8 .qr-card__top {
+  grid-area: top;
+  align-items: flex-start;
+}
+.qr-sheet--8 .qr-card__bottom {
+  grid-area: bottom;
+  align-items: flex-start;
+}
+.qr-sheet--8 .qr-card__brand {
+  justify-content: flex-start;
+}
+.qr-sheet--8 .qr-card__table-code {
+  font-size: 13mm;
+}
+.qr-sheet--8 .qr-card__hint {
+  max-width: none;
+  font-size: 2.9mm;
+}
+
+/* ── Table tent: one card per page, exactly 100mm wide ── */
+.qr-print-page--tent {
+  page: tent;
+  width: 100mm;
+  height: 150mm;
+  padding: 0;
+  display: block;
+  break-after: page;
+  page-break-after: always;
+  --qr-size: 66mm;
+}
+.qr-print-page--tent .qr-card {
+  width: 100mm;
+  height: 150mm;
+  border: 0;
+  padding: 10mm 9mm 9mm;
+}
+.qr-print-page--tent .qr-card::before {
+  inset: 4mm;
+}
+.qr-print-page--tent .qr-card__table-code {
+  font-size: 22mm;
+}
+.qr-print-page--tent .qr-card__name {
+  font-size: 5mm;
+}
+.qr-print-page--tent .qr-card__hint {
+  font-size: 3.4mm;
+}
+.qr-print-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+/* ── The card ── */
+.qr-card {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3mm;
+  padding: 6mm 6mm 5mm;
+  text-align: center;
+  background: var(--qr-paper);
+  border: 0.25mm dashed var(--qr-line);
+  overflow: hidden;
+  font-family: var(--font-ui, system-ui, sans-serif);
+}
+/* Inner hairline frame, the "stationery" cue. */
+.qr-card::before {
+  content: "";
+  position: absolute;
+  inset: 2.2mm;
+  border: 0.2mm solid var(--qr-ink);
+  opacity: 0.8;
+  pointer-events: none;
+}
+/* Accent tick centred on the top frame line. */
+.qr-card::after {
+  content: "";
+  position: absolute;
+  top: calc(2.2mm - 0.35mm);
+  left: 50%;
+  width: 14mm;
+  height: 0.7mm;
+  transform: translateX(-50%);
+  background: var(--qr-accent, #22c55e);
+}
+.qr-card__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2mm;
+  max-width: 100%;
+}
+.qr-card__logo {
+  height: 8mm;
+  width: auto;
+  max-width: 20mm;
+  object-fit: contain;
+}
+.qr-card__name {
+  font-family: var(--font-display, serif);
+  font-weight: 600;
+  font-size: 4.2mm;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.qr-card__tagline {
+  margin: 0;
+  font-size: 2.8mm;
+  font-style: italic;
+  color: var(--qr-mute);
+}
+.qr-card__eyebrow {
+  margin: 0;
+  font-size: 2.6mm;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--qr-mute);
+}
+.qr-card__frame {
+  box-sizing: content-box;
+  width: var(--qr-size, 50mm);
+  height: var(--qr-size, 50mm);
+  padding: 1.6mm;
+  background: #ffffff;
+  border: 0.3mm solid var(--qr-ink);
+  flex: none;
+}
+.qr-card__qr {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.qr-card__top,
+.qr-card__bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2mm;
+  min-width: 0;
+}
+.qr-card__table {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  line-height: 1;
+}
+.qr-card__table-label {
+  font-size: 2.6mm;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--qr-mute);
+}
+.qr-card__table-code {
+  font-family: var(--font-display, serif);
+  font-weight: 600;
+  font-size: 15mm;
+  letter-spacing: -0.02em;
+  margin-top: 1mm;
+}
+.qr-card__hint {
+  margin: 0;
+  max-width: 62mm;
+  font-size: 3mm;
+  line-height: 1.35;
+  color: var(--qr-mute);
+}
+.qr-card__foot {
+  margin: 0;
+  font-size: 2.2mm;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--qr-mute);
+}
+
+/* ── Print: only the print root is visible ── */
+@media print {
+  body.qr-printing {
+    background: #ffffff !important;
+  }
+  body.qr-printing > *:not(.qr-print-root) {
+    display: none !important;
+  }
+  body.qr-printing > .qr-print-root {
+    display: block !important;
+  }
+  body.qr-printing::before,
+  body.qr-printing::after {
+    display: none !important;
+  }
+  .qr-print-root .qr-card {
+    box-shadow: none;
+  }
+}
+
+/* ── Screen preview (inside the print dialog): same pages, scaled down ── */
+.qr-preview {
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: #1b2421;
+}
+.qr-preview-stage {
+  transform-origin: top left;
+  display: flex;
+  flex-direction: column;
+  gap: 12mm;
+  padding: 6mm;
+  width: max-content;
+}
+.qr-preview .qr-print-page {
+  break-after: auto;
+  box-shadow: 0 6px 30px rgb(0 0 0 / 0.5);
+}

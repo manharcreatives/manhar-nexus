@@ -191,6 +191,12 @@ model Business {
   // Phase 16 operating costs
   expenseCategories           ExpenseCategory[]
   expenses                    Expense[]
+  // Update round 2 (Q-API): QR digital menu
+  qrMenuSetting               QrMenuSetting?
+  tableQrCodes                TableQrCode[]
+  guestMenuTokens             GuestMenuToken[]
+  guestOrders                 GuestOrder[]
+  waiterCalls                 WaiterCall[]
 
   @@index([businessTypeId])
   @@map("business")
@@ -698,6 +704,12 @@ model CatalogCategory {
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
   version     Int      @default(1)
+  /// QR menu (Q-API): path-absolute media URL ("/media/<businessId>/<sha1>.webp"), served by the API origin. Null = no photo.
+  imageUrl    String?
+  /// Tiny blur-up placeholder as a data: URI (client-supplied at upload, validated). Null when unknown.
+  imageBlur   String?
+  /// Dominant colour "#rrggbb" for the placeholder (client-supplied at upload, validated). Null when unknown.
+  imageColor  String?
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @db.Timestamptz(6)
 
@@ -723,6 +735,20 @@ model CatalogItem {
   isActive            Boolean  @default(true)
   sortOrder           Int      @default(0)
   version             Int      @default(1)
+  /// QR menu (Q-API): path-absolute media URL ("/media/<businessId>/<sha1>.webp"), served by the API origin. Null = no photo.
+  imageUrl            String?
+  /// 480px thumbnail URL (only produced when sharp is installed); null otherwise.
+  imageThumbUrl       String?
+  /// Tiny blur-up placeholder as a data: URI (client-supplied at upload, validated). Null when unknown.
+  imageBlur           String?
+  /// Dominant colour "#rrggbb" for the placeholder (client-supplied at upload, validated). Null when unknown.
+  imageColor          String?
+  /// QR menu: veg / non-veg / egg mark. Null = not marked.
+  dietType            MenuDietType?
+  /// QR menu: short labels ("bestseller", "chef's pick"). Max 6, 24 chars each (validated at the API).
+  menuTags            String[]  @default([])
+  /// QR menu: 0 (mild) .. 3 (hot). Null = not shown.
+  spiceLevel          Int?
   createdAt           DateTime @default(now()) @db.Timestamptz(6)
   updatedAt           DateTime @updatedAt @db.Timestamptz(6)
 
@@ -859,6 +885,10 @@ model DiningTable {
   location      Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
   bookings      Booking[]
   guestSessions GuestSession[]
+  // Update round 2 (Q-API): QR digital menu
+  qrCode          TableQrCode?
+  guestMenuTokens GuestMenuToken[]
+  waiterCalls     WaiterCall[]
 
   @@unique([diningAreaId, code])
   @@index([businessId])
@@ -1034,6 +1064,9 @@ model GuestSession {
   assignedStaff   StaffProfile?    @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
   serviceRequests ServiceRequest[]
   invoices        Invoice[]
+  // Update round 2 (Q-API): QR digital menu
+  guestMenuTokens GuestMenuToken[]
+  waiterCalls     WaiterCall[]
 
   @@index([businessId])
   @@index([locationId, status])
@@ -1064,6 +1097,12 @@ model ServiceRequest {
   preparedAt     DateTime?            @db.Timestamptz(6)
   servedAt       DateTime?            @db.Timestamptz(6)
   version        Int                  @default(1)
+  /// Order edit (update round 2): number of audited edits made while SENT (the kitchen can see them). The KOS flags 'edited' when > 0.
+  editCount      Int                  @default(0)
+  lastEditedAt   DateTime?            @db.Timestamptz(6)
+  /// Who created the request: STAFF (waiter/cashier) or GUEST (QR digital menu, Q-API). A pending guest order is a
+  /// DRAFT with a PENDING guest_order row: DRAFT is already excluded from billing, void checks and the kitchen queue.
+  source         ServiceRequestSource @default(STAFF)
   createdAt      DateTime             @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime             @updatedAt @db.Timestamptz(6)
 
@@ -1072,6 +1111,8 @@ model ServiceRequest {
   session  GuestSession         @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   staff    StaffProfile?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
   lines    ServiceRequestLine[]
+  edits    ServiceRequestEdit[]
+  guestOrder GuestOrder?
 
   @@unique([businessId, idempotencyKey])
   @@index([businessId])
@@ -1103,6 +1144,9 @@ model ServiceRequestLine {
   status                  ServiceLineStatus @default(PENDING)
   cancelReason            String?
   version                 Int               @default(1)
+  /// Order edit: set when an edit added or changed this line while SENT. editKind = ADDED | CHANGED (null = untouched).
+  editedAt                DateTime?         @db.Timestamptz(6)
+  editKind                String?
   createdAt               DateTime          @default(now()) @db.Timestamptz(6)
   updatedAt               DateTime          @updatedAt @db.Timestamptz(6)
 
@@ -1857,4 +1901,282 @@ model OnboardingProgress {
 
   @@index([currentStep])
   @@map("onboarding_progress")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Public registration requests (ADR-033) — landing-page lead capture.
+// PRE-TENANT: deliberately has NO businessId. A row is a sales lead from an
+// unauthenticated visitor; it never creates a tenant, an owner login or a charge.
+// Platform staff review it (internal/registrations) and, if it converts, run the
+// existing provisioning flow and record the resulting businessId here.
+// PII: email/phone/name are personal data. The visitor IP is stored only as an
+// HMAC-SHA256 (ipHash) keyed by REGISTRATION_IP_SALT; never the raw address.
+// ═════════════════════════════════════════════════════════════
+
+enum RegistrationStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  REJECTED
+  SPAM
+}
+
+model RegistrationRequest {
+  id             String             @id @default(uuid()) @db.Uuid
+  /// Shown to the visitor, e.g. "NX-7K2Q9M". Unambiguous alphabet, unique.
+  referenceCode  String             @unique
+  status         RegistrationStatus @default(NEW)
+  restaurantName String
+  contactName    String
+  /// Lower-cased.
+  email          String
+  phone          String
+  city           String
+  /// restaurant|cafe|bakery|cloud-kitchen|hotel|food-court|other (validated at the API, not a DB enum).
+  businessKind   String
+  /// 1..500 (validated at the API).
+  outlets        Int
+  /// counter|floor|pass|many-doors|not-sure (validated at the API).
+  planKey        String
+  /// monthly|yearly (validated at the API).
+  billingCycle   String
+  message        String?
+  /// Version of the terms/privacy text the visitor accepted (server allow-list).
+  consentVersion String
+  consentAt      DateTime           @db.Timestamptz(6)
+  /// HMAC-SHA256(ip, REGISTRATION_IP_SALT), hex. Never the raw IP.
+  ipHash         String?
+  /// Truncated to 200 chars.
+  userAgent      String?
+  assignedTo     String?
+  internalNotes  String?
+  /// Set when converted to a tenant (no FK on purpose: the lead outlives a deleted test business).
+  businessId     String?            @db.Uuid
+  createdAt      DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime           @updatedAt @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+  @@index([ipHash, createdAt])
+  @@map("registration_request")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Update round 2 (S2) — Order edit before the kitchen starts
+// Append-only edit history for a service request (ADR-016: never
+// updated or deleted by application code). One row per accepted
+// edit; `changes` holds the before/after of every line touched.
+// businessId/locationId are plain columns (no FK to business/location
+// on purpose, like audit_event) so this block touches no other model.
+// ═════════════════════════════════════════════════════════════
+
+model ServiceRequestEdit {
+  id               String               @id @default(uuid()) @db.Uuid
+  businessId       String               @db.Uuid
+  locationId       String               @db.Uuid
+  serviceRequestId String               @db.Uuid
+  /// Client-generated; replay returns the original result (ADR-017). Unique per business.
+  idempotencyKey   String               @db.Uuid
+  /// 1..n per request.
+  editNumber       Int
+  fromVersion      Int
+  toVersion        Int
+  statusAtEdit     ServiceRequestStatus
+  actorType        ActorType
+  actorId          String?
+  actorLabel       String?
+  reason           String?
+  changes          Json
+  totalBeforeMinorUnits Int
+  totalAfterMinorUnits  Int
+  createdAt        DateTime             @default(now()) @db.Timestamptz(6)
+
+  serviceRequest ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, idempotencyKey])
+  @@unique([serviceRequestId, editNumber])
+  @@index([businessId, serviceRequestId])
+  @@map("service_request_edit")
+}
+
+// ═════════════════════════════════════════════════════════════
+// Update round 2 (Q-API) — QR Digital Menu ("Nexus Menu"), ADR-035
+// Public, token-addressed customer menu per dining table.
+//   table_qr_code    one random 192-bit token per table (unique, rotatable, per-table enable)
+//   qr_menu_setting  per-business appearance + ordering policy (one row)
+//   guest_menu_token device identity bound to the table's OPEN guest session (sha256 at rest)
+//   guest_order      1:1 metadata for service_request rows with source=GUEST (decision, idempotency hash)
+//   waiter_call      "call waiter / bill / water" requests (at most one OPEN per table+reason: partial
+//                    unique index in the migration SQL, as for invoice)
+// Money stays in the existing tables (minor units). No guest PII beyond an optional display name.
+// ═════════════════════════════════════════════════════════════
+
+enum ServiceRequestSource {
+  STAFF
+  GUEST
+}
+
+enum MenuDietType {
+  VEG
+  NONVEG
+  EGG
+}
+
+enum QrOrderingMode {
+  OFF
+  CONFIRM
+  AUTO
+}
+
+enum GuestOrderDecision {
+  PENDING
+  CONFIRMED
+  AUTO_CONFIRMED
+  REJECTED
+}
+
+enum WaiterCallReason {
+  CALL
+  BILL
+  WATER
+  OTHER
+}
+
+enum WaiterCallStatus {
+  OPEN
+  ACKNOWLEDGED
+}
+
+/// The QR token of one dining table. The plaintext token is stored on purpose (staff must be able to re-print the QR);
+/// it is 192 random bits, looked up by the unique index and compared in constant time. Rotating replaces it, so the old
+/// printed QR stops working at once.
+model TableQrCode {
+  id              String    @id @default(uuid()) @db.Uuid
+  businessId      String    @db.Uuid
+  diningTableId   String    @unique @db.Uuid
+  /// base64url, 32 chars (192 bits).
+  token           String    @unique
+  /// Per-table kill switch: false = the QR shows "menu unavailable".
+  enabled         Boolean   @default(true)
+  /// Per-table switch for guest ordering (the menu can stay viewable).
+  orderingEnabled Boolean   @default(true)
+  rotationCount   Int       @default(0)
+  rotatedAt       DateTime? @db.Timestamptz(6)
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  diningTable DiningTable @relation(fields: [diningTableId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("table_qr_code")
+}
+
+/// Per-business QR menu appearance and policy. One row per business, created on first write (defaults apply until then).
+model QrMenuSetting {
+  id           String         @id @default(uuid()) @db.Uuid
+  businessId   String         @unique @db.Uuid
+  /// Master switch: false turns the guest menu off for the whole restaurant.
+  enabled      Boolean        @default(true)
+  orderingMode QrOrderingMode @default(CONFIRM)
+  callWaiter   Boolean        @default(true)
+  /// Offer "pay by UPI" to guests (needs checkout.upi_vpa to be configured; staff still record the payment).
+  upiEnabled   Boolean        @default(false)
+  tagline      String?
+  /// "#rrggbb" override of the business accent colour for the menu; null = use the business accent.
+  accentColor  String?
+  logoUrl      String?
+  logoBlur     String?
+  coverUrl     String?
+  coverBlur    String?
+  coverColor   String?
+  version      Int            @default(1)
+  createdAt    DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime       @updatedAt @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@map("qr_menu_setting")
+}
+
+/// A guest device's identity at one table visit. Only the sha256 of the token is stored. Valid while its guest session is
+/// the table's OPEN session and it is not revoked or expired.
+model GuestMenuToken {
+  id            String    @id @default(uuid()) @db.Uuid
+  businessId    String    @db.Uuid
+  diningTableId String    @db.Uuid
+  sessionId     String    @db.Uuid
+  tokenHash     String    @unique
+  /// Optional name the guest typed (sanitised, max 40). Shown to staff on guest orders.
+  displayName   String?
+  expiresAt     DateTime  @db.Timestamptz(6)
+  lastSeenAt    DateTime? @db.Timestamptz(6)
+  revokedAt     DateTime? @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  diningTable DiningTable  @relation(fields: [diningTableId], references: [id], onDelete: Cascade)
+  session     GuestSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  guestOrders GuestOrder[]
+  waiterCalls WaiterCall[]
+
+  @@index([sessionId])
+  @@index([businessId, diningTableId])
+  @@map("guest_menu_token")
+}
+
+/// Metadata of a guest-placed service request (1:1). The request itself is an ordinary service_request with source=GUEST.
+model GuestOrder {
+  id               String             @id @default(uuid()) @db.Uuid
+  businessId       String             @db.Uuid
+  serviceRequestId String             @unique @db.Uuid
+  guestTokenId     String?            @db.Uuid
+  /// Display name at placement time (snapshot).
+  guestName        String?
+  /// Ordering mode in force when the guest placed it (CONFIRM or AUTO).
+  mode             QrOrderingMode
+  decision         GuestOrderDecision @default(PENDING)
+  /// sha256 of the normalised order payload: the same Idempotency-Key with a different body is rejected.
+  requestHash      String
+  decidedAt        DateTime?          @db.Timestamptz(6)
+  /// User who confirmed/rejected (plain id, like audit_event: the user may be deleted later).
+  decidedByUserId  String?            @db.Uuid
+  decidedByLabel   String?
+  rejectReason     String?
+  createdAt        DateTime           @default(now()) @db.Timestamptz(6)
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  serviceRequest ServiceRequest  @relation(fields: [serviceRequestId], references: [id], onDelete: Restrict)
+  guestToken     GuestMenuToken? @relation(fields: [guestTokenId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, decision, createdAt])
+  @@index([guestTokenId, createdAt])
+  @@map("guest_order")
+}
+
+/// A guest asked for a waiter, the bill, water or something else. sessionId is null when the table was not open yet
+/// ("please come and open my table").
+model WaiterCall {
+  id                   String           @id @default(uuid()) @db.Uuid
+  businessId           String           @db.Uuid
+  locationId           String           @db.Uuid
+  diningTableId        String           @db.Uuid
+  sessionId            String?          @db.Uuid
+  guestTokenId         String?          @db.Uuid
+  reason               WaiterCallReason
+  status               WaiterCallStatus @default(OPEN)
+  createdAt            DateTime         @default(now()) @db.Timestamptz(6)
+  acknowledgedAt       DateTime?        @db.Timestamptz(6)
+  acknowledgedByUserId String?          @db.Uuid
+
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  diningTable DiningTable     @relation(fields: [diningTableId], references: [id], onDelete: Cascade)
+  session     GuestSession?   @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  guestToken  GuestMenuToken? @relation(fields: [guestTokenId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status, createdAt])
+  @@index([diningTableId, status])
+  @@map("waiter_call")
 }

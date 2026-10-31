@@ -35,6 +35,12 @@ describe('system role catalog', () => {
     });
   }
 
+  it('waiters and managers may edit a sent order; the kitchen, hosts and cashiers may not', () => {
+    expect(perms('service-team').has('restaurant.order.edit')).toBe(true);
+    expect(perms('location-manager').has('restaurant.order.edit')).toBe(true);
+    for (const r of ['kitchen-team', 'host', 'checkout-associate', 'accountant']) expect(perms(r).has('restaurant.order.edit')).toBe(false);
+  });
+
   it('waiters can read but never advance the kitchen queue', () => {
     expect(perms('service-team').has('restaurant.kitchen.manage')).toBe(false);
   });

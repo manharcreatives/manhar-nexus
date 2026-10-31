@@ -976,6 +976,10 @@ Full ADR texts in `docs/adr/`. Statuses: ACCEPTED / PROPOSED / SUPERSEDED.
 
 ## 10. CHANGELOG
 
+### 2026-10-31 (Landing page — Tier 1 public registration API, ADR-033)
+
+- **Added `POST /public/registrations` (public, throttled, honeypot + time-trap + DB caps) and platform triage `GET/PATCH /internal/registrations` (`platform.registration.view|manage`, restricted); migration `20261031120000_registration_request`; new env `REGISTRATION_IP_SALT` (required in production); e2e `registration.e2e-spec.ts` (28 tests). Leads only: no tenant is created from a public request. See `docs/adr/ADR-033-public-registration-requests.md` and `docs/landing/reports/07_API_REPORT.md`.**
+
 ### 2026-08-30 (Master Reconciliation, Pilot Audit & Project Transfer — v1.17)
 
 **READ-ONLY audit performed across full repository. No material internal blocker found.**

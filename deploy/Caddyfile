@@ -87,6 +87,20 @@ http://127.0.0.1:8081 {
 		file_server
 	}
 
+	# Marketing-site media (public/landing/*) and self-hosted fonts (public/fonts/*): unhashed file names, so a
+	# one-week cache (not "immutable"). Real 404 on a miss so the page's image fallback boxes show instead of
+	# index.html being served as an "image". Add content hashes to file names before raising max-age.
+	handle /landing/* {
+		root * {$SITE_ROOT:/srv}
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+	handle /fonts/* {
+		root * {$SITE_ROOT:/srv}
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+
 	# Everything else: static file if it exists, else the SPA shell. index.html
 	# and other unhashed files must always be revalidated.
 	handle {

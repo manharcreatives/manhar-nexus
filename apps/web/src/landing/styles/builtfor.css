@@ -1,0 +1,290 @@
+/* ==========================================================================
+   Built for: PERSPECTIVE CAROUSEL RING (tablet and up, motion allowed) / scroll-snap strip (everything else).
+   3D rules: .lp-bf__scene owns `perspective` (and may clip); .lp-bf__spin and .lp-bf__ring own preserve-3d and
+   carry NO overflow / filter / opacity / mask / clip-path; cards are the leaves (they may clip + fade).
+   Rotation: JS writes --rot (deg) on the ring; --p (scroll) adds a small tilt on .lp-bf__spin.
+   Keep the ring query identical to RING_MQ in BuiltFor.tsx.
+   ========================================================================== */
+
+.lp-bf-section {
+  --lx: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lp-bf__head {
+  padding-top: clamp(6rem, 3.5rem + 7vw, 10rem);
+}
+.lp-bf__foot {
+  padding-block: clamp(2.5rem, 1.5rem + 3vw, 4.5rem) clamp(6rem, 3.5rem + 7vw, 10rem);
+}
+.lp-bf__closing {
+  max-width: 40rem;
+  font-family: var(--lp-font-display);
+  font-weight: 600;
+  font-size: var(--lp-fs-h3);
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: var(--lp-text);
+  text-wrap: balance;
+}
+
+/* ---- default: horizontal scroll-snap strip --------------------------------------------------------------- */
+.lp-root .lp-bf__ring {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.25rem var(--lp-gutter) 1rem;
+  scroll-padding-inline: var(--lp-gutter);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+.lp-root .lp-bf__card {
+  position: relative;
+  flex: 0 0 min(78vw, 18rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--lp-line);
+  border-radius: var(--lp-radius-xl);
+  background: var(--lp-white);
+  box-shadow: 0 1px 0 rgb(11 15 14 / 0.04), 0 24px 48px -24px rgb(11 15 14 / 0.14);
+  scroll-snap-align: center;
+}
+.lp-root .lp-bf__photo {
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+}
+.lp-bf__scrim,
+.lp-bf__controls,
+.lp-bf__lines {
+  display: none;
+}
+.lp-bf__text {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  padding: 1rem 1.1rem 1.2rem;
+}
+.lp-bf__title {
+  font-size: 1.25rem;
+}
+.lp-bf__line {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.lp-root .lp-bf__status {
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+  border-radius: 0.75rem;
+  line-height: 1.4;
+}
+
+/* ---- RING MODE (keep in sync with RING_MQ) --------------------------------------------------------------- */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .lp-bf__scene {
+    perspective: 1400px;
+    perspective-origin: 50% 45%;
+    display: grid;
+    place-items: center;
+    height: clamp(25rem, 38vw, 34rem);
+    overflow: hidden;
+    cursor: grab;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .lp-bf__scene:active {
+    cursor: grabbing;
+  }
+  .lp-bf__spin {
+    display: grid;
+    place-items: center;
+    transform-style: preserve-3d;
+    transform: rotateY(calc((var(--p, 0.5) - 0.5) * 50deg));
+  }
+  .lp-root .lp-bf__ring {
+    --w: clamp(11.5rem, 22vw, 17.5rem);
+    --r: calc(var(--w) * var(--rk) + 0.8rem);
+    position: relative;
+    display: block;
+    width: var(--w);
+    aspect-ratio: 4 / 5;
+    padding: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+    transform-style: preserve-3d;
+    transform: translateZ(calc(var(--r) * -1)) rotateY(var(--rot, 0deg));
+    transition: transform 1.2s var(--lx);
+  }
+  .lp-root .lp-bf__ring.is-dragging {
+    transition: none;
+  }
+  .lp-root .lp-bf__card {
+    position: absolute;
+    inset: 0;
+    display: block;
+    flex: none;
+    border: 0;
+    border-radius: 24px;
+    background: var(--lp-ink);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: rotateY(calc(var(--i) * 360deg / var(--n))) translateZ(var(--r));
+  }
+  .lp-bf__card::after {
+    /* dims the flanks; the front card is clear */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--lp-ink);
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.9s var(--lx);
+    z-index: 1;
+  }
+  .lp-bf__card[data-front="true"]::after {
+    opacity: 0;
+  }
+  .lp-bf__card::before {
+    /* crisp 1px white-alpha inner frame */
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+    pointer-events: none;
+  }
+  /* slow Ken-Burns on the card in front: transform only, restarts when a card comes to the front */
+  @keyframes lp-bf-kb {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.04);
+    }
+  }
+  .lp-bf__card[data-front="true"] .lp-img__el {
+    animation: lp-bf-kb 16s var(--lx) both;
+  }
+  .lp-root .lp-bf__photo {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .lp-bf__scrim {
+    display: block;
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 55%;
+    background: var(--lp-ink);
+    /* Ink fading to transparent: an allowed alpha mask, not a colour gradient */
+    -webkit-mask-image: linear-gradient(to top, #000 30%, transparent);
+    mask-image: linear-gradient(to top, #000 30%, transparent);
+  }
+  .lp-bf__text {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 2;
+    padding: 1.1rem 1.25rem 1.25rem;
+  }
+  .lp-bf__title {
+    color: var(--lp-white);
+  }
+  /* the card's one-liner and status stay in the DOM for assistive tech; sighted users read them in the list below */
+  .lp-bf__line,
+  .lp-root .lp-bf__status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .lp-bf__controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  .lp-bf__btn {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--lp-ink);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--lp-ink);
+    cursor: pointer;
+    transition: background-color 0.18s;
+  }
+  .lp-bf__btn:hover {
+    background: var(--lp-mint-wash);
+  }
+  .lp-bf__btn--pause {
+    border-color: var(--lp-line);
+    color: var(--lp-body);
+  }
+  .lp-bf__btn[aria-pressed="true"] {
+    background: var(--lp-ink);
+    color: var(--lp-white);
+  }
+
+  .lp-bf__lines {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem 1.5rem;
+    max-width: calc(var(--lp-max) + 2 * var(--lp-gutter));
+    margin: 2rem auto 0;
+    padding-inline: var(--lp-gutter);
+  }
+  .lp-bf__lineitem {
+    display: grid;
+    gap: 0.3rem;
+    align-content: start;
+    padding-top: 0.8rem;
+    border-top: 2px solid var(--lp-line);
+    transition: border-color 0.3s;
+  }
+  .lp-bf__lineitem[data-front="true"] {
+    border-top-color: var(--lp-forest);
+  }
+  .lp-bf__line-title {
+    font-family: var(--lp-font-display);
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--lp-text);
+  }
+  .lp-bf__line-text {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+  .lp-bf__line-status {
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lp-deep);
+  }
+}
+/* strip mode: the pause/prev/next buttons are not needed (native scrolling), the list is the cards themselves */
+@media (max-width: 767px), (prefers-reduced-motion: reduce) {
+  .lp-bf__controls,
+  .lp-bf__lines {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-bf__card::after,
+  .lp-bf__btn,
+  .lp-bf__lineitem {
+    transition: none;
+  }
+}

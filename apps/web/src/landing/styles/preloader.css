@@ -1,0 +1,164 @@
+/* "Kitchen Printer" preloader. Total life <= 1.4s: print 0.08-0.72s (16 stepped frames), stamp 0.78s,
+   N tile 0.88s, curtain lifts 1.06-1.4s. Overlay is purely decorative (aria-hidden) and fixed (no layout shift). */
+.lp-root .lp-pl {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: var(--lp-ink);
+  clip-path: inset(0);
+  transition: clip-path 0.34s cubic-bezier(0.7, 0, 0.2, 1);
+  overflow: hidden;
+}
+.lp-root .lp-pl.is-done {
+  clip-path: inset(0 0 100% 0); /* curtain lifts */
+}
+.lp-pl__stage {
+  display: grid;
+  justify-items: center;
+  gap: 1.4rem;
+  width: 100%;
+}
+.lp-pl-printer {
+  width: min(300px, 78vw);
+}
+.lp-pl-body {
+  position: relative;
+  z-index: 2;
+  height: 46px;
+  border-radius: 14px 14px 4px 4px;
+  background: var(--lp-night-card);
+  border: 1px solid var(--lp-night-line);
+}
+.lp-pl-body::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--lp-ink);
+}
+.lp-pl-led {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lp-green);
+  animation: lp-pl-blink 0.5s steps(2) infinite;
+}
+.lp-pl-chute {
+  overflow: hidden;
+  margin: -6px 14px 0;
+  height: 232px;
+}
+.lp-pl-ticket {
+  position: relative;
+  padding: 18px 16px 72px;
+  background: #f7f9f7;
+  color: #0b0f0e;
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1.9;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: translateY(-100%);
+  animation: lp-pl-print 0.64s steps(16, end) 0.08s forwards;
+  -webkit-mask:
+    radial-gradient(circle 7px at 0 55%, transparent 97%, var(--lp-ink) 97%) left / 51% 100% no-repeat,
+    radial-gradient(circle 7px at 100% 55%, transparent 97%, var(--lp-ink) 97%) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 7px at 0 55%, transparent 97%, var(--lp-ink) 97%) left / 51% 100% no-repeat,
+    radial-gradient(circle 7px at 100% 55%, transparent 97%, var(--lp-ink) 97%) right / 51% 100% no-repeat;
+}
+.lp-pl-ticket span {
+  display: block;
+}
+.lp-pl-stamp {
+  position: absolute;
+  right: 14px;
+  top: 88px;
+  padding: 2px 8px;
+  border: 2px solid #12802b;
+  border-radius: 4px;
+  color: #12802b;
+  opacity: 0;
+  transform: rotate(-8deg) scale(1.7);
+  animation: lp-pl-stamp 0.22s var(--lp-ease-stamp) 0.78s forwards;
+}
+.lp-pl-mark {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  margin-left: -20px;
+  opacity: 0;
+  transform: scale(0.6);
+  animation: lp-pl-pop 0.3s var(--lp-ease) 0.88s forwards;
+}
+.lp-pl-copy {
+  position: relative;
+  width: min(300px, 78vw);
+  height: 1.4em;
+  font-family: var(--lp-font-mono);
+  font-weight: 500;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--lp-on-dark-soft);
+}
+.lp-pl-copy span {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: lp-pl-flash 0.3s steps(1, end) calc(var(--i) * 0.3s) forwards;
+}
+.lp-pl-copy span:last-child {
+  animation-name: lp-pl-stay;
+}
+@keyframes lp-pl-print {
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes lp-pl-stamp {
+  to {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1);
+  }
+}
+@keyframes lp-pl-pop {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lp-pl-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes lp-pl-flash {
+  0%,
+  99.9% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes lp-pl-stay {
+  to {
+    opacity: 1;
+  }
+}
+@media print {
+  .lp-root .lp-pl {
+    display: none !important;
+  }
+}

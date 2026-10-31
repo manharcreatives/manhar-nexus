@@ -1,0 +1,67 @@
+import {
+  CONSENT_VERSIONS,
+  REGISTRATION_TRANSITIONS,
+  createRegistrationSchema,
+  updateRegistrationSchema,
+} from './registration.dto';
+
+const valid = {
+  restaurantName: 'Ananda Cafe',
+  contactName: 'Asha Patel',
+  email: 'Asha@Example.com ',
+  phone: '+91 97145 71522',
+  city: 'Visnagar',
+  businessKind: 'cafe',
+  outlets: 2,
+  planKey: 'floor',
+  billingCycle: 'yearly',
+  consent: true,
+  consentVersion: CONSENT_VERSIONS[0],
+};
+
+describe('createRegistrationSchema', () => {
+  it('accepts the contract body and normalises the email', () => {
+    const out = createRegistrationSchema.parse(valid);
+    expect(out.email).toBe('asha@example.com');
+  });
+
+  it('rejects unknown keys, bad email, consent=false and unknown consent versions', () => {
+    expect(createRegistrationSchema.safeParse({ ...valid, role: 'admin' }).success).toBe(false);
+    expect(createRegistrationSchema.safeParse({ ...valid, email: 'nope' }).success).toBe(false);
+    expect(createRegistrationSchema.safeParse({ ...valid, consent: false }).success).toBe(false);
+    expect(createRegistrationSchema.safeParse({ ...valid, consentVersion: '1999-01-01' }).success).toBe(false);
+  });
+
+  it('enforces the allow-lists and numeric bounds', () => {
+    for (const bad of [
+      { planKey: 'enterprise' },
+      { billingCycle: 'weekly' },
+      { businessKind: 'spaceship' },
+      { outlets: 0 },
+      { outlets: 501 },
+      { outlets: 1.5 },
+      { message: 'x'.repeat(1001) },
+      { phone: 'abc' },
+    ]) {
+      expect(createRegistrationSchema.safeParse({ ...valid, ...bad }).success).toBe(false);
+    }
+    for (const plan of ['counter', 'floor', 'pass', 'many-doors', 'not-sure']) {
+      expect(createRegistrationSchema.safeParse({ ...valid, planKey: plan }).success).toBe(true);
+    }
+  });
+});
+
+describe('updateRegistrationSchema', () => {
+  it('needs at least one field and rejects unknown keys', () => {
+    expect(updateRegistrationSchema.safeParse({}).success).toBe(false);
+    expect(updateRegistrationSchema.safeParse({ email: 'x@y.z' }).success).toBe(false);
+    expect(updateRegistrationSchema.safeParse({ status: 'CONTACTED' }).success).toBe(true);
+  });
+});
+
+describe('REGISTRATION_TRANSITIONS', () => {
+  it('makes CONVERTED terminal and lets SPAM be reopened', () => {
+    expect(REGISTRATION_TRANSITIONS.CONVERTED).toEqual([]);
+    expect(REGISTRATION_TRANSITIONS.SPAM).toContain('NEW');
+  });
+});

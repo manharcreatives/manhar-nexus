@@ -16,6 +16,11 @@ interface Props {
   onOpenShortcuts: () => void;
   onChangePassword: () => void;
   onSignOut: () => void;
+  /** Sign in as someone else in this tab only (other tabs are not touched). */
+  onSwitchAccount?: () => void;
+  onSignOutEverywhere?: () => void;
+  /** Which kind of session this tab runs, shown next to the roles. */
+  sessionKind?: 'device' | 'tab';
 }
 
 interface Item {
@@ -28,7 +33,7 @@ interface Item {
 }
 
 /** Initials button → identity, roles, version, shortcut help and Sign out (WAI-ARIA menu button). */
-export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePassword, onSignOut }: Props) {
+export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePassword, onSignOut, onSwitchAccount, onSignOutEverywhere, sessionKind }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
@@ -74,6 +79,27 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePasswor
       icon: <Icons.KeyRound className="size-4" aria-hidden />,
       run: onChangePassword,
     },
+    ...(onSwitchAccount
+      ? [
+          {
+            id: 'switch',
+            label: t('session.switchAccount'),
+            icon: <Icons.Users className="size-4" aria-hidden />,
+            run: onSwitchAccount,
+          },
+        ]
+      : []),
+    ...(onSignOutEverywhere
+      ? [
+          {
+            id: 'signout-all',
+            label: t('session.signOutEverywhere'),
+            icon: <Icons.LogOut className="size-4" aria-hidden />,
+            run: onSignOutEverywhere,
+            tone: 'bad' as const,
+          },
+        ]
+      : []),
     {
       id: 'signout',
       label: t('shell.signOut'),
@@ -82,6 +108,8 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePasswor
       tone: 'bad',
     },
   ];
+
+  const firstDanger = items.findIndex((it) => it.tone === 'bad');
 
   useEffect(() => {
     if (open) itemRefs.current[focusIndex]?.focus();
@@ -178,6 +206,9 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePasswor
               ) : (
                 <span className="text-xs text-muted">{t('shell.noRoles')}</span>
               )}
+              {sessionKind === 'tab' && (
+                <span className="rounded-control border border-line px-2 py-0.5 text-xs font-medium text-muted">{t('session.tabOnlyBadge')}</span>
+              )}
             </p>
           </div>
           <div id={menuId} role="menu" aria-label={t('shell.userMenu')} onKeyDown={onMenuKey} className="p-1.5">
@@ -191,14 +222,14 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePasswor
                 role="menuitem"
                 tabIndex={i === focusIndex ? 0 : -1}
                 onClick={() => {
-                  close(item.id !== 'signout');
+                  close(item.id !== 'signout' && item.id !== 'signout-all');
                   item.run();
                 }}
                 className={cn(
                   'flex min-h-11 w-full items-center gap-3 rounded-control px-2.5 text-left text-sm transition-colors duration-(--duration-micro)',
                   'hover:bg-sunken focus-visible:bg-sunken',
                   item.tone === 'bad' ? 'text-bad' : 'text-ink',
-                  item.id === 'signout' && 'mt-1 border-t border-line',
+                  i === firstDanger && 'mt-1 border-t border-line',
                 )}
               >
                 <span className={item.tone === 'bad' ? 'text-bad' : 'text-muted'}>{item.icon}</span>

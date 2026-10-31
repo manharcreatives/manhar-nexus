@@ -577,7 +577,8 @@ export class OrderService extends TenantScopedRepository {
     });
   }
 
-  private async resolveLineSnapshots(
+  /** Re-prices a line from the live catalog (server-side; client prices are never trusted). Also used by OrderEditService. */
+  async resolveLineSnapshots(
     scope: TenantScope,
     lines: CreateDraftDto['lines'],
   ): Promise<LineSnapshot[]> {
@@ -721,7 +722,7 @@ export function modifierGroupBounds(group: {
   return { min, max };
 }
 
-interface LineSnapshot {
+export interface LineSnapshot {
   catalogItemId: string;
   variantId?: string;
   itemNameSnapshot: string;
@@ -735,7 +736,7 @@ interface LineSnapshot {
   modifiers: ModifierSnapshot[];
 }
 
-interface ModifierSnapshot {
+export interface ModifierSnapshot {
   modifierOptionId: string;
   optionNameSnapshot: string;
   priceAdjMinorUnits: number;

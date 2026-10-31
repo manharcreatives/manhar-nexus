@@ -51,7 +51,7 @@ export class PaymentService extends TenantScopedRepository {
       where: this.scoped(scope, { idempotencyKey: dto.idempotencyKey }),
       include: { refunds: true },
     });
-    if (existingByKey) return existingByKey;
+    if (existingByKey) return this.replayPayment(existingByKey, invoiceId, dto);
 
     // PAID is a conflict (bill already settled); other non-FINALISED states are validation errors
     if (invoice.status === InvoiceStatus.PAID) {
@@ -97,54 +97,108 @@ export class PaymentService extends TenantScopedRepository {
       notes: dto.notes,
     });
 
-    const txResult = await this.prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.create({
-        data: {
-          businessId: scope.businessId,
-          locationId: invoice.locationId,
-          invoiceId,
-          idempotencyKey: dto.idempotencyKey,
-          method: dto.method,
-          status: result.status,
-          amountMinorUnits: dto.amountMinorUnits,
-          currencyCode: invoice.currencyCode,
-          cashReceivedMinorUnits: result.status === 'CAPTURED' ? (dto.cashReceivedMinorUnits ?? null) : null,
-          changeMinorUnits: result.changeMinorUnits ?? null,
-          referenceCode: dto.referenceCode ?? null,
-          providerOrderId: result.providerOrderId ?? null,
-          providerTransactionId: result.providerTransactionId ?? null,
-          notes: dto.notes ?? null,
-          capturedAt: result.capturedAt ?? null,
-        },
-        include: { refunds: true },
-      });
+    let txResult: Payment;
+    let replayed = false;
+    try {
+      txResult = await this.prisma.$transaction(async (tx) => {
+        // Serialise payment writes for the tenant, then re-check EVERYTHING under the lock: two
+        // taps (or two devices) racing past the checks above can no longer both create a payment.
+        await lockBusiness(tx, scope.businessId);
 
-      // If immediately captured (e.g. cash), mark the invoice PAID
-      if (result.status === PaymentStatus.CAPTURED) {
-        await tx.invoice.update({
-          where: { id: invoiceId },
-          data: { status: InvoiceStatus.PAID, paidAt: result.capturedAt ?? new Date(), version: { increment: 1 } },
+        const duplicate = await tx.payment.findFirst({
+          where: { businessId: scope.businessId, idempotencyKey: dto.idempotencyKey },
+          include: { refunds: true },
         });
-      }
+        if (duplicate) {
+          replayed = true;
+          return this.replayPayment(duplicate, invoiceId, dto);
+        }
 
-      await this.audit.append(tx, scope, {
-        action: 'payment.initiated',
-        resourceType: 'payment',
-        resourceId: payment.id,
-        locationId: invoice.locationId,
-        metadata: {
-          invoiceId,
-          method: dto.method,
-          amountMinorUnits: dto.amountMinorUnits,
-          status: result.status,
-        },
+        const fresh = await tx.invoice.findFirst({
+          where: { id: invoiceId, businessId: scope.businessId },
+          select: { status: true, grandTotalMinorUnits: true },
+        });
+        if (!fresh) throw new NotFoundError('Invoice not found', { invoiceId });
+        if (fresh.status === InvoiceStatus.PAID) throw new ConflictError('Invoice is already PAID', { invoiceId });
+        if (fresh.status !== InvoiceStatus.FINALISED) {
+          throw new ValidationError('Invoice must be FINALISED before accepting payment', { invoiceId, status: fresh.status });
+        }
+        const active = await tx.payment.findFirst({
+          where: { businessId: scope.businessId, invoiceId, status: { in: [PaymentStatus.PENDING, PaymentStatus.CAPTURED] } },
+          select: { id: true, status: true },
+        });
+        if (active) {
+          throw new ConflictError('Invoice already has an active or captured payment', {
+            invoiceId,
+            existingPaymentId: active.id,
+            existingStatus: active.status,
+          });
+        }
+        if (fresh.grandTotalMinorUnits !== dto.amountMinorUnits) {
+          throw new ValidationError('Payment amount must equal invoice grand total', {
+            provided: dto.amountMinorUnits,
+            required: fresh.grandTotalMinorUnits,
+          });
+        }
+
+        const payment = await tx.payment.create({
+          data: {
+            businessId: scope.businessId,
+            locationId: invoice.locationId,
+            invoiceId,
+            idempotencyKey: dto.idempotencyKey,
+            method: dto.method,
+            status: result.status,
+            amountMinorUnits: dto.amountMinorUnits,
+            currencyCode: invoice.currencyCode,
+            cashReceivedMinorUnits: result.status === 'CAPTURED' ? (dto.cashReceivedMinorUnits ?? null) : null,
+            changeMinorUnits: result.changeMinorUnits ?? null,
+            referenceCode: dto.referenceCode ?? null,
+            providerOrderId: result.providerOrderId ?? null,
+            providerTransactionId: result.providerTransactionId ?? null,
+            notes: dto.notes ?? null,
+            capturedAt: result.capturedAt ?? null,
+          },
+          include: { refunds: true },
+        });
+
+        // If immediately captured (e.g. cash), mark the invoice PAID
+        if (result.status === PaymentStatus.CAPTURED) {
+          await tx.invoice.update({
+            where: { id: invoiceId },
+            data: { status: InvoiceStatus.PAID, paidAt: result.capturedAt ?? new Date(), version: { increment: 1 } },
+          });
+        }
+
+        await this.audit.append(tx, scope, {
+          action: 'payment.initiated',
+          resourceType: 'payment',
+          resourceId: payment.id,
+          locationId: invoice.locationId,
+          metadata: {
+            invoiceId,
+            method: dto.method,
+            amountMinorUnits: dto.amountMinorUnits,
+            status: result.status,
+          },
+        });
+
+        return payment;
       });
-
-      return payment;
-    });
+    } catch (e) {
+      // Unique (businessId, idempotencyKey) race that slipped past the lock: replay the winner.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const winner = await this.prisma.payment.findFirst({
+          where: this.scoped(scope, { idempotencyKey: dto.idempotencyKey }),
+          include: { refunds: true },
+        });
+        if (winner) return this.replayPayment(winner, invoiceId, dto);
+      }
+      throw e;
+    }
 
     // Best-effort notification: invoice immediately PAID on cash capture
-    if (txResult.status === PaymentStatus.CAPTURED) {
+    if (!replayed && txResult.status === PaymentStatus.CAPTURED) {
       void this.dispatcher.dispatch(scope.businessId, 'invoice.paid', {
         title: 'Invoice Paid',
         body: `A payment of ${dto.amountMinorUnits} was captured via ${dto.method}.`,
@@ -158,6 +212,11 @@ export class PaymentService extends TenantScopedRepository {
   async capturePayment(scope: TenantScope, id: string, dto: CapturePaymentDto): Promise<Payment> {
     const payment = await this.findPaymentOrThrow(scope, id);
 
+    // A retried confirmation (dropped response, double tap) with the SAME reference is a replay of
+    // the capture that already happened, not an error and never a second capture.
+    if (payment.status === PaymentStatus.CAPTURED && dto.referenceCode !== undefined && dto.referenceCode === payment.referenceCode) {
+      return payment;
+    }
     if (payment.status !== PaymentStatus.PENDING) {
       throw new ValidationError('Only PENDING payments can be captured', { id, status: payment.status });
     }
@@ -175,9 +234,13 @@ export class PaymentService extends TenantScopedRepository {
       providerTransactionId: dto.providerTransactionId,
     });
 
+    let replayed = false;
     const captured = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.payment.update({
-        where: { id },
+      await lockBusiness(tx, scope.businessId);
+
+      // Compare-and-set: only the request that still finds the payment PENDING may capture it.
+      const moved = await tx.payment.updateMany({
+        where: { id, businessId: scope.businessId, status: PaymentStatus.PENDING, version: payment.version },
         data: {
           status: result.status,
           capturedAt: result.capturedAt,
@@ -185,8 +248,19 @@ export class PaymentService extends TenantScopedRepository {
           providerTransactionId: result.providerTransactionId ?? null,
           version: { increment: 1 },
         },
-        include: { refunds: true },
       });
+      if (moved.count === 0) {
+        const current = await tx.payment.findFirst({ where: { id, businessId: scope.businessId }, include: { refunds: true } });
+        if (current?.status === PaymentStatus.CAPTURED && current.referenceCode === (result.referenceCode ?? null)) {
+          replayed = true;
+          return current;
+        }
+        throw new ConflictError('Payment was changed by someone else; reload and check its status', {
+          id,
+          status: current?.status,
+        });
+      }
+      const updated = await tx.payment.findFirstOrThrow({ where: { id, businessId: scope.businessId }, include: { refunds: true } });
 
       if (result.status === PaymentStatus.CAPTURED) {
         await tx.invoice.update({
@@ -207,7 +281,7 @@ export class PaymentService extends TenantScopedRepository {
     });
 
     // Best-effort notification after commit
-    if (captured.status === PaymentStatus.CAPTURED) {
+    if (!replayed && captured.status === PaymentStatus.CAPTURED) {
       void this.dispatcher.dispatch(scope.businessId, 'invoice.paid', {
         title: 'Invoice Paid',
         body: `Payment of ${captured.amountMinorUnits} captured via ${captured.method}.`,
@@ -232,16 +306,23 @@ export class PaymentService extends TenantScopedRepository {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.payment.update({
-        where: { id },
+      await lockBusiness(tx, scope.businessId);
+
+      const moved = await tx.payment.updateMany({
+        where: { id, businessId: scope.businessId, status: PaymentStatus.PENDING },
         data: {
           status: PaymentStatus.CANCELLED,
           failureReason: dto.reason ?? null,
           cancelledAt: new Date(),
           version: { increment: 1 },
         },
-        include: { refunds: true },
       });
+      const updated = await tx.payment.findFirstOrThrow({ where: { id, businessId: scope.businessId }, include: { refunds: true } });
+      if (moved.count === 0) {
+        // Lost the race. If someone else cancelled it, that is the outcome we wanted; if it was captured, say so.
+        if (updated.status === PaymentStatus.CANCELLED) return updated;
+        throw new ConflictError('Payment was captured while you were cancelling it', { id, status: updated.status });
+      }
 
       await this.audit.append(tx, scope, {
         action: 'payment.cancelled',
@@ -286,6 +367,28 @@ export class PaymentService extends TenantScopedRepository {
       }
       throw e;
     }
+  }
+
+  /**
+   * Same key + same invoice + same method + same amount (+ same cash tendered) → the original
+   * payment; anything else → 409. A key can never silently stand in for a different payment,
+   * e.g. a changed cash amount or a switched method after a lost response.
+   */
+  private replayPayment(existing: Payment, invoiceId: string, dto: InitiatePaymentDto): Payment {
+    const sameCash =
+      dto.method !== 'CASH' || dto.cashReceivedMinorUnits === undefined || existing.cashReceivedMinorUnits === dto.cashReceivedMinorUnits;
+    if (
+      existing.invoiceId !== invoiceId ||
+      existing.method !== dto.method ||
+      existing.amountMinorUnits !== dto.amountMinorUnits ||
+      !sameCash
+    ) {
+      throw new ConflictError('Idempotency key was already used for a different payment', {
+        idempotencyKey: dto.idempotencyKey,
+        existingPaymentId: existing.id,
+      });
+    }
+    return existing;
   }
 
   /** Same key + same payment + same amount → the original refund; anything else → 409. */

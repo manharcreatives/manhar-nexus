@@ -1,0 +1,15 @@
+{
+  "auth": {
+    "accountChanged": "This browser is now signed in as a different account. Sign in again to continue here.",
+    "signedOutElsewhere": "You were signed out in another tab. Sign in again to continue."
+  },
+  "session": {
+    "remember": "Keep me signed in on this device",
+    "rememberHint": "Untick to sign in on this tab only. Other tabs can then use other accounts at the same time.",
+    "tabOnlyNote": "This tab signs in on its own. Your other tabs keep their own accounts.",
+    "tabOnlyBadge": "This tab only",
+    "deviceBadge": "This device",
+    "switchAccount": "Switch account in this tab",
+    "signOutEverywhere": "Sign out on all devices"
+  }
+}

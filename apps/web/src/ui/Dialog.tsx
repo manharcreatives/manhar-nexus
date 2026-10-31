@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
+import { useBackdropDismiss } from './useBackdropDismiss';
 
 export interface DialogProps {
   open: boolean;
@@ -8,11 +9,18 @@ export interface DialogProps {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  /** Close when the backdrop is clicked (default). Escape and the footer buttons always work. */
+  closeOnBackdrop?: boolean;
 }
 
-/** Modal built on the native <dialog>: focus trap, Esc and backdrop come from the platform. */
-export function Dialog({ open, onClose, title, children, footer, className }: DialogProps) {
+/**
+ * Modal built on the native <dialog>: focus trap, Esc and return-focus come from the platform; backdrop
+ * dismissal uses the shared pointer logic so a text selection that ends outside never closes it.
+ */
+export function Dialog({ open, onClose, title, children, footer, className, closeOnBackdrop = true }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  // Closes only when the press AND the release both happened on the backdrop (see useBackdropDismiss).
+  const backdrop = useBackdropDismiss(onClose, closeOnBackdrop);
 
   useEffect(() => {
     const el = ref.current;
@@ -37,9 +45,7 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
       aria-label={title}
       tabIndex={-1}
       onClose={onClose}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose();
-      }}
+      {...backdrop}
       className={cn(
         'nx-dialog m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto focus:outline-none w-[min(32rem,calc(100vw-2rem))] nx-pop rounded-panel p-0 text-ink',
         className,

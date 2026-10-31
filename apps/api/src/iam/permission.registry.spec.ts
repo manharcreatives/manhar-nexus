@@ -8,6 +8,16 @@ describe('PermissionRegistry', () => {
     expect(r.has('core.nonexistent.action')).toBe(false);
   });
 
+  it('registers the public-registration platform permissions as restricted (ADR-033)', () => {
+    const r = new PermissionRegistry();
+    for (const key of ['platform.registration.view', 'platform.registration.manage']) {
+      expect(r.has(key)).toBe(true);
+      expect(r.isRestricted(key)).toBe(true);
+    }
+    // Reachable only through the platform-admin wildcard: no system role lists them explicitly.
+    expect(r.list('platform').filter((d) => d.resource === 'registration')).toHaveLength(2);
+  });
+
   it('treats the wildcard as always present', () => {
     const r = new PermissionRegistry();
     expect(r.has(WILDCARD)).toBe(true);

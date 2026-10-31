@@ -32,6 +32,7 @@ const RULES: Rule[] = [
   rule('DELETE', `/admin/orders/${ID}/lines/${ID}`, ['orders']),
   rule('POST', `/admin/orders/${ID}/lines/${ID}/cancel`, ['orders', 'kitchen']),
   rule('POST', `/admin/orders/${ID}/send`, ['orders', 'kitchen']),
+  rule('POST', `/admin/orders/${ID}/edit`, ['orders', 'kitchen']), // order edit before the kitchen starts it (A2)
   rule('POST', `/admin/orders/${ID}/serve`, ['orders', 'kitchen']),
   // Kitchen
   rule('POST', `/admin/kitchen/${ID}/(?:accept|prepare|ready)`, ['kitchen', 'orders']),

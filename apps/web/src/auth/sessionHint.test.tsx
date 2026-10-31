@@ -12,7 +12,7 @@ const calls: string[] = [];
 beforeEach(() => {
   calls.length = 0;
   window.localStorage.clear();
-  window.history.pushState({}, '', '/');
+  window.history.pushState({}, '', '/login');
   vi.stubGlobal(
     'fetch',
     vi.fn((input: RequestInfo | URL) => {

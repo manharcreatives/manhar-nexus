@@ -1,27 +1,205 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-IN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#070a09" />
-    <meta name="description" content="Run the floor, the kitchen and the books from one calm place." />
+    <title>Manhar Nexus – Restaurant Software for Indian Restaurants</title>
+    <meta name="description" content="Manhar Nexus joins floor, kitchen and Checkout in one workspace for Indian restaurants and cafés. Live KOS, GST by line, refunds with reasons. Prices in ₹." />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#0B0F0E" />
+    <!-- TO CONFIRM: the production hostname is not decided yet. When it is, replace https://nexus.manharcreatives.com
+         here (canonical, og:url, og:image, twitter:image, JSON-LD), in src/landing/site.ts (SITE.origin),
+         public/robots.txt and public/sitemap.xml. -->
+    <link rel="canonical" href="https://nexus.manharcreatives.com/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/clash-display-600.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/satoshi-400.woff2" as="font" type="font/woff2" crossorigin />
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Manhar Nexus" />
-    <meta property="og:title" content="Manhar Nexus - restaurant operations" />
-    <meta property="og:description" content="Run the floor, the kitchen and the books from one calm place." />
-    <meta property="og:image" content="/og.png" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:url" content="https://nexus.manharcreatives.com/" />
+    <meta property="og:title" content="Manhar Nexus — every table, every ticket, every rupee accounted for" />
+    <meta property="og:description" content="A calm restaurant operations platform from Manhar Creatives, Visnagar. Live kitchen screen, GST by line, refunds with reasons and a tamper-checkable Activity History." />
+    <meta property="og:image" content="https://nexus.manharcreatives.com/landing/og-1200x630.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Manhar Nexus: a paid table ticket beside the line 'From the first order to the last report.'" />
+    <meta property="og:image:alt" content="Manhar Nexus: a restaurant pass at dusk with tickets lined up." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Manhar Nexus - restaurant operations" />
-    <meta name="twitter:description" content="Run the floor, the kitchen and the books from one calm place." />
-    <meta name="twitter:image" content="/og.png" />
-    <title>Manhar Nexus</title>
+    <meta name="twitter:title" content="Manhar Nexus — every table, every ticket, every rupee accounted for" />
+    <meta name="twitter:description" content="A calm restaurant operations platform from Manhar Creatives, Visnagar. Live kitchen screen, GST by line, refunds with reasons and a tamper-checkable Activity History." />
+    <meta name="twitter:image" content="https://nexus.manharcreatives.com/landing/og-1200x630.png" />
+    <meta name="twitter:image:alt" content="Manhar Nexus: a restaurant pass at dusk with tickets lined up." />
+
+    <!-- Structured data (data blocks: not blocked by the CSP script-src 'self'). FAQPage JSON-LD is injected at runtime
+         by the FAQ section through useJsonLd('faq', ...) so it always matches the visible FAQ. -->
+    <script type="application/ld+json">
+{
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Manhar Creatives",
+      "alternateName": "Manhar Nexus",
+      "url": "https://www.manharcreatives.com",
+      "slogan": "We Design, We Build, You Grow.",
+      "email": "info@manharcreatives.com",
+      "telephone": "+91-97145-71522",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Sona Complex, A-252, Kansa Cross Road, Opp. Khodiyar Hotel",
+        "addressLocality": "Visnagar",
+        "addressRegion": "Gujarat",
+        "postalCode": "384315",
+        "addressCountry": "IN"
+      },
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "contactType": "sales",
+          "telephone": "+91-97145-71522",
+          "email": "info@manharcreatives.com",
+          "areaServed": "IN",
+          "availableLanguage": [
+            "English",
+            "Hindi",
+            "Gujarati"
+          ]
+        }
+      ],
+      "sameAs": [
+        "https://www.linkedin.com/company/manhar-creatives/",
+        "https://www.instagram.com/manhar.creatives"
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+{
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Manhar Nexus",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Restaurant management software",
+      "operatingSystem": "Web browser (Chrome, Edge, Safari, Firefox)",
+      "description": "Restaurant operations platform for Indian restaurants and cafés: dining tables, Service Requests, a live Kitchen Operations Screen, Checkout with GST, refunds and Voids with reasons, reports, operating costs and a verifiable Activity History.",
+      "url": "https://nexus.manharcreatives.com/",
+      "inLanguage": "en-IN",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Manhar Creatives",
+        "url": "https://www.manharcreatives.com"
+      },
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Counter - monthly",
+          "description": "1 outlet, up to 5 staff logins. Price excludes 18% GST.",
+          "price": "599",
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nexus.manharcreatives.com/#pricing",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": 599,
+            "priceCurrency": "INR",
+            "billingDuration": "P1M",
+            "unitCode": "MON",
+            "valueAddedTaxIncluded": false
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Counter - yearly",
+          "description": "1 outlet, up to 5 staff logins. 2 months free. Price excludes 18% GST.",
+          "price": "5990",
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nexus.manharcreatives.com/#pricing",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": 5990,
+            "priceCurrency": "INR",
+            "billingDuration": "P1Y",
+            "unitCode": "ANN",
+            "valueAddedTaxIncluded": false
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Floor - monthly",
+          "description": "1 outlet, up to 15 staff logins, Operating Costs, Alerts rules. Price excludes 18% GST.",
+          "price": "1299",
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nexus.manharcreatives.com/#pricing",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": 1299,
+            "priceCurrency": "INR",
+            "billingDuration": "P1M",
+            "unitCode": "MON",
+            "valueAddedTaxIncluded": false
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Floor - yearly",
+          "description": "1 outlet, up to 15 staff logins, Operating Costs, Alerts rules. 2 months free. Price excludes 18% GST.",
+          "price": "12990",
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nexus.manharcreatives.com/#pricing",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": 12990,
+            "priceCurrency": "INR",
+            "billingDuration": "P1Y",
+            "unitCode": "ANN",
+            "valueAddedTaxIncluded": false
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Pass - monthly",
+          "description": "Up to 3 outlets, up to 40 staff logins, priority support. Price excludes 18% GST.",
+          "price": "2499",
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nexus.manharcreatives.com/#pricing",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": 2499,
+            "priceCurrency": "INR",
+            "billingDuration": "P1M",
+            "unitCode": "MON",
+            "valueAddedTaxIncluded": false
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Pass - yearly",
+          "description": "Up to 3 outlets, up to 40 staff logins, priority support. 2 months free. Price excludes 18% GST.",
+          "price": "24990",
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nexus.manharcreatives.com/#pricing",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": 24990,
+            "priceCurrency": "INR",
+            "billingDuration": "P1Y",
+            "unitCode": "ANN",
+            "valueAddedTaxIncluded": false
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      Manhar Nexus is restaurant software from Manhar Creatives: floor, kitchen and Checkout in one workspace, priced in
+      rupees. This site needs JavaScript. Write to info@manharcreatives.com or call +91 97145 71522.
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

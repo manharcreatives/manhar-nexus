@@ -59,8 +59,10 @@ export const BUILT_IN_MODULES: ModuleManifest[] = [
       { module: 'restaurant', resource: 'guest', action: 'manage', description: 'Manage guest profiles' },
       { module: 'restaurant', resource: 'order', action: 'view', description: 'View service requests (orders)' },
       { module: 'restaurant', resource: 'order', action: 'manage', description: 'Manage service requests (orders)' },
+      { module: 'restaurant', resource: 'order', action: 'edit', description: 'Edit a sent order before the kitchen starts it' },
       { module: 'restaurant', resource: 'kitchen', action: 'view', description: 'View kitchen queue' },
       { module: 'restaurant', resource: 'kitchen', action: 'manage', description: 'Update kitchen order status' },
+      { module: 'restaurant', resource: 'bill', action: 'show', description: 'Show the customer-facing bill at the table' },
       { module: 'restaurant', resource: 'production', action: 'view', description: 'View production areas' },
       { module: 'restaurant', resource: 'production', action: 'manage', description: 'Manage production areas' },
     ],
@@ -118,6 +120,7 @@ export const BUILT_IN_MODULES: ModuleManifest[] = [
       { module: 'checkout', resource: 'payment', action: 'view', description: 'View payments' },
       { module: 'checkout', resource: 'payment', action: 'process', description: 'Process payments' },
       { module: 'checkout', resource: 'shift', action: 'manage', description: 'Manage shift reconciliation' },
+      { module: 'checkout', resource: 'paymentqr', action: 'show', description: 'Show the UPI payment QR to a customer' },
     ],
     defaultConfig: {},
     setupSteps: [

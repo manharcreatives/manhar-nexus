@@ -11,6 +11,7 @@ import { ConnectionIndicator } from '../realtime/LiveBadge';
 import { PageHeader } from '../ui/PageHeader';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { KeyCombo, Kbd } from '../ui/Kbd';
+import { useBackdropDismiss } from '../ui/useBackdropDismiss';
 import * as Icons from '../ui/icons';
 import { computeAccess } from './access';
 import { CommandPalette, type Command } from './CommandPalette';
@@ -33,7 +34,7 @@ function BrandMark() {
 
 export function AppShell() {
   const { t } = useTranslation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, signOutEverywhere, switchAccount, sessionKind } = useAuth();
   const work = useWorkLocation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -53,6 +54,10 @@ export function AppShell() {
     setPaletteOpen(true);
   }, []);
   const doSignOut = useCallback(() => void signOut(), [signOut]);
+  const doSwitchAccount = useCallback(() => void switchAccount(), [switchAccount]);
+  const doSignOutEverywhere = useCallback(() => void signOutEverywhere(), [signOutEverywhere]);
+  // Same pointer rule as every overlay: the mobile nav scrim closes only on a press AND release on the scrim itself.
+  const navScrim = useBackdropDismiss(() => setNavOpen(false));
 
   // ── Shortcuts (derived from the same page list) ──
   const bindings = useMemo<ShortcutBinding[]>(
@@ -210,7 +215,7 @@ export function AppShell() {
           {!access.isPlatform && <ConnectionIndicator />}
           {!access.isPlatform && <NotificationsPanel />}
           {user && (
-            <UserMenu user={user} onOpenPalette={openPalette} onOpenShortcuts={() => setHelpOpen(true)} onChangePassword={() => setPasswordOpen(true)} onSignOut={doSignOut} />
+            <UserMenu user={user} onOpenPalette={openPalette} onOpenShortcuts={() => setHelpOpen(true)} onChangePassword={() => setPasswordOpen(true)} onSignOut={doSignOut} onSwitchAccount={doSwitchAccount} onSignOutEverywhere={doSignOutEverywhere} sessionKind={sessionKind} />
           )}
         </div>
       </header>
@@ -234,7 +239,7 @@ export function AppShell() {
             type="button"
             aria-label={t('shell.closeNav')}
             className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm lg:hidden"
-            onClick={() => setNavOpen(false)}
+            {...navScrim}
           />
         )}
 

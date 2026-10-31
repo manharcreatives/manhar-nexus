@@ -3,6 +3,7 @@ import {
   DEV_BOOTSTRAP_PASSWORD,
   DEV_DATABASE_URL,
   DEV_JWT_SECRET,
+  DEV_REGISTRATION_IP_SALT,
   EnvValidationError,
   validateEnv,
 } from './configuration';
@@ -17,6 +18,7 @@ function goodProd(overrides: Record<string, string | undefined> = {}): Record<st
     PLATFORM_BOOTSTRAP_EMAIL: 'ops@example.com',
     PLATFORM_BOOTSTRAP_PASSWORD: 'a-long-unique-bootstrap-pass',
     TRUST_PROXY: '1',
+    REGISTRATION_IP_SALT: 's'.repeat(40),
     ...overrides,
   };
 }
@@ -44,6 +46,13 @@ describe('validateEnv', () => {
 
     it('accepts the dev defaults in test mode', () => {
       expect(() => validateEnv({ NODE_ENV: 'test' })).not.toThrow();
+    });
+
+    it('defaults the registration salt and throttle in development (ADR-033)', () => {
+      const env = validateEnv({});
+      expect(env.REGISTRATION_IP_SALT).toBe(DEV_REGISTRATION_IP_SALT);
+      expect(env.REGISTRATION_RATE_LIMIT).toBe(5);
+      expect(env.REGISTRATION_RATE_TTL_MS).toBe(3_600_000);
     });
 
     it('coerces numbers and boolean flags', () => {
@@ -116,6 +125,18 @@ describe('validateEnv', () => {
     it('refuses a short bootstrap password', () => {
       expect(issuesOf(goodProd({ PLATFORM_BOOTSTRAP_PASSWORD: 'Short!Pass12' })).join()).toMatch(
         /PLATFORM_BOOTSTRAP_PASSWORD must be at least 16/,
+      );
+    });
+
+    it('requires a real REGISTRATION_IP_SALT (ADR-033): unset, dev default or short is refused', () => {
+      expect(issuesOf(goodProd({ REGISTRATION_IP_SALT: undefined })).join()).toMatch(
+        /REGISTRATION_IP_SALT must be overridden/,
+      );
+      expect(issuesOf(goodProd({ REGISTRATION_IP_SALT: DEV_REGISTRATION_IP_SALT })).join()).toMatch(
+        /REGISTRATION_IP_SALT must be overridden/,
+      );
+      expect(issuesOf(goodProd({ REGISTRATION_IP_SALT: 'z'.repeat(31) })).join()).toMatch(
+        /REGISTRATION_IP_SALT must be at least 32/,
       );
     });
 

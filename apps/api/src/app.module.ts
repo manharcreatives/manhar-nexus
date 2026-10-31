@@ -14,6 +14,7 @@ import { CommercialModule } from './commercial/commercial.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { CostsModule } from './costs/costs.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { RegistrationModule } from './registration/registration.module';
 
 @Module({
   imports: [
@@ -45,6 +46,8 @@ import { RealtimeModule } from './realtime/realtime.module';
     CostsModule,
     // Realtime change notifications (SSE), ADR-032.
     RealtimeModule,
+    // Public landing-page registration requests + platform triage, ADR-033.
+    RegistrationModule,
   ],
 })
 export class AppModule {}

@@ -9,10 +9,16 @@ export const DEV_BOOTSTRAP_EMAIL = 'platform@manhar.local';
 export const DEV_BOOTSTRAP_PASSWORD = 'ChangeMe!Dev12345';
 export const DEV_DATABASE_URL = 'postgresql://nexus:nexus@localhost:15432/nexus?schema=public';
 export const DEV_CORS_ORIGIN = 'http://localhost:5173';
+/** Dev-only HMAC key for visitor IP hashes (public registrations, ADR-033). Production refuses it. */
+export const DEV_REGISTRATION_IP_SALT = 'dev-only-registration-ip-salt-change-in-production';
+/** Public registration POST throttle: per IP, per window (tight; the /auth default is 10/min). */
+export const DEFAULT_REGISTRATION_RATE_LIMIT = 5;
+export const DEFAULT_REGISTRATION_RATE_TTL_MS = 3_600_000;
 
 /** Production minimums (ADR-028). */
 export const PROD_MIN_JWT_SECRET_LENGTH = 64;
 export const PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH = 16;
+export const PROD_MIN_REGISTRATION_IP_SALT_LENGTH = 32;
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1']);
 
@@ -85,6 +91,13 @@ export const envSchema = z
     PLATFORM_BOOTSTRAP_PASSWORD: z.string().min(12).default(DEV_BOOTSTRAP_PASSWORD),
     // Number of proxy hops to trust for real client IP (0 = don't trust XFF).
     TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+
+    // ── Public registration requests (ADR-033) ──
+    /** HMAC key for the stored visitor-IP hash. Dev default is allowed; production must override. */
+    REGISTRATION_IP_SALT: z.string().min(16).default(DEV_REGISTRATION_IP_SALT),
+    /** Per-IP POST limit on /public/registrations per window (in-memory, per API instance). */
+    REGISTRATION_RATE_LIMIT: z.coerce.number().int().positive().default(DEFAULT_REGISTRATION_RATE_LIMIT),
+    REGISTRATION_RATE_TTL_MS: z.coerce.number().int().positive().default(DEFAULT_REGISTRATION_RATE_TTL_MS),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
@@ -98,6 +111,7 @@ export const envSchema = z
       ['PLATFORM_BOOTSTRAP_PASSWORD', env.PLATFORM_BOOTSTRAP_PASSWORD, DEV_BOOTSTRAP_PASSWORD],
       ['PLATFORM_BOOTSTRAP_EMAIL', env.PLATFORM_BOOTSTRAP_EMAIL, DEV_BOOTSTRAP_EMAIL],
       ['DATABASE_URL', env.DATABASE_URL, DEV_DATABASE_URL],
+      ['REGISTRATION_IP_SALT', env.REGISTRATION_IP_SALT, DEV_REGISTRATION_IP_SALT],
     ];
     for (const [key, value, devValue] of placeholders) {
       if (value === devValue) {
@@ -116,6 +130,13 @@ export const envSchema = z
       fail(
         'PLATFORM_BOOTSTRAP_PASSWORD',
         `PLATFORM_BOOTSTRAP_PASSWORD must be at least ${PROD_MIN_BOOTSTRAP_PASSWORD_LENGTH} characters in production`,
+      );
+    }
+
+    if (env.REGISTRATION_IP_SALT.length < PROD_MIN_REGISTRATION_IP_SALT_LENGTH) {
+      fail(
+        'REGISTRATION_IP_SALT',
+        `REGISTRATION_IP_SALT must be at least ${PROD_MIN_REGISTRATION_IP_SALT_LENGTH} characters in production`,
       );
     }
 

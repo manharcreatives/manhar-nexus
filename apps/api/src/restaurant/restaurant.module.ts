@@ -18,6 +18,10 @@ import { SessionService } from './session/session.service';
 import { SessionController, TableResetController } from './session/session.controller';
 import { OrderService } from './order/order.service';
 import { OrderController, KitchenController } from './order/order.controller';
+import { OrderTimelineController } from './timeline/order-timeline.controller';
+import { OrderTimelineService } from './timeline/order-timeline.service';
+import { OrderEditController } from './order/order-edit.controller';
+import { OrderEditService } from './order/order-edit.service';
 
 /**
  * Phase 8 — Restaurant Operations.
@@ -42,8 +46,10 @@ import { OrderController, KitchenController } from './order/order.controller';
     SessionController,
     TableResetController,
     OrderController,
+    OrderEditController,
     KitchenController,
+    OrderTimelineController,
   ],
-  providers: [CatalogService, DiningService, PeopleService, BookingService, SessionService, OrderService],
+  providers: [CatalogService, DiningService, PeopleService, BookingService, SessionService, OrderService, OrderEditService, OrderTimelineService],
 })
 export class RestaurantModule {}

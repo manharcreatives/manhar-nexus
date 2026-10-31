@@ -1,0 +1,78 @@
+import type { BuiltForContent } from './types';
+
+export const BUILT_FOR: BuiltForContent = {
+  header: {
+    eyebrow: 'BUILT FOR',
+    headline: {
+      text: 'From the corner café to the busy dining room.',
+      accent: 'café',
+    },
+  },
+  items: [
+    {
+      id: 'restaurants',
+      title: 'Restaurants',
+      line: 'Tables, rounds, kitchen and Checkout in one flow.',
+      status: 'available',
+      statusLabel: 'Available now',
+      icon: 'Utensils',
+      image: 'restaurant-dining-golden-hour',
+    },
+    {
+      id: 'cafes',
+      title: 'Cafés',
+      line: 'Few tables, fast turns, every rupee in the drawer counted.',
+      status: 'available',
+      statusLabel: 'Available now',
+      icon: 'Coffee',
+      image: 'specialty-cafe-counter',
+    },
+    {
+      id: 'bakeries',
+      title: 'Bakeries',
+      line: 'Seated and counter-style service, GST by line.',
+      status: 'available',
+      statusLabel: 'Available now (token ordering coming soon)',
+      icon: 'Croissant',
+      image: 'bakery-morning-display',
+    },
+    {
+      id: 'hotel-restaurants',
+      title: 'Hotel restaurants',
+      line: 'A table-service outlet inside a hotel. Room billing is not part of it.',
+      status: 'partial',
+      statusLabel: 'F&B outlet only',
+      icon: 'Hotel',
+      image: 'boutique-hotel-dining',
+    },
+    {
+      id: 'cloud-kitchens',
+      title: 'Cloud kitchens',
+      line: 'Aggregator links and stock are on our roadmap, not in the product yet.',
+      status: 'coming-soon',
+      statusLabel: 'Coming soon',
+      icon: 'CookingPot',
+      image: 'cloud-kitchen-line',
+    },
+    {
+      id: 'food-courts',
+      title: 'Food courts & QSR counters',
+      line: 'Tokens, pickup and fast counter flows are being designed.',
+      status: 'coming-soon',
+      statusLabel: 'Coming soon',
+      icon: 'Store',
+      image: 'quick-service-counter',
+    },
+  ],
+  closingLine: 'Not sure where you fit? Tell us about your restaurant and we’ll say honestly whether Nexus is ready for you.',
+  ringImages: [
+    'restaurant-dining-golden-hour',
+    'boutique-hotel-dining',
+    'specialty-cafe-counter',
+    'cloud-kitchen-line',
+    'bakery-morning-display',
+    'indian-thali-overhead',
+    'rooftop-restaurant-dusk',
+    'bar-pour-evening',
+  ],
+};

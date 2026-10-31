@@ -1,2 +1,8 @@
+# Manhar Nexus: public website is indexable; the signed-in app renders the sign-in screen to crawlers.
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /m/
+
+# TO CONFIRM: placeholder host, replace with the real production hostname (see index.html comment).
+Sitemap: https://nexus.manharcreatives.com/sitemap.xml

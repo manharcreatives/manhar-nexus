@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/states';
+import { useOutsideDismiss } from '../ui/useBackdropDismiss';
 import { notificationsApi, type AlertNotification } from './api';
 import { useLiveRefresh } from '../realtime/RealtimeProvider';
 
@@ -129,14 +130,10 @@ export function NotificationsPanel() {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    panelRef.current?.focus();
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (open) panelRef.current?.focus();
   }, [open]);
+  // Shared overlay logic: only a press that STARTS outside dismisses (selecting text inside never does).
+  useOutsideDismiss(open, [wrapRef], () => setOpen(false));
 
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape' && open) {

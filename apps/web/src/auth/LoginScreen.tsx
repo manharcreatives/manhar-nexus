@@ -7,6 +7,7 @@ import { brand } from '../lib/brand';
 import { LedgerFigure } from '../ui/LedgerFigure';
 import { Stamp } from '../ui/Stamp';
 import { Button } from '../ui/Button';
+import { Checkbox } from '../ui/Checkbox';
 import { Field } from '../ui/Field';
 import * as Icons from '../ui/icons';
 import { formatMoney } from '../lib/money';
@@ -76,11 +77,12 @@ function TicketVignette() {
 
 export function LoginScreen({ notice }: { notice?: string | null }) {
   const { t } = useTranslation();
-  const { signIn } = useAuth();
+  const { signIn, tabOnlyLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -90,7 +92,7 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
     setErrorKey(null);
     setSubmitting(true);
     try {
-      await signIn(email.trim(), password);
+      await signIn(email.trim(), password, tabOnlyLogin ? false : remember);
     } catch (err) {
       setErrorKey(messageKey(err as ApiError));
     } finally {
@@ -163,6 +165,15 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
                 </button>
               }
             />
+
+            {tabOnlyLogin ? (
+              <p className="text-sm text-muted">{t('session.tabOnlyNote')}</p>
+            ) : (
+              <div>
+                <Checkbox label={t('session.remember')} checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                <p className="text-xs text-muted">{t('session.rememberHint')}</p>
+              </div>
+            )}
 
             {errorKey && (
               <p role="alert" className="rounded-control bg-bad-soft px-3 py-2 text-sm text-bad">

@@ -1,0 +1,323 @@
+{
+  "shell": {
+    "nav": {
+      "qr": "Table QR codes",
+      "guestOrders": "Guest orders"
+    },
+    "keywords": {
+      "qr": "qr code table menu digital menu print tent scan photos appearance settings",
+      "guestOrders": "guest orders qr self order confirm accept reject waiter call bill inbox"
+    }
+  },
+  "qr": {
+    "common": {
+      "cancel": "Cancel",
+      "retry": "Try again",
+      "loading": "Loading",
+      "on": "On",
+      "off": "Off"
+    },
+    "nav": {
+      "badge_one": "{{count}} waiting",
+      "badge_other": "{{count}} waiting"
+    },
+    "errors": {
+      "network": "Cannot reach the server. Check the connection and try again.",
+      "load": "Could not load the QR menu data.",
+      "toggle": "Could not change this table. Please try again.",
+      "rotate": "Could not replace the QR code. The old code is still active.",
+      "copy": "Could not copy the link. Select and copy it manually.",
+      "download": "Could not create the download. Try again or use SVG."
+    },
+    "page": {
+      "title": "Table QR codes",
+      "description": "Every table gets its own QR code. Guests scan it to browse the live menu, order and call the waiter.",
+      "tabsLabel": "QR menu sections",
+      "tabs": {
+        "tables": "Table codes",
+        "settings": "Menu settings",
+        "photos": "Dish photos"
+      },
+      "loadErrorTitle": "Could not load the QR menu",
+      "stale": "Showing the last known data. The latest refresh failed."
+    },
+    "tables": {
+      "emptyTitle": "No tables yet",
+      "emptyBody": "Add dining areas and tables under Floor and tables. Each table then gets a QR code here.",
+      "noMatch": "No table matches that search",
+      "noArea": "No area",
+      "areaLabel": "QR codes in {{area}}",
+      "search": "Find a table",
+      "searchPlaceholder": "Table code or area",
+      "enabledCount": "{{enabled}} of {{total}} on",
+      "printAll": "Print all",
+      "masterOff": "The guest menu is switched off for the whole restaurant. Scanning any QR code shows a closed notice.",
+      "openSettings": "Open menu settings",
+      "localNote": "This app is open on a local address. QR codes made here only work on this computer. Open Nexus from your real web address before printing."
+    },
+    "card": {
+      "aria": "QR code for table {{code}}",
+      "qrLabel": "QR code that opens the menu for table {{code}}",
+      "enabled": "On",
+      "disabled": "Off",
+      "offOverlay": "Guest menu off",
+      "rotated": "renewed {{date}}",
+      "pending_one": "{{count}} guest order waiting",
+      "pending_other": "{{count}} guest orders waiting",
+      "copy": "Copy link",
+      "copyAria": "Copy the menu link for table {{code}}",
+      "copied": "Link for table {{code}} copied.",
+      "tent": "Table tent",
+      "tentAria": "Print a table tent for table {{code}}",
+      "pngAria": "Download the QR code of table {{code}} as PNG",
+      "svgAria": "Download the QR code of table {{code}} as SVG",
+      "enable": "Turn on",
+      "disable": "Turn off",
+      "enableAria": "Turn the guest menu on for table {{code}}",
+      "disableAria": "Turn the guest menu off for table {{code}}",
+      "enabledToast": "Guest menu is on for table {{code}}.",
+      "disabledToast": "Guest menu is off for table {{code}}.",
+      "rotate": "Replace code",
+      "rotateAria": "Replace the QR code of table {{code}}"
+    },
+    "rotate": {
+      "title": "Replace the QR code for {{code}}?",
+      "body": "A new secret link is created for table {{code}}. This cannot be undone.",
+      "effectOld": "The current QR code stops working immediately.",
+      "effectPrint": "Every printed card or table tent for this table must be replaced with a new print.",
+      "effectSeated": "Guests seated at this table now will lose their live menu until they scan the new code.",
+      "confirm": "Replace QR code",
+      "done": "New QR code created for table {{code}}. Print it before guests arrive."
+    },
+    "print": {
+      "title": "Print QR cards",
+      "layout": "Layout",
+      "layouts": {
+        "sheet6": {
+          "name": "A4 sheet, 6 per page",
+          "hint": "Large cards, 2 by 3. Best for table stands."
+        },
+        "sheet8": {
+          "name": "A4 sheet, 8 per page",
+          "hint": "Compact cards, 2 by 4. Cut along the dashed lines."
+        },
+        "tent": {
+          "name": "Table tent, 100 mm wide",
+          "hint": "One card per page for a tent or acrylic holder."
+        }
+      },
+      "includeDisabled": "Include tables that are switched off",
+      "nothing": "No table to print. Turn on at least one table.",
+      "summary_one": "{{count}} card on {{pages}} page",
+      "summary_other": "{{count}} cards on {{pages}} pages",
+      "printAction_one": "Print {{count}} page",
+      "printAction_other": "Print {{count}} pages",
+      "localWarning": "This app is open on a local address, so these codes will not open on guests' phones. Print from your real web address.",
+      "previewLabel": "Preview of the first printed page",
+      "qrLabel": "QR code for table {{code}}",
+      "scan": "Scan to view the menu",
+      "table": "Table",
+      "tableName": "Table {{code}}",
+      "hint": "Browse the menu, order from your seat, or call your waiter.",
+      "foot": "Nexus Menu"
+    },
+    "settings": {
+      "accessTitle": "Guest ordering",
+      "master": "Guest menu",
+      "masterHint": "Turn off to close the menu on every table at once.",
+      "orderingTitle": "When a guest sends an order",
+      "ordering": {
+        "off": {
+          "name": "Browse only",
+          "hint": "Guests see the menu but cannot order."
+        },
+        "confirm": {
+          "name": "Waiter confirms",
+          "hint": "Orders wait in the Guest orders inbox until staff accept them."
+        },
+        "auto": {
+          "name": "Auto-confirm",
+          "hint": "Orders go straight to the kitchen without a check."
+        }
+      },
+      "autoWarning": "With auto-confirm nobody checks an order before the kitchen sees it. Use it only when the floor is closely watched.",
+      "callWaiter": "Call waiter and request bill",
+      "callWaiterHint": "Guests can ask for service from their phone.",
+      "upi": "Show UPI payment",
+      "upiHint": "Guests see the bill and a UPI QR. Staff still confirm every payment.",
+      "upiLink": "Set the restaurant UPI ID under Configuration",
+      "lookTitle": "Appearance",
+      "tagline": "Tagline",
+      "taglinePlaceholder": "Slow fire, honest spice",
+      "taglineCount": "{{count}} of {{max}} characters",
+      "logo": "Logo",
+      "logoHint": "Square image, shown on the menu header and printed cards.",
+      "logoCropTitle": "Crop the logo",
+      "logoInput": "Choose a logo image",
+      "cover": "Cover image",
+      "coverHint": "Wide photo behind the restaurant name.",
+      "coverCropTitle": "Crop the cover image",
+      "coverInput": "Choose a cover image",
+      "chooseImage": "Choose {{what}}",
+      "removeImage": "Remove {{what}}",
+      "imageSaved": "{{what}} updated.",
+      "imageFailed": "Could not save the image. Please try again.",
+      "accent": "Accent colour",
+      "accentPicker": "Pick the accent colour",
+      "accentHex": "Hex code",
+      "accentHint": "Used for buttons and highlights on the guest menu. Leave empty to use the restaurant colour.",
+      "accentInvalid": "Use a 6-digit hex code such as #22c55e.",
+      "accentReset": "Use restaurant colour",
+      "save": "Save settings",
+      "discard": "Discard changes",
+      "unsaved": "You have unsaved changes.",
+      "saved": "Menu settings saved.",
+      "saveFailed": "Could not save the settings."
+    },
+    "preview": {
+      "label": "Preview of the guest menu on a phone",
+      "call": "Call waiter",
+      "order": "Your order",
+      "upi": "Pay by UPI",
+      "note": "Approximate preview. Updates as you type."
+    },
+    "crop": {
+      "help": {
+        "dish": "Dish photos are shown at 4:5 (portrait). Drag to position, zoom to frame the dish.",
+        "logo": "The logo is shown as a square. Drag to position, zoom to fit.",
+        "cover": "The cover is shown wide (16:9). Drag to position, zoom to frame."
+      },
+      "frameLabel": "Crop area",
+      "keys": "Arrow keys move the picture. Plus and minus zoom.",
+      "zoom": "Zoom",
+      "use": "Use this crop",
+      "small": "This picture is small and may look soft on large phones. A bigger photo gives a sharper menu.",
+      "unreadable": "This file could not be read as a picture. Try another one.",
+      "failed": "Could not prepare the picture. Try another file.",
+      "tooBig": "The cropped picture is still {{size}}. Try a smaller original."
+    },
+    "photos": {
+      "search": "Search dishes",
+      "category": "Category",
+      "allCategories": "All categories",
+      "onlyMissing": "Only dishes without a photo",
+      "coverage": "{{with}} of {{total}} dishes have a photo",
+      "tip": "Photos are cropped to 4:5 and resized for fast phones. JPEG, PNG or WebP up to 12 MB. Drop a file on any card or use Upload.",
+      "emptyTitle": "No menu items yet",
+      "emptyBody": "Add dishes under Menu, then add their photos here.",
+      "noMatch": "No dish matches those filters",
+      "loadError": "Could not load the menu items",
+      "hidden": "Hidden from menu",
+      "imageAlt": "Photo of {{name}}",
+      "add": "Add a photo for {{name}}",
+      "addAria": "Upload a photo for {{name}}",
+      "replaceAria": "Replace the photo of {{name}}",
+      "removeAria": "Remove the photo of {{name}}",
+      "dropHint": "Drop a photo or tap to add",
+      "dropHere": "Drop to add",
+      "upload": "Upload",
+      "replace": "Replace",
+      "inputLabel": "Choose a photo for {{name}}",
+      "cropTitle": "Crop photo of {{name}}",
+      "uploading": "Uploading {{pct}}%",
+      "progressLabel": "Upload progress for {{name}}",
+      "uploaded": "Photo saved for {{name}}.",
+      "uploadFailed": "The photo was not saved. Please try again.",
+      "removed": "Photo removed from {{name}}.",
+      "removeFailed": "Could not remove the photo.",
+      "removeTitle": "Remove the photo of {{name}}?",
+      "removeBody": "Guests will see the dish without a photo. You can add one again any time.",
+      "removeConfirm": "Remove photo",
+      "problem": {
+        "type": "{{name}}: only JPEG, PNG or WebP pictures can be used.",
+        "size": "{{name}}: that file is larger than 12 MB.",
+        "empty": "{{name}}: that file is empty."
+      }
+    },
+    "chip": {
+      "guest": "Guest",
+      "pending_one": "{{count}} guest order",
+      "pending_other": "{{count}} guest orders"
+    },
+    "alerts": {
+      "title": "Waiter requests",
+      "reason": {
+        "call": "Waiter called",
+        "bill": "Bill requested",
+        "water": "Water requested",
+        "other": "Needs help"
+      },
+      "toast": {
+        "call": "Table {{table}} is calling the waiter.",
+        "bill": "Table {{table}} asked for the bill.",
+        "water": "Table {{table}} asked for water.",
+        "other": "Table {{table}} needs help."
+      },
+      "done": "Done",
+      "doneAria": "Mark the request from table {{table}} as handled",
+      "ackFailed": "Could not clear the request."
+    },
+    "sound": {
+      "on": "Sound on",
+      "off": "Sound off",
+      "muteAria": "Mute the new-order chime",
+      "unmuteAria": "Turn on the new-order chime",
+      "locked": "Your browser needs one tap before it can play the chime.",
+      "enable": "Enable sound"
+    },
+    "orders": {
+      "title": "Guest orders",
+      "description": "Orders guests place from their table QR code. Accept to send them to the kitchen.",
+      "awaiting": "Awaiting confirmation",
+      "count_one": "{{count}} order",
+      "count_other": "{{count}} orders",
+      "emptyTitle": "No guest orders waiting",
+      "emptyBody": "New orders from table QR codes appear here the moment they are placed, with a chime.",
+      "loadError": "Could not load guest orders",
+      "stale": "Showing the last known orders. The latest refresh failed.",
+      "cardAria": "Guest order from table {{table}}",
+      "waiting": "Waiting {{time}}",
+      "justNow": "just now",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "hoursMinutes": "{{h}} h {{m}} min",
+      "total": "Total before tax",
+      "accept": "Accept",
+      "acceptAria": "Accept the order from table {{table}}",
+      "edit": "Edit",
+      "editAria": "Edit the order from table {{table}} before accepting",
+      "reject": "Reject",
+      "rejectAria": "Reject the order from table {{table}}",
+      "accepted": "Order from table {{table}} accepted and sent to the kitchen.",
+      "rejected": "Order from table {{table}} rejected.",
+      "alreadyHandled": "Another staff member already handled this order. The list has been refreshed.",
+      "acceptFailed": "Could not accept the order. It is still waiting.",
+      "rejectFailed": "Could not reject the order. It is still waiting.",
+      "editFailed": "Could not save the changes. The order is unchanged.",
+      "toastOne": "New guest order from table {{table}}.",
+      "toastMany": "{{count}} new guest orders.",
+      "rejectTitle": "Reject the order from {{table}}?",
+      "rejectBody": "The guest sees that the order was not accepted, with your reason.",
+      "rejectReason": "Reason",
+      "rejectReasons": {
+        "unavailable": "An item is not available",
+        "busy": "The kitchen is too busy right now",
+        "wrongTable": "The table is not open yet",
+        "other": "Other reason"
+      },
+      "rejectDetail": "Add a note for the guest (optional)",
+      "rejectDetailRequired": "Tell the guest why",
+      "rejectNeedsDetail": "Please write a short reason.",
+      "rejectConfirm": "Reject order",
+      "editTitle": "Edit the order from {{table}}",
+      "editBody": "Change quantities (0 removes an item), then accept. The guest sees the updated order.",
+      "qtyGroup": "Quantity of {{name}}",
+      "less": "One less {{name}}",
+      "more": "One more {{name}}",
+      "removeAll": "Every item is removed. Reject the order instead.",
+      "orderNote": "Note on the order",
+      "previewTotal": "Updated total before tax",
+      "saveAccept": "Save and accept"
+    }
+  }
+}

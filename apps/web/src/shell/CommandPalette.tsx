@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/cn';
 import * as Icons from '../ui/icons';
 import { Kbd } from '../ui/Kbd';
+import { useBackdropDismiss } from '../ui/useBackdropDismiss';
 import { filterItems } from './paletteFilter';
 
 export type CommandGroup = 'pages' | 'locations' | 'actions';
@@ -40,6 +41,7 @@ export function CommandPalette({ open, onClose, commands }: Props) {
   const [active, setActive] = useState(0);
   const uid = useId();
   const listId = `${uid}-list`;
+  const backdrop = useBackdropDismiss(onClose);
 
   const results = useMemo(() => filterItems(commands, query), [commands, query]);
   const activeIndex = Math.min(active, Math.max(0, results.length - 1));
@@ -111,9 +113,7 @@ export function CommandPalette({ open, onClose, commands }: Props) {
       ref={ref}
       aria-label={t('shell.palette.label')}
       onClose={onClose}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose();
-      }}
+      {...backdrop}
       className={cn(
         'mx-auto mt-[12vh] w-[min(38rem,calc(100vw-2rem))] nx-pop overflow-hidden rounded-panel p-0 text-ink',
         'backdrop:bg-black/60 backdrop:backdrop-blur-sm',
