@@ -25,8 +25,11 @@ export function removeKey(key: string): void {
 }
 
 export const keys = {
-  menu: (t: string) => `nxm.menu.${t}`,
+  // v2: the menu cache of the first (planned-contract) build had a different shape; never read it.
+  menu: (t: string) => `nxm.menu.v2.${t}`,
   cart: (t: string) => `nxm.cart.${t}`,
-  guest: (t: string) => `nxm.guest.${t}`,
+  guest: (t: string) => `nxm.guest.v2.${t}`,
   idem: (t: string) => `nxm.idem.${t}`,
+  /** orderId -> total (paise) this device submitted; lets the table view say "adjusted by your waiter". */
+  placed: (t: string) => `nxm.placed.${t}`,
 };

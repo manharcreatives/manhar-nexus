@@ -1,8 +1,9 @@
 import type { AddOnGroup, MenuItem, OrderLineInput, PlaceOrderBody } from './types';
 
-/** Soft client caps (the server enforces its own, tighter ones and always recomputes prices). */
+/** Client mirrors of the server caps (GUESTMENU_MAX_LINES / MAX_QTY / MAX_TOTAL_QTY defaults; the server always enforces and recomputes prices). */
 export const MAX_QTY_PER_LINE = 20;
-export const MAX_LINES = 30;
+export const MAX_LINES = 25;
+export const MAX_TOTAL_QTY = 60;
 export const MAX_NOTE = 140;
 
 export interface CartLine {

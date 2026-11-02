@@ -1,13 +1,14 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ChevronRight, Info, ShoppingBag, WifiOff } from 'lucide-react';
-import { ApiError, type MockOptions } from './api';
+import type { MockOptions } from './api';
 import {
-  EMPTY_CART, MAX_LINES, cartReducer, cartSignature, cartTotals, lineKey, newIdempotencyKey, qtyByItem, reconcileCart, toOrderBody,
+  EMPTY_CART, MAX_LINES, MAX_TOTAL_QTY, cartReducer, cartSignature, cartTotals, lineKey, newIdempotencyKey, qtyByItem, reconcileCart, toOrderBody,
   type CartState,
 } from './cart';
+import { orderFailure } from './errors';
 import { formatPrice } from './format';
 import { haptic, onScrollFrame, prefersReducedMotion } from './motion';
-import { isActive, stageOf } from './status';
+import { isActive, statusLabel } from './status';
 import { keys, readJson, removeKey, writeJson } from './storage';
 import { T } from './strings';
 import { useSession } from './useSession';
@@ -48,6 +49,11 @@ function Fatal({ title, body, onRetry }: { title: string; body: string; onRetry?
   );
 }
 
+function loadPlaced(token: string): Record<string, number> {
+  const p = readJson<Record<string, number>>(keys.placed(token));
+  return p && typeof p === 'object' ? p : {};
+}
+
 function loadCart(token: string): CartState {
   const c = readJson<CartState>(keys.cart(token));
   return c && Array.isArray(c.lines) ? { lines: c.lines, note: c.note ?? '' } : EMPTY_CART;
@@ -69,6 +75,7 @@ export default function GuestMenu({ token, mock }: { token: string; mock: MockOp
   const [cart, dispatch] = useReducer(cartReducer, token, loadCart);
   useEffect(() => writeJson(keys.cart(token), cart), [cart, token]);
 
+  const [placed, setPlaced] = useState<Record<string, number>>(() => loadPlaced(token));
   const [itemOpen, setItemOpen] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
@@ -218,6 +225,12 @@ export default function GuestMenu({ token, mock }: { token: string; mock: MockOp
     try {
       const r = await session.placeOrder(toOrderBody(cart), idem.key);
       removeKey(keys.idem(token));
+      // Remember what we submitted: if the waiter edits the order before confirming, the table view says so.
+      setPlaced((p) => {
+        const next = { ...Object.fromEntries(Object.entries(p).slice(-30)), [r.orderId]: r.totalMinor };
+        writeJson(keys.placed(token), next);
+        return next;
+      });
       dispatch({ type: 'clear' });
       setNotice(null);
       setCartOpen(false);
@@ -227,16 +240,10 @@ export default function GuestMenu({ token, mock }: { token: string; mock: MockOp
       haptic(14);
       void session.refreshState();
     } catch (e) {
-      if (e instanceof ApiError) {
-        if (e.kind === 'network' || e.kind === 'timeout') setError(T.sendFailedNet);
-        else if (e.kind === 'rate') setError(`Too many orders just now. Please wait${e.retryAfterSec ? ` ${e.retryAfterSec}s` : ' a moment'} and try again.`);
-        else if (e.kind === 'auth' || e.kind === 'disabled') setError(e.message || T.sendFailed);
-        else {
-          setError(e.message || T.sendFailed);
-          removeKey(keys.idem(token)); // the server rejected this exact cart: a corrected cart gets a new key
-          session.retry();
-        }
-      } else setError(T.sendFailed);
+      const f = orderFailure(e, T.sendFailed, T.sendFailedNet);
+      setError(f.message);
+      if (f.newKey) removeKey(keys.idem(token)); // the server judged this exact cart: a corrected cart is a new request
+      if (f.refreshMenu) void session.refreshMenu(); // sold out / table closed / ordering off: show the truth, drop dead lines
     } finally {
       setSending(false);
     }
@@ -349,7 +356,7 @@ export default function GuestMenu({ token, mock }: { token: string; mock: MockOp
           ) : latestActive ? (
             <button type="button" className="gm-dock__btn gm-press" onClick={() => { setTab('orders'); setTableOpen(true); }}>
               <span className="gm-dock__dot" aria-hidden="true" />
-              <span className="gm-dock__label">{T.yourTable}<small>{T.stage[stageOf(latestActive.status) as keyof typeof T.stage] ?? T.cancelled}</small></span>
+              <span className="gm-dock__label">{T.yourTable}<small>{statusLabel(latestActive.status)}</small></span>
               <ChevronRight size={18} aria-hidden="true" />
             </button>
           ) : null}
@@ -371,9 +378,9 @@ export default function GuestMenu({ token, mock }: { token: string; mock: MockOp
         onNote={(key, note) => dispatch({ type: 'note', key, note })}
         totals={totals}
         mode={mode}
-        canOrder={canOrder && cart.lines.length <= MAX_LINES}
+        canOrder={canOrder && cart.lines.length <= MAX_LINES && totals.count <= MAX_TOTAL_QTY}
         sending={sending}
-        error={!canOrder ? (tableIsOpen ? T.orderingOffBody : T.tableClosedBody) : error}
+        error={!canOrder ? (tableIsOpen ? T.orderingOffBody : T.tableClosedBody) : totals.count > MAX_TOTAL_QTY ? T.cartTooMany(MAX_TOTAL_QTY) : error}
         notice={notice}
         onSend={() => void sendOrder()}
       />
@@ -389,6 +396,7 @@ export default function GuestMenu({ token, mock }: { token: string; mock: MockOp
         upiEnabled={menu.settings.payment.upi}
         tableOpen={tableIsOpen}
         highlightId={highlight}
+        placedTotals={placed}
         onWaiter={session.callWaiter}
         onPay={() => setPayOpen(true)}
       />

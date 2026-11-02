@@ -1,0 +1,3522 @@
+{
+ "note": "Responses recorded from the real API (apps/api/src/guestmenu, scratch embedded Postgres + demo seed, 2026-11-01) through a Caddy-like /api proxy. Tokens scrubbed. Regenerate with the Q-WEB capture script described in docs/landing/reports/16_QWEB_REPORT.md.",
+ "rec": {
+  "menu": {
+   "status": 200,
+   "headers": {
+    "cache-control": "private, no-cache",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"kSRbNUEWxAltEq2W\""
+   },
+   "body": {
+    "business": {
+     "name": "The Pilot Kitchen",
+     "slug": null,
+     "tagline": "Fresh, honest food 753",
+     "logoUrl": null,
+     "coverUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2314cae268e8ae38c0d9569cd0a5aa389cd8a685.webp",
+     "coverBlurDataUri": null,
+     "coverColor": null,
+     "accentColor": null,
+     "currency": "INR"
+    },
+    "table": {
+     "label": "QA4CQXH1",
+     "areaName": "Main Hall",
+     "open": true
+    },
+    "settings": {
+     "ordering": "confirm",
+     "callWaiter": true,
+     "payment": {
+      "upi": true
+     }
+    },
+    "categories": [
+     {
+      "id": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Starters",
+      "description": "Appetizers and soups",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Main Course",
+      "description": "Rice, bread, and curries",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Beverages",
+      "description": "Hot and cold drinks",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2a833c83a117a147dd46329df8dc4fde5fe0029d.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Desserts",
+      "description": "Sweets and ice creams",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null
+     }
+    ],
+    "items": [
+     {
+      "id": "df6c15fc-b450-4855-965f-a07be4512c06",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Butter Naan",
+      "description": null,
+      "priceMinor": 4000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Cold Coffee",
+      "description": null,
+      "priceMinor": 11000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "9debc136-0c35-43cb-a60b-e3f8fcf405d5",
+        "name": "Regular",
+        "priceMinor": 11000
+       },
+       {
+        "id": "8d41161e-b370-4444-b32c-c4e1f3762766",
+        "name": "Large",
+        "priceMinor": 14000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "15484cc6-8af0-4fa7-8719-d2dcfcbda466",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Dal Makhani",
+      "description": null,
+      "priceMinor": 22000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "slow cooked"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "f6fee38f-cbd2-47f5-a0cf-8631355f1957",
+        "name": "Half",
+        "priceMinor": 15000
+       },
+       {
+        "id": "79871f05-6bfd-4a0a-b99e-47f0d303232b",
+        "name": "Full",
+        "priceMinor": 22000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "183455fe-d3c9-4c81-8877-44d12533de7b",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Gulab Jamun",
+      "description": null,
+      "priceMinor": 8000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "sweet"
+      ],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "28fb2217-7f9a-4ba4-9c00-63f68887f2e8",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Ice Cream Scoop",
+      "description": null,
+      "priceMinor": 7000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "16366ebd-a025-4087-b340-e7c328a8c5fb",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Jeera Rice",
+      "description": null,
+      "priceMinor": 13000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "a9e1df07-1be2-489b-bb3f-115e77b96290",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Lassi",
+      "description": null,
+      "priceMinor": 9000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "house special"
+      ],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "6552b940-7049-45f7-be81-8c8933e8a27b",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Masala Chai",
+      "description": null,
+      "priceMinor": 2500,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "92d32bb0-8168-459c-8d25-7052ba5ab893",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Paneer Butter Masala",
+      "description": null,
+      "priceMinor": 29000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "dab8d05a-0c15-496a-94d8-69204b99d68e",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Paneer Tikka",
+      "description": null,
+      "priceMinor": 28000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller",
+       "chef's pick"
+      ],
+      "spice": 2,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "8229de82-6b31-4426-8d6f-4a7f33f68958",
+        "name": "Half (4 pcs)",
+        "priceMinor": 20000
+       },
+       {
+        "id": "46b55ad6-e51a-4348-aae1-f761a0cb75e7",
+        "name": "Full (8 pcs)",
+        "priceMinor": 28000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       },
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "a9e5c65f-3bd1-46be-be33-b61c74bf59fc",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Spring Rolls",
+      "description": null,
+      "priceMinor": 18000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "crispy"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "4087e25c-c6c0-402a-8eff-ad952e029fb6",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Veg Soup",
+      "description": null,
+      "priceMinor": 12000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": 0,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     }
+    ],
+    "etag": "W/\"kSRbNUEWxAltEq2W\"",
+    "serverTime": "2026-11-01T17:43:46.447Z"
+   }
+  },
+  "menu304": {
+   "status": 304,
+   "headers": {
+    "cache-control": "private, no-cache",
+    "etag": "W/\"kSRbNUEWxAltEq2W\""
+   },
+   "body": null
+  },
+  "menu404": {
+   "status": 404,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"7d-pLEUpsBB+I1kvDO9IB8XVVH8V2Q\""
+   },
+   "body": {
+    "statusCode": 404,
+    "error": {
+     "code": "NOT_FOUND",
+     "message": "Menu not found"
+    },
+    "requestId": "466a5a92-6b54-49a8-a1b8-2c6eca86f4a1"
+   }
+  },
+  "menu404malformed": {
+   "status": 404,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"7d-Y2elmUlI0EdaI84csHD++LXBBHA\""
+   },
+   "body": {
+    "statusCode": 404,
+    "error": {
+     "code": "NOT_FOUND",
+     "message": "Menu not found"
+    },
+    "requestId": "e99a6820-a63f-4fe3-a905-2a9ce104c0fb"
+   }
+  },
+  "menuClosed": {
+   "status": 200,
+   "headers": {
+    "cache-control": "private, no-cache",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"5eIfiCXncqoPJk2_\""
+   },
+   "body": {
+    "business": {
+     "name": "The Pilot Kitchen",
+     "slug": null,
+     "tagline": "Fresh, honest food 753",
+     "logoUrl": null,
+     "coverUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2314cae268e8ae38c0d9569cd0a5aa389cd8a685.webp",
+     "coverBlurDataUri": null,
+     "coverColor": null,
+     "accentColor": null,
+     "currency": "INR"
+    },
+    "table": {
+     "label": "QC4CQXH2",
+     "areaName": "Main Hall",
+     "open": false
+    },
+    "settings": {
+     "ordering": "confirm",
+     "callWaiter": true,
+     "payment": {
+      "upi": true
+     }
+    },
+    "categories": [
+     {
+      "id": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Starters",
+      "description": "Appetizers and soups",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Main Course",
+      "description": "Rice, bread, and curries",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Beverages",
+      "description": "Hot and cold drinks",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2a833c83a117a147dd46329df8dc4fde5fe0029d.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Desserts",
+      "description": "Sweets and ice creams",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null
+     }
+    ],
+    "items": [
+     {
+      "id": "df6c15fc-b450-4855-965f-a07be4512c06",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Butter Naan",
+      "description": null,
+      "priceMinor": 4000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Cold Coffee",
+      "description": null,
+      "priceMinor": 11000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "9debc136-0c35-43cb-a60b-e3f8fcf405d5",
+        "name": "Regular",
+        "priceMinor": 11000
+       },
+       {
+        "id": "8d41161e-b370-4444-b32c-c4e1f3762766",
+        "name": "Large",
+        "priceMinor": 14000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "15484cc6-8af0-4fa7-8719-d2dcfcbda466",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Dal Makhani",
+      "description": null,
+      "priceMinor": 22000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "slow cooked"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "f6fee38f-cbd2-47f5-a0cf-8631355f1957",
+        "name": "Half",
+        "priceMinor": 15000
+       },
+       {
+        "id": "79871f05-6bfd-4a0a-b99e-47f0d303232b",
+        "name": "Full",
+        "priceMinor": 22000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "183455fe-d3c9-4c81-8877-44d12533de7b",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Gulab Jamun",
+      "description": null,
+      "priceMinor": 8000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "sweet"
+      ],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "28fb2217-7f9a-4ba4-9c00-63f68887f2e8",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Ice Cream Scoop",
+      "description": null,
+      "priceMinor": 7000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "16366ebd-a025-4087-b340-e7c328a8c5fb",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Jeera Rice",
+      "description": null,
+      "priceMinor": 13000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "a9e1df07-1be2-489b-bb3f-115e77b96290",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Lassi",
+      "description": null,
+      "priceMinor": 9000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "house special"
+      ],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "6552b940-7049-45f7-be81-8c8933e8a27b",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Masala Chai",
+      "description": null,
+      "priceMinor": 2500,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "92d32bb0-8168-459c-8d25-7052ba5ab893",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Paneer Butter Masala",
+      "description": null,
+      "priceMinor": 29000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "dab8d05a-0c15-496a-94d8-69204b99d68e",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Paneer Tikka",
+      "description": null,
+      "priceMinor": 28000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller",
+       "chef's pick"
+      ],
+      "spice": 2,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "8229de82-6b31-4426-8d6f-4a7f33f68958",
+        "name": "Half (4 pcs)",
+        "priceMinor": 20000
+       },
+       {
+        "id": "46b55ad6-e51a-4348-aae1-f761a0cb75e7",
+        "name": "Full (8 pcs)",
+        "priceMinor": 28000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       },
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "a9e5c65f-3bd1-46be-be33-b61c74bf59fc",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Spring Rolls",
+      "description": null,
+      "priceMinor": 18000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "crispy"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "4087e25c-c6c0-402a-8eff-ad952e029fb6",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Veg Soup",
+      "description": null,
+      "priceMinor": 12000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": 0,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     }
+    ],
+    "etag": "W/\"5eIfiCXncqoPJk2_\"",
+    "serverTime": "2026-11-01T17:43:46.637Z"
+   }
+  },
+  "guestClosed": {
+   "status": 409,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"aa-7iZIc8r1aaKPWcLWf1wa+SYPAKE\""
+   },
+   "body": {
+    "statusCode": 409,
+    "error": {
+     "code": "TABLE_CLOSED",
+     "message": "Ask your waiter to open the table, then order from here."
+    },
+    "requestId": "c07c5794-8e5c-4f54-9045-ec08282223d1"
+   }
+  },
+  "stateClosed": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"35-8Fmf29ExMpmi0/OWloWstsfmULI\""
+   },
+   "body": {
+    "orders": [],
+    "bill": null,
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "guest": {
+   "status": 201,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"63-XMLpBpmchcbQVSPoLWl38T2JPZo\""
+   },
+   "body": {
+    "guestToken": "GUESTTOKEN",
+    "expiresAt": "2026-11-02T05:43:46.706Z"
+   }
+  },
+  "order": {
+   "status": 201,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"66-SkksHebKrJpZ9sIuafsgYm1Q0JY\""
+   },
+   "body": {
+    "orderId": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+    "status": "AWAITING_CONFIRMATION",
+    "totalMinor": 27000
+   }
+  },
+  "orderReplay": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"66-SkksHebKrJpZ9sIuafsgYm1Q0JY\"",
+    "idempotent-replay": "true"
+   },
+   "body": {
+    "orderId": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+    "status": "AWAITING_CONFIRMATION",
+    "totalMinor": 27000
+   }
+  },
+  "orderReuse": {
+   "status": 409,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"b8-kiAN9P7X8yBPUlYFUf00YExCeuc\""
+   },
+   "body": {
+    "statusCode": 409,
+    "error": {
+     "code": "IDEMPOTENCY_KEY_REUSED",
+     "message": "This Idempotency-Key was already used for a different order."
+    },
+    "requestId": "1039c94a-a659-4e79-b47e-cafbea90491d"
+   }
+  },
+  "orderNoKey": {
+   "status": 400,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"e3-NmUIQLqs6rs8bRCikLUqeDi5yI4\""
+   },
+   "body": {
+    "statusCode": 400,
+    "error": {
+     "code": "VALIDATION",
+     "message": "Idempotency-Key header is required (8-100 letters, digits, - or _).",
+     "details": {
+      "reason": "IDEMPOTENCY_KEY_REQUIRED"
+     }
+    },
+    "requestId": "943f020e-c7d8-4da5-990d-37ae9932a1dc"
+   }
+  },
+  "orderBadToken": {
+   "status": 401,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"ae-IwAOQlRbv/XwDe+AnPlMoZTwpX8\""
+   },
+   "body": {
+    "statusCode": 401,
+    "error": {
+     "code": "GUEST_TOKEN_INVALID",
+     "message": "Your table session has ended. Please reopen the menu."
+    },
+    "requestId": "22776fce-b6d6-44a9-98c6-63bd9e536b20"
+   }
+  },
+  "orderVariantRequired": {
+   "status": 400,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"e9-H2QNNo3qLlftD8nlf/LCnZdXTes\""
+   },
+   "body": {
+    "statusCode": 400,
+    "error": {
+     "code": "VALIDATION",
+     "message": "Choose an option for Cold Coffee.",
+     "details": {
+      "reason": "VARIANT_REQUIRED",
+      "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81"
+     }
+    },
+    "requestId": "5d8d1553-5b0e-4a95-95f0-f29089af9ad4"
+   }
+  },
+  "stateAwaiting": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"27c-ZsJ7eZNUNDX8WOJA5JLTZqdArSo\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "AWAITING_CONFIRMATION",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 2,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 16000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 27000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       }
+      ]
+     }
+    ],
+    "bill": null,
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "stateBadToken": {
+   "status": 401,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"ae-SuxjYkLnVLX5iJ9Tl0dXA90tGW8\""
+   },
+   "body": {
+    "statusCode": 401,
+    "error": {
+     "code": "GUEST_TOKEN_INVALID",
+     "message": "Your table session has ended. Please reopen the menu."
+    },
+    "requestId": "ebee7329-8511-4cb0-9ce5-c39636b2bb39"
+   }
+  },
+  "stateEdited": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"27b-p1ybSxq/R1d2jrAza6RfYwrMHcs\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "AWAITING_CONFIRMATION",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       }
+      ]
+     }
+    ],
+    "bill": null,
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "stateConfirmed": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"434-S+0xNcd1pG0Zumnf5X6FZMIcPLo\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "CONFIRMED",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "RUNNING",
+     "reference": null
+    },
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "statePreparing": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"46b-s1YX96aI4T+TrCtqc7Rk/vjGK3M\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "RUNNING",
+     "reference": null
+    },
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "stateRejected": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"653-C9ez1QuswuyFkGZjLU4W8W6Dst4\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     },
+     {
+      "id": "0386f5dc-3099-47ab-9722-b8925ac98f59",
+      "status": "REJECTED",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:47.427Z",
+      "note": null,
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 8000
+       }
+      ],
+      "totalMinor": 0,
+      "rejectReason": "Kitchen is closing early",
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:47.440Z"
+       },
+       {
+        "status": "REJECTED",
+        "at": "2026-11-01T17:43:47.507Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "RUNNING",
+     "reference": null
+    },
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "stateOtherGuest": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"604-suW+bJhGxFnShMrHdC25e6Vie2Q\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": false,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     },
+     {
+      "id": "2b112459-7f9d-4172-899e-2a46a3484e0d",
+      "status": "AWAITING_CONFIRMATION",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:47.632Z",
+      "note": null,
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 8000
+       }
+      ],
+      "totalMinor": 8000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:47.646Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "RUNNING",
+     "reference": null
+    },
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "stateAfterOther": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"653-C9ez1QuswuyFkGZjLU4W8W6Dst4\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     },
+     {
+      "id": "0386f5dc-3099-47ab-9722-b8925ac98f59",
+      "status": "REJECTED",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:47.427Z",
+      "note": null,
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 8000
+       }
+      ],
+      "totalMinor": 0,
+      "rejectReason": "Kitchen is closing early",
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:47.440Z"
+       },
+       {
+        "status": "REJECTED",
+        "at": "2026-11-01T17:43:47.507Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "RUNNING",
+     "reference": null
+    },
+    "waiterCall": {
+     "open": false
+    }
+   }
+  },
+  "waiter": {
+   "status": 202,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"3d-u4Ajs+VtrbzvLFqBxMAlcG9U/zA\""
+   },
+   "body": {
+    "open": true,
+    "reason": "call",
+    "at": "2026-11-01T17:43:47.744Z"
+   }
+  },
+  "stateWaiter": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"682-s/82zrfxZ7d9dC7pNmZ3yajoE1E\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     },
+     {
+      "id": "0386f5dc-3099-47ab-9722-b8925ac98f59",
+      "status": "REJECTED",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:47.427Z",
+      "note": null,
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 8000
+       }
+      ],
+      "totalMinor": 0,
+      "rejectReason": "Kitchen is closing early",
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:47.440Z"
+       },
+       {
+        "status": "REJECTED",
+        "at": "2026-11-01T17:43:47.507Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "RUNNING",
+     "reference": null
+    },
+    "waiterCall": {
+     "open": true,
+     "reason": "call",
+     "at": "2026-11-01T17:43:47.744Z"
+    }
+   }
+  },
+  "waiterBadReason": {
+   "status": 400,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"111-CTpdyIiXvBy23lFQz8DGTKXyvVg\""
+   },
+   "body": {
+    "statusCode": 400,
+    "error": {
+     "code": "VALIDATION",
+     "message": "Request validation failed",
+     "details": {
+      "issues": [
+       {
+        "path": "reason",
+        "message": "Invalid enum value. Expected 'call' | 'bill' | 'water' | 'other', received 'dance'"
+       }
+      ]
+     }
+    },
+    "requestId": "06ecba7b-47c1-4cc1-9108-3248339ef74c"
+   }
+  },
+  "stateBillRunning": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"682-s/82zrfxZ7d9dC7pNmZ3yajoE1E\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     },
+     {
+      "id": "0386f5dc-3099-47ab-9722-b8925ac98f59",
+      "status": "REJECTED",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:47.427Z",
+      "note": null,
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 8000
+       }
+      ],
+      "totalMinor": 0,
+      "rejectReason": "Kitchen is closing early",
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:47.440Z"
+       },
+       {
+        "status": "REJECTED",
+        "at": "2026-11-01T17:43:47.507Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "RUNNING",
+     "reference": null
+    },
+    "waiterCall": {
+     "open": true,
+     "reason": "call",
+     "at": "2026-11-01T17:43:47.744Z"
+    }
+   }
+  },
+  "payNotEnabled": {
+   "status": 409,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"b3-3kTBNCV4YivxH/XNqjgijl02ECU\""
+   },
+   "body": {
+    "statusCode": 409,
+    "error": {
+     "code": "BILL_NOT_READY",
+     "message": "Your bill is not ready yet. Ask your waiter for the bill first."
+    },
+    "requestId": "5bf80f79-bf2c-4f08-9cb4-635805f81f9c"
+   }
+  },
+  "payBillNotReady": {
+   "status": 409,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"b3-apvzAc9fQfZ0XqyghNIR+5OTLCE\""
+   },
+   "body": {
+    "statusCode": 409,
+    "error": {
+     "code": "BILL_NOT_READY",
+     "message": "Your bill is not ready yet. Ask your waiter for the bill first."
+    },
+    "requestId": "5409d3ad-0395-4fd0-bd93-25d47b6807f7"
+   }
+  },
+  "stateBillFinal": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"685-F2ob6xkYCmYZi6wFSOJdxZCi11I\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     },
+     {
+      "id": "0386f5dc-3099-47ab-9722-b8925ac98f59",
+      "status": "REJECTED",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:47.427Z",
+      "note": null,
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 8000
+       }
+      ],
+      "totalMinor": 0,
+      "rejectReason": "Kitchen is closing early",
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:47.440Z"
+       },
+       {
+        "status": "REJECTED",
+        "at": "2026-11-01T17:43:47.507Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 0,
+     "dueMinor": 20720,
+     "status": "FINAL",
+     "reference": "ML-0364"
+    },
+    "waiterCall": {
+     "open": true,
+     "reason": "call",
+     "at": "2026-11-01T17:43:47.744Z"
+    }
+   }
+  },
+  "payIntent": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"140-xh2tGo6kli9zcF8RhPxrZvSoYgY\""
+   },
+   "body": {
+    "upiUri": "upi://pay?pa=pilotkitchen@okhdfcbank&pn=The%20Pilot%20Kitchen&am=207.20&cu=INR&tn=Bill%20ML-0364%20Table%20QA4CQXH1&tr=ML0364",
+    "qrPayload": "upi://pay?pa=pilotkitchen@okhdfcbank&pn=The%20Pilot%20Kitchen&am=207.20&cu=INR&tn=Bill%20ML-0364%20Table%20QA4CQXH1&tr=ML0364",
+    "amountMinor": 20720,
+    "reference": "ML-0364"
+   }
+  },
+  "orderLocked": {
+   "status": 409,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"d2-8fNnqnlFrgc2yKgQbdwmvmVk2eU\""
+   },
+   "body": {
+    "statusCode": 409,
+    "error": {
+     "code": "ORDERING_LOCKED",
+     "message": "A bill has already been prepared for this table. Please ask your waiter to add anything else."
+    },
+    "requestId": "4134a836-e2cc-41b4-9fef-83a764713cac"
+   }
+  },
+  "stateBillPaid": {
+   "status": 200,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"684-T5u3k+xS0RuMT3KDmFIXno/KlUA\""
+   },
+   "body": {
+    "orders": [
+     {
+      "id": "1d9e668e-20ac-4952-bdc4-ebe978848b28",
+      "status": "PREPARING",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:46.812Z",
+      "note": "table by the window",
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": "less salt",
+        "lineTotalMinor": 8000
+       },
+       {
+        "itemId": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+        "name": "Cold Coffee",
+        "qty": 1,
+        "variantName": "Regular",
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 11000
+       }
+      ],
+      "totalMinor": 19000,
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:46.828Z"
+       },
+       {
+        "status": "CONFIRMED",
+        "at": "2026-11-01T17:43:47.230Z"
+       },
+       {
+        "status": "PREPARING",
+        "at": "2026-11-01T17:43:47.331Z"
+       }
+      ]
+     },
+     {
+      "id": "0386f5dc-3099-47ab-9722-b8925ac98f59",
+      "status": "REJECTED",
+      "mine": true,
+      "edited": false,
+      "placedAt": "2026-11-01T17:43:47.427Z",
+      "note": null,
+      "lines": [
+       {
+        "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+        "name": "Gulab Jamun",
+        "qty": 1,
+        "variantName": null,
+        "addOns": [],
+        "note": null,
+        "lineTotalMinor": 8000
+       }
+      ],
+      "totalMinor": 0,
+      "rejectReason": "Kitchen is closing early",
+      "timeline": [
+       {
+        "status": "AWAITING_CONFIRMATION",
+        "at": "2026-11-01T17:43:47.440Z"
+       },
+       {
+        "status": "REJECTED",
+        "at": "2026-11-01T17:43:47.507Z"
+       }
+      ]
+     }
+    ],
+    "bill": {
+     "subtotalMinor": 19000,
+     "taxLines": [
+      {
+       "name": "CGST 2.5%",
+       "label": "CGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "SGST 2.5%",
+       "label": "SGST",
+       "ratePercent": 2.5,
+       "amountMinor": 200
+      },
+      {
+       "name": "CGST 6%",
+       "label": "CGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      },
+      {
+       "name": "SGST 6%",
+       "label": "SGST",
+       "ratePercent": 6,
+       "amountMinor": 660
+      }
+     ],
+     "totalMinor": 20720,
+     "paidMinor": 20720,
+     "dueMinor": 0,
+     "status": "PAID",
+     "reference": "ML-0364"
+    },
+    "waiterCall": {
+     "open": true,
+     "reason": "call",
+     "at": "2026-11-01T17:43:47.744Z"
+    }
+   }
+  },
+  "payAlready": {
+   "status": 409,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"99-DFkU1H/fJnDQxzfVqftLWwf369k\""
+   },
+   "body": {
+    "statusCode": 409,
+    "error": {
+     "code": "BILL_NOT_READY",
+     "message": "This bill is already paid. Thank you!"
+    },
+    "requestId": "38c5581b-9339-424b-ac01-dc8d29323a91"
+   }
+  },
+  "orderSoldOut": {
+   "status": 409,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"d7-OZ4PYDhyCMRt8g1oJMLC1EPI3iI\""
+   },
+   "body": {
+    "statusCode": 409,
+    "error": {
+     "code": "SOLD_OUT",
+     "message": "Gulab Jamun is sold out.",
+     "details": {
+      "itemId": "183455fe-d3c9-4c81-8877-44d12533de7b",
+      "name": "Gulab Jamun"
+     }
+    },
+    "requestId": "332c09e2-aa0f-4a0e-ba6d-558c83e5ef09"
+   }
+  },
+  "menuSoldOut": {
+   "status": 200,
+   "headers": {
+    "cache-control": "private, no-cache",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"Cxli1ms_Z90TWEnw\""
+   },
+   "body": {
+    "business": {
+     "name": "The Pilot Kitchen",
+     "slug": null,
+     "tagline": "Fresh, honest food 753",
+     "logoUrl": null,
+     "coverUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2314cae268e8ae38c0d9569cd0a5aa389cd8a685.webp",
+     "coverBlurDataUri": null,
+     "coverColor": null,
+     "accentColor": null,
+     "currency": "INR"
+    },
+    "table": {
+     "label": "QB4CQXH3",
+     "areaName": "Main Hall",
+     "open": true
+    },
+    "settings": {
+     "ordering": "confirm",
+     "callWaiter": true,
+     "payment": {
+      "upi": true
+     }
+    },
+    "categories": [
+     {
+      "id": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Starters",
+      "description": "Appetizers and soups",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Main Course",
+      "description": "Rice, bread, and curries",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Beverages",
+      "description": "Hot and cold drinks",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2a833c83a117a147dd46329df8dc4fde5fe0029d.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Desserts",
+      "description": "Sweets and ice creams",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null
+     }
+    ],
+    "items": [
+     {
+      "id": "df6c15fc-b450-4855-965f-a07be4512c06",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Butter Naan",
+      "description": null,
+      "priceMinor": 4000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Cold Coffee",
+      "description": null,
+      "priceMinor": 11000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "9debc136-0c35-43cb-a60b-e3f8fcf405d5",
+        "name": "Regular",
+        "priceMinor": 11000
+       },
+       {
+        "id": "8d41161e-b370-4444-b32c-c4e1f3762766",
+        "name": "Large",
+        "priceMinor": 14000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "15484cc6-8af0-4fa7-8719-d2dcfcbda466",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Dal Makhani",
+      "description": null,
+      "priceMinor": 22000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "slow cooked"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "f6fee38f-cbd2-47f5-a0cf-8631355f1957",
+        "name": "Half",
+        "priceMinor": 15000
+       },
+       {
+        "id": "79871f05-6bfd-4a0a-b99e-47f0d303232b",
+        "name": "Full",
+        "priceMinor": 22000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "183455fe-d3c9-4c81-8877-44d12533de7b",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Gulab Jamun",
+      "description": null,
+      "priceMinor": 8000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "sweet"
+      ],
+      "spice": null,
+      "soldOut": true,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "28fb2217-7f9a-4ba4-9c00-63f68887f2e8",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Ice Cream Scoop",
+      "description": null,
+      "priceMinor": 7000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "16366ebd-a025-4087-b340-e7c328a8c5fb",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Jeera Rice",
+      "description": null,
+      "priceMinor": 13000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "a9e1df07-1be2-489b-bb3f-115e77b96290",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Lassi",
+      "description": null,
+      "priceMinor": 9000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "house special"
+      ],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "6552b940-7049-45f7-be81-8c8933e8a27b",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Masala Chai",
+      "description": null,
+      "priceMinor": 2500,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "92d32bb0-8168-459c-8d25-7052ba5ab893",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Paneer Butter Masala",
+      "description": null,
+      "priceMinor": 29000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "dab8d05a-0c15-496a-94d8-69204b99d68e",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Paneer Tikka",
+      "description": null,
+      "priceMinor": 28000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller",
+       "chef's pick"
+      ],
+      "spice": 2,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "8229de82-6b31-4426-8d6f-4a7f33f68958",
+        "name": "Half (4 pcs)",
+        "priceMinor": 20000
+       },
+       {
+        "id": "46b55ad6-e51a-4348-aae1-f761a0cb75e7",
+        "name": "Full (8 pcs)",
+        "priceMinor": 28000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       },
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "a9e5c65f-3bd1-46be-be33-b61c74bf59fc",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Spring Rolls",
+      "description": null,
+      "priceMinor": 18000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "crispy"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "4087e25c-c6c0-402a-8eff-ad952e029fb6",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Veg Soup",
+      "description": null,
+      "priceMinor": 12000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": 0,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     }
+    ],
+    "etag": "W/\"Cxli1ms_Z90TWEnw\"",
+    "serverTime": "2026-11-01T17:43:48.588Z"
+   }
+  },
+  "menuOrderingOff": {
+   "status": 200,
+   "headers": {
+    "cache-control": "private, no-cache",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"HvUNidReXVRSxVFZ\""
+   },
+   "body": {
+    "business": {
+     "name": "The Pilot Kitchen",
+     "slug": null,
+     "tagline": "Fresh, honest food 753",
+     "logoUrl": null,
+     "coverUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2314cae268e8ae38c0d9569cd0a5aa389cd8a685.webp",
+     "coverBlurDataUri": null,
+     "coverColor": null,
+     "accentColor": null,
+     "currency": "INR"
+    },
+    "table": {
+     "label": "QB4CQXH3",
+     "areaName": "Main Hall",
+     "open": true
+    },
+    "settings": {
+     "ordering": "off",
+     "callWaiter": true,
+     "payment": {
+      "upi": true
+     }
+    },
+    "categories": [
+     {
+      "id": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Starters",
+      "description": "Appetizers and soups",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Main Course",
+      "description": "Rice, bread, and curries",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Beverages",
+      "description": "Hot and cold drinks",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/2a833c83a117a147dd46329df8dc4fde5fe0029d.webp",
+      "blurDataUri": null,
+      "color": null
+     },
+     {
+      "id": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Desserts",
+      "description": "Sweets and ice creams",
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null
+     }
+    ],
+    "items": [
+     {
+      "id": "df6c15fc-b450-4855-965f-a07be4512c06",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Butter Naan",
+      "description": null,
+      "priceMinor": 4000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "1d2a2b8c-ceaa-46e2-abdb-847cfc24df81",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Cold Coffee",
+      "description": null,
+      "priceMinor": 11000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "9debc136-0c35-43cb-a60b-e3f8fcf405d5",
+        "name": "Regular",
+        "priceMinor": 11000
+       },
+       {
+        "id": "8d41161e-b370-4444-b32c-c4e1f3762766",
+        "name": "Large",
+        "priceMinor": 14000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "15484cc6-8af0-4fa7-8719-d2dcfcbda466",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Dal Makhani",
+      "description": null,
+      "priceMinor": 22000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "slow cooked"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "f6fee38f-cbd2-47f5-a0cf-8631355f1957",
+        "name": "Half",
+        "priceMinor": 15000
+       },
+       {
+        "id": "79871f05-6bfd-4a0a-b99e-47f0d303232b",
+        "name": "Full",
+        "priceMinor": 22000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "183455fe-d3c9-4c81-8877-44d12533de7b",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Gulab Jamun",
+      "description": null,
+      "priceMinor": 8000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/5a3abf04806ddfad2caab84c2a221122db7c7612.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "sweet"
+      ],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "28fb2217-7f9a-4ba4-9c00-63f68887f2e8",
+      "categoryId": "6e49ce53-b0e2-4b88-9475-a5aeca03f002",
+      "name": "Ice Cream Scoop",
+      "description": null,
+      "priceMinor": 7000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "16366ebd-a025-4087-b340-e7c328a8c5fb",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Jeera Rice",
+      "description": null,
+      "priceMinor": 13000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "a9e1df07-1be2-489b-bb3f-115e77b96290",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Lassi",
+      "description": null,
+      "priceMinor": 9000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "house special"
+      ],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "6552b940-7049-45f7-be81-8c8933e8a27b",
+      "categoryId": "69317c34-4186-4fbb-91c1-b42d85ea5579",
+      "name": "Masala Chai",
+      "description": null,
+      "priceMinor": 2500,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/9875c9bcc2704f5bb474b30286de028b0501d0f7.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": null,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "41b33ccf-4d87-4354-aaa0-4b21ea209eb9",
+        "name": "Sugar level",
+        "min": 0,
+        "max": 1,
+        "options": [
+         {
+          "id": "efa844b3-74d1-46d2-8026-7b7763bccb9d",
+          "name": "No sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "c97879c6-6a94-478c-83e5-7705253e249b",
+          "name": "Less sugar",
+          "priceMinor": 0
+         },
+         {
+          "id": "fb98cfe5-27ac-45a3-aec4-009f0ea8a4f9",
+          "name": "Extra sweet",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "92d32bb0-8168-459c-8d25-7052ba5ab893",
+      "categoryId": "9cf62524-861b-44e5-a44e-baf5055d7490",
+      "name": "Paneer Butter Masala",
+      "description": null,
+      "priceMinor": 29000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/44ed3767f5344e4f94f04463e2bc5378b4ec1a44.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "dab8d05a-0c15-496a-94d8-69204b99d68e",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Paneer Tikka",
+      "description": null,
+      "priceMinor": 28000,
+      "imageUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "thumbUrl": "http://127.0.0.1:4300/api/media/e42a9c92-2703-41fe-bdcb-17b08909c461/864b1a89693a965207c8e629a278bbf3cb6ec9b4.webp",
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "bestseller",
+       "chef's pick"
+      ],
+      "spice": 2,
+      "soldOut": false,
+      "variants": [
+       {
+        "id": "8229de82-6b31-4426-8d6f-4a7f33f68958",
+        "name": "Half (4 pcs)",
+        "priceMinor": 20000
+       },
+       {
+        "id": "46b55ad6-e51a-4348-aae1-f761a0cb75e7",
+        "name": "Full (8 pcs)",
+        "priceMinor": 28000
+       }
+      ],
+      "addOnGroups": [
+       {
+        "id": "1d2b1d6b-4e60-4740-a37e-ccf057f6066c",
+        "name": "Spice level",
+        "min": 1,
+        "max": 1,
+        "options": [
+         {
+          "id": "5e558efd-a922-42cd-b8fe-c617babd452e",
+          "name": "Mild",
+          "priceMinor": 0
+         },
+         {
+          "id": "16b48a8e-cff3-43fa-b109-007719002c3c",
+          "name": "Medium",
+          "priceMinor": 0
+         },
+         {
+          "id": "40b83d3d-a78c-4a14-9810-bb0874a59bfd",
+          "name": "Hot",
+          "priceMinor": 0
+         }
+        ]
+       },
+       {
+        "id": "a75e7e72-1dc7-4a83-b1fe-3a93059db676",
+        "name": "Extra toppings",
+        "min": 0,
+        "max": 2,
+        "options": [
+         {
+          "id": "3a659763-2ff8-4f53-9cdf-763a2f3b92f7",
+          "name": "Extra cheese",
+          "priceMinor": 3000
+         },
+         {
+          "id": "4131d7e4-157c-4c24-86fe-759a2709973f",
+          "name": "Extra butter",
+          "priceMinor": 2000
+         },
+         {
+          "id": "dd9f3e2e-e27b-413f-bf68-087b01729e32",
+          "name": "Chopped onion",
+          "priceMinor": 0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "a9e5c65f-3bd1-46be-be33-b61c74bf59fc",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Spring Rolls",
+      "description": null,
+      "priceMinor": 18000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [
+       "crispy"
+      ],
+      "spice": 1,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     },
+     {
+      "id": "4087e25c-c6c0-402a-8eff-ad952e029fb6",
+      "categoryId": "ff8e54f6-859c-4ce7-b53a-8ae6623be096",
+      "name": "Veg Soup",
+      "description": null,
+      "priceMinor": 12000,
+      "imageUrl": null,
+      "thumbUrl": null,
+      "blurDataUri": null,
+      "color": null,
+      "veg": "veg",
+      "tags": [],
+      "spice": 0,
+      "soldOut": false,
+      "variants": [],
+      "addOnGroups": []
+     }
+    ],
+    "etag": "W/\"HvUNidReXVRSxVFZ\"",
+    "serverTime": "2026-11-01T17:43:48.700Z"
+   }
+  },
+  "orderOrderingOff": {
+   "status": 403,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"b2-LijPWgs/QOdy4rMPXe2ejz5hlDI\""
+   },
+   "body": {
+    "statusCode": 403,
+    "error": {
+     "code": "ORDERING_OFF",
+     "message": "Ordering from this menu is switched off. Please ask your waiter."
+    },
+    "requestId": "9164f348-8571-48df-aede-80623aa13050"
+   }
+  },
+  "waiterOrderingOff": {
+   "status": 202,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"3d-wr5R4IVaj/RPLAjAjRcCoJ09w4k\""
+   },
+   "body": {
+    "open": true,
+    "reason": "call",
+    "at": "2026-11-01T17:43:48.728Z"
+   }
+  },
+  "waiterSwitchedOff": {
+   "status": 403,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"a4-eAgE5H3ZnTtt4UVdioFuh/XWXZE\""
+   },
+   "body": {
+    "statusCode": 403,
+    "error": {
+     "code": "ORDERING_OFF",
+     "message": "Calling the waiter from this menu is switched off."
+    },
+    "requestId": "5d89d52a-5c94-4517-80a8-68564dadae13"
+   }
+  },
+  "menuTableDisabled": {
+   "status": 403,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"98-/chVN9CYrnxpNGE5EsWudJ7G8/s\""
+   },
+   "body": {
+    "statusCode": 403,
+    "error": {
+     "code": "MENU_DISABLED",
+     "message": "This menu is not available right now."
+    },
+    "requestId": "512badde-cba5-4d8a-a3f9-fe8f9665cd40"
+   }
+  },
+  "menuRotatedOld": {
+   "status": 404,
+   "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"7d-zZPXN6NcMeyMqhMXpkR9LjaSusA\""
+   },
+   "body": {
+    "statusCode": 404,
+    "error": {
+     "code": "NOT_FOUND",
+     "message": "Menu not found"
+    },
+    "requestId": "65523676-e81c-4db5-8632-4808a3bd6b80"
+   }
+  },
+  "stateRotatedOldGuest": {
+   "status": 401,
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"ae-67fryKC4bJuDJwXATXieqwTqET8\""
+   },
+   "body": {
+    "statusCode": 401,
+    "error": {
+     "code": "GUEST_TOKEN_INVALID",
+     "message": "Your table session has ended. Please reopen the menu."
+    },
+    "requestId": "501ceb36-f1e2-4996-a305-41e9cf50db47"
+   }
+  },
+  "streamRaw": {
+   "status": 200,
+   "headers": {
+    "content-type": "text/event-stream; charset=utf-8"
+   },
+   "raw": "retry: 4000\n\nevent: hello\ndata: {\"serverTime\":\"2026-11-01T17:43:49.193Z\",\"heartbeatSeconds\":20}\n\nevent: order.updated\ndata: {\"orderId\":\"f31655e9-7628-4097-b399-66ab4c107005\",\"status\":\"AWAITING_CONFIRMATION\"}\n\nevent: order.updated\ndata: {\"orderId\":\"f31655e9-7628-4097-b399-66ab4c107005\",\"status\":\"CONFIRMED\"}\n\nevent: bill.updated\ndata: {}\n\nevent: menu.changed\ndata: {\"etag\":\"W/\\\"1kOZEVIdI5SYVUM7\\\"\"}\n\nevent: bye\ndata: {\"reason\":\"token-changed\"}\n\n"
+  }
+ }
+}

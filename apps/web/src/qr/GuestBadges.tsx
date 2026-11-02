@@ -41,7 +41,7 @@ export function TableGuestChips({ tableId }: { tableId: string }) {
   const info = byTable.get(tableId);
   if (!info || (info.pending === 0 && !info.call)) return null;
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5" data-testid={`guest-chips-${tableId}`}>
+    <span className="mt-2 flex flex-wrap gap-1.5" data-testid={`guest-chips-${tableId}`}>
       {info.pending > 0 && (
         <StatusPill tone="accent">
           <Icons.QrCode className="size-3" aria-hidden />
@@ -54,6 +54,6 @@ export function TableGuestChips({ tableId }: { tableId: string }) {
           {t(`qr.alerts.reason.${info.call.reason}`)}
         </StatusPill>
       )}
-    </div>
+    </span>
   );
 }

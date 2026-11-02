@@ -151,6 +151,9 @@ describe('QR digital menu pictures (e2e)', () => {
     expect(truncated.status).toBe(415);
     const tiny = await upload(f.ownerToken, url, png(16, 16));
     expect(tiny.status).toBe(415);
+    expect(tiny.body.error).toMatchObject({ code: 'IMAGE_TOO_SMALL', details: { minSidePx: 64, width: 16, height: 16 } });
+    expect(html.body.error.code).toBe('UNSUPPORTED_MEDIA'); // everything else unusable keeps the generic code
+    expect(truncated.body.error.code).toBe('UNSUPPORTED_MEDIA');
     const animated = await upload(f.ownerToken, url, png(200, 200, { animated: true }));
     expect(animated.status).toBe(415);
     const huge = await upload(f.ownerToken, url, png(6100, 64));
@@ -171,6 +174,8 @@ describe('QR digital menu pictures (e2e)', () => {
     }
     const hard = await upload(f.ownerToken, url, png(200, 200, { pad: 7 * 1024 * 1024 }));
     expect(hard.status).toBe(413);
+    expect(hard.body.error.code).toBe('PAYLOAD_TOO_LARGE'); // multer's own limit is mapped to the same envelope
+    expect(hard.body.error.message).toMatch(/larger than 6 MB/);
   });
 
   it('is limited to people with restaurant.qr.manage, tenant-scoped, and rejects bad ids', async () => {

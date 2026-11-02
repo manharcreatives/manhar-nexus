@@ -18,6 +18,14 @@ export function menuUrl(token: string, origin: string = menuOrigin()): string {
   return `${origin.replace(/\/+$/, '')}/m/${encodeURIComponent(token)}`;
 }
 
+/**
+ * The URL printed in a table's QR code: the API's absolute `url` when the server knows the public origin
+ * (QR_PUBLIC_BASE_URL), otherwise the guest path on this page's origin (or VITE_PUBLIC_MENU_ORIGIN).
+ */
+export function tableMenuUrl(table: { token: string; url: string | null }, origin: string = menuOrigin()): string {
+  return table.url ?? menuUrl(table.token, origin);
+}
+
 /** True when the URL cannot be opened from a guest's phone (localhost / loopback). */
 export function isLocalOrigin(origin: string = menuOrigin()): boolean {
   try {

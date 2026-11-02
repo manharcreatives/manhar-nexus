@@ -39,7 +39,7 @@ import {
 } from './guestmenu.errors';
 import { fingerprint, idempotencyUuid } from './guestmenu.tokens';
 import { lower, type GuestOrderStatus, type OpenSession, type TableContext } from './guestmenu.types';
-import { guestStatusOf, guestTimeline } from './guest-status';
+import { guestStatusOf, guestTimeline, isEditDropped } from './guest-status';
 import { computeRunningBill, toWireTaxLines, type WireTaxLine } from './running-bill';
 import { GUEST_SYSTEM_ACTOR } from './table-context.service';
 import { UniqueViolation } from './unique-violation';
@@ -344,8 +344,10 @@ export class GuestOrderService {
     const orders: StateOrder[] = visible.map((r) => {
       const status = guestStatusOf(r);
       const closed = status === 'CANCELLED' || status === 'REJECTED';
-      const lines = r.lines.filter((l) => closed || l.status !== ServiceLineStatus.CANCELLED);
       const active = r.lines.filter((l) => l.status !== ServiceLineStatus.CANCELLED);
+      // A closed (rejected / cancelled) order lists what the guest asked for and reports that total, honestly, instead of 0.
+      // Lines a waiter dropped by editing before the rejection were never part of what was refused, so they stay out.
+      const lines = closed ? r.lines.filter((l) => !isEditDropped(l)) : active;
       return {
         id: r.id,
         status,
@@ -362,7 +364,7 @@ export class GuestOrderService {
           note: l.notes,
           lineTotalMinor: l.unitPriceMinorUnits * l.quantity,
         })),
-        totalMinor: active.reduce((s, l) => s + l.unitPriceMinorUnits * l.quantity, 0),
+        totalMinor: lines.reduce((s, l) => s + l.unitPriceMinorUnits * l.quantity, 0),
         rejectReason: status === 'REJECTED' ? r.guestOrder?.rejectReason ?? null : undefined,
         timeline: guestTimeline(byRequest.get(r.id) ?? [], r, { guestOrder: !!r.guestOrder, rejected: status === 'REJECTED' }),
       };

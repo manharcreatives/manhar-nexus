@@ -12,6 +12,10 @@ const TEAM_ROLES = new Set(['owner', 'location-manager']);
 // restaurant.kitchen.view: waiters get a read-only queue; only these roles hold .manage and may advance tickets.
 const KITCHEN_ROLES = new Set(['owner', 'location-manager', 'kitchen-team', 'service-team']);
 const KITCHEN_MANAGE_ROLES = new Set(['owner', 'location-manager', 'kitchen-team']);
+// restaurant.qr.manage (table QR codes, menu appearance, dish photos) and restaurant.guestorder.manage (guest-order inbox:
+// waiters hold it too). Mirrors apps/api/src/iam/system-roles.catalog.ts.
+const QR_MANAGE_ROLES = new Set(['owner', 'location-manager']);
+const GUEST_ORDER_ROLES = new Set(['owner', 'location-manager', 'service-team']);
 // core.modules.view / .manage: only the owner (wildcard); the manager's template does not include them.
 const MODULE_ROLES = new Set(['owner']);
 // reports.sales.view, core.audit.view and costs.*.view are held by these (accountant: costs + reports, no create).
@@ -36,6 +40,10 @@ export interface Access {
   canSeeReports: boolean;
   canSeeActivity: boolean;
   canSeeTeam: boolean;
+  /** restaurant.qr.manage: Table QR codes page, dish photos, dietary marks. */
+  canManageQr: boolean;
+  /** restaurant.guestorder.manage: guest-order inbox and waiter requests. */
+  canManageGuestOrders: boolean;
   /** Owner only (core.business.configure): restaurant profile, brand colour, invoice identity. */
   canManageProfile: boolean;
 }
@@ -67,6 +75,8 @@ export function computeAccess(user: AccessUser | null): Access {
     canSeeReports: !isPlatform && hasAnyRole(roles, FINANCE_VIEW_ROLES),
     canSeeActivity: !isPlatform && hasAnyRole(roles, FINANCE_VIEW_ROLES),
     canSeeTeam: !isPlatform && hasAnyRole(roles, TEAM_ROLES),
+    canManageQr: !isPlatform && hasAnyRole(roles, QR_MANAGE_ROLES),
+    canManageGuestOrders: !isPlatform && hasAnyRole(roles, GUEST_ORDER_ROLES),
     canManageProfile: !isPlatform && hasAnyRole(roles, MODULE_ROLES),
   };
 }

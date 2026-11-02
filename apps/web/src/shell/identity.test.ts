@@ -31,14 +31,14 @@ describe('page access (single definition)', () => {
 
   it('gives owners every tenant page and no platform page', () => {
     expect(visible('BUSINESS', 'owner')).toEqual([
-      '/', '/modules', '/config', '/profile', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/floor', '/menu', '/costs',
+      '/', '/modules', '/config', '/profile', '/reports', '/team', '/activity', '/tables', '/guest-orders', '/kitchen', '/bills', '/floor', '/menu', '/qr', '/costs',
     ]);
   });
   it('keeps the platform realm out of tenant pages', () => {
     expect(visible('PLATFORM', 'platform-admin')).toEqual(['/', '/commercial', '/onboarding']);
   });
   it('gives waiters a read-only kitchen queue', () => {
-    expect(visible('BUSINESS', 'service-team')).toEqual(['/', '/tables', '/kitchen']);
+    expect(visible('BUSINESS', 'service-team')).toEqual(['/', '/tables', '/guest-orders', '/kitchen']);
   });
   it('limits kitchen staff to Home and Kitchen', () => {
     expect(visible('BUSINESS', 'kitchen-team')).toEqual(['/', '/kitchen']);

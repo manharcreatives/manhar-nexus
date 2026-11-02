@@ -1,3 +1,4 @@
+import request from 'supertest';
 import { bootstrap, relaxLimits, uuid, type Fixture } from './guestmenu-harness';
 
 relaxLimits();
@@ -422,7 +423,25 @@ describe('QR digital menu (e2e)', () => {
       const s = await f.pub.get(qr, '/state', g);
       const mine = s.body.orders.find((o: { id: string }) => o.id === id);
       expect(mine).toMatchObject({ status: 'REJECTED', rejectReason: 'Out of buns' });
-      expect(mine.totalMinor).toBe(0);
+      expect(mine.totalMinor).toBe(1000); // the rejected total, not 0
+      expect(mine.lines).toHaveLength(1);
+      const adminRow = (await f.get(f.waiterToken, '/admin/guest-orders?status=REJECTED')).body.find((o: { id: string }) => o.id === id);
+      expect(adminRow).toMatchObject({ status: 'REJECTED', totalMinor: 1000 });
+    });
+
+    it('a rejected order that was edited first reports what was refused (lines the waiter dropped stay out)', async () => {
+      const id = await place([
+        { itemId: L.burger, qty: 3 },
+        { itemId: L.tea, qty: 2 },
+      ]);
+      const lines = ((await f.get(f.waiterToken, '/admin/guest-orders?status=AWAITING_CONFIRMATION')).body as { id: string; lines: { id: string; name: string }[] }[]).find((o) => o.id === id)!.lines;
+      const tea = lines.find((l) => l.name === 'Masala Tea')!.id;
+      expect((await f.post(f.waiterToken, `/admin/guest-orders/${id}/edit`, { lines: [{ id: tea, qty: 0 }] })).status).toBe(200);
+      expect((await f.post(f.waiterToken, `/admin/guest-orders/${id}/reject`, { reason: 'Kitchen closed' })).status).toBe(200);
+      const mine = (await f.pub.get(qr, '/state', g)).body.orders.find((o: { id: string }) => o.id === id);
+      expect(mine).toMatchObject({ status: 'REJECTED', totalMinor: 3000 });
+      expect(mine.lines.map((l: { name: string }) => l.name)).toEqual(['Burger']);
+      expect(mine.lines.reduce((n: number, l: { lineTotalMinor: number }) => n + l.lineTotalMinor, 0)).toBe(mine.totalMinor);
     });
 
     it('edit changes quantities / removes lines / sets the note before confirmation, then locks', async () => {
@@ -448,6 +467,44 @@ describe('QR digital menu (e2e)', () => {
       const late = await f.post(f.waiterToken, `/admin/guest-orders/${id}/edit`, { lines: [{ id: burgerLine, qty: 2 }] });
       expect(late.status).toBe(409);
       expect(late.body.error.details.reason).toBe('NOT_AWAITING_CONFIRMATION');
+    });
+
+    it('edit honours Idempotency-Key: a replay answers the original 200 even after the line was removed or the order confirmed', async () => {
+      const id = await place([
+        { itemId: L.burger, qty: 3 },
+        { itemId: L.tea, qty: 2 },
+      ]);
+      const lines = ((await f.get(f.waiterToken, '/admin/guest-orders?status=AWAITING_CONFIRMATION')).body as { id: string; lines: { id: string; name: string }[] }[]).find((o) => o.id === id)!.lines;
+      const burgerLine = lines.find((l) => l.name === 'Burger')!.id;
+      const teaLine = lines.find((l) => l.name === 'Masala Tea')!.id;
+      const edit = (key: string | null, body: object) => {
+        const r = request(f.http()).post(`/admin/guest-orders/${id}/edit`).set('authorization', `Bearer ${f.waiterToken}`);
+        return (key ? r.set('idempotency-key', key) : r).send(body);
+      };
+      const key = uuid();
+      const body = { lines: [{ id: teaLine, qty: 0 }], note: 'No tea' };
+      const first = await edit(key, body);
+      expect(first.status).toBe(200);
+      expect(first.body.totalMinor).toBe(3000);
+      // The same request again: the tea line no longer exists, yet the answer is the original 200 (not 400 LINE_NOT_FOUND).
+      const replay = await edit(key, body);
+      expect(replay.status).toBe(200);
+      expect(replay.body).toMatchObject({ id, totalMinor: 3000, note: 'No tea' });
+      expect(replay.body.version).toBe(first.body.version); // nothing was applied twice
+      // A different key for the same stale line is still validated.
+      const stale = await edit(uuid(), body);
+      expect(stale.status).toBe(400);
+      expect(stale.body.error.details.reason).toBe('LINE_NOT_FOUND');
+      // After confirmation the replay is still the original answer; a fresh key gets the usual lock.
+      expect((await f.post(f.waiterToken, `/admin/guest-orders/${id}/confirm`)).status).toBe(200);
+      const afterConfirm = await edit(key, body);
+      expect(afterConfirm.status).toBe(200);
+      expect(afterConfirm.body.status).toBe('CONFIRMED');
+      expect((await edit(uuid(), { lines: [{ id: burgerLine, qty: 1 }] })).status).toBe(409);
+      // Without a key the edit still works (a fresh key is generated).
+      const id2 = await place([{ itemId: L.burger, qty: 2 }]);
+      const l2 = ((await f.get(f.waiterToken, '/admin/guest-orders?status=AWAITING_CONFIRMATION')).body as { id: string; lines: { id: string }[] }[]).find((o) => o.id === id2)!.lines[0]!.id;
+      expect((await f.post(f.waiterToken, `/admin/guest-orders/${id2}/edit`, { lines: [{ id: l2, qty: 1 }] })).status).toBe(200);
     });
 
     it('the running bill equals the invoice, ordering locks once a bill exists, UPI intent follows the final amount', async () => {

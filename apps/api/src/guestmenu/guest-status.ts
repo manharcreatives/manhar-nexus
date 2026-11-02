@@ -1,4 +1,4 @@
-import { GuestOrderDecision, ServiceRequestStatus } from '@prisma/client';
+import { GuestOrderDecision, ServiceLineStatus, ServiceRequestStatus } from '@prisma/client';
 import { buildOrderTimeline, type AuditRowLike } from '../restaurant/timeline/order-timeline.util';
 import type { GuestOrderStatus } from './guestmenu.types';
 
@@ -82,3 +82,7 @@ export function guestTimeline(
   }
   return out;
 }
+
+/** A line a waiter removed or replaced through the order edit (cancelReason set by OrderEditService), as opposed to one cancelled with the whole order. */
+export const isEditDropped = (l: { status: ServiceLineStatus; cancelReason: string | null }): boolean =>
+  l.status === ServiceLineStatus.CANCELLED && (l.cancelReason === 'Removed by order edit' || l.cancelReason === 'Replaced by order edit');

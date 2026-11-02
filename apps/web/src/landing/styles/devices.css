@@ -1020,7 +1020,9 @@
 }
 .lp-tk__stampwrap .lp-stamp {
   font-size: 1.35em;
-  background: var(--lp-canvas);
+  background: #f7f9f7;
+  color: #12802b;
+  border-color: #12802b;
 }
 
 @media (prefers-reduced-motion: reduce) {

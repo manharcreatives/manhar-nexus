@@ -17,7 +17,7 @@ export function Hero({ menu, onExplore }: { menu: MenuPayload; onExplore: () => 
   return (
     <section className="gm-hero" aria-labelledby="gm-name">
       <div className="gm-hero__bg" aria-hidden="true">
-        {b.coverUrl ? <BlurImage src={b.coverUrl} priority className="gm-hero__img" width={1600} height={1000} /> : <span className="gm-hero__aurora" />}
+        {b.coverUrl ? <BlurImage src={b.coverUrl} blur={b.coverBlurDataUri} color={b.coverColor} priority className="gm-hero__img" width={1600} height={1000} /> : <span className="gm-hero__aurora" />}
       </div>
       <div className="gm-hero__veil" aria-hidden="true" />
       <div className="gm-hero__content">

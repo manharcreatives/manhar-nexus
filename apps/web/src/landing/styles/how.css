@@ -48,7 +48,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.02em;
   color: var(--lp-green);
-  opacity: calc(0.5 + clamp(0, var(--draw) * var(--n) - var(--i), 1) * 0.5);
+  opacity: calc(0.85 + clamp(0, var(--draw) * var(--n) - var(--i), 1) * 0.15);
 }
 .lp-how__card {
   position: relative;

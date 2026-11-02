@@ -65,8 +65,13 @@ export class RateLimitedError extends DomainError {
 }
 
 export class UnsupportedMediaError extends DomainError {
-  readonly code = 'UNSUPPORTED_MEDIA';
-  readonly httpStatus = 415;
+  readonly code: string = 'UNSUPPORTED_MEDIA';
+  readonly httpStatus: number = 415;
+}
+
+/** A valid picture that is below the minimum size. Still 415 (the web maps pictures by status), but with its own code. */
+export class ImageTooSmallError extends UnsupportedMediaError {
+  override readonly code: string = 'IMAGE_TOO_SMALL';
 }
 
 export class PayloadTooLargeError extends DomainError {

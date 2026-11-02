@@ -57,9 +57,45 @@ Same as the sketch, except:
 ## 6. Operational notes
 
 - **Existing databases** need `prisma db seed` (the release `migrate` job does it) so system roles receive `restaurant.qr.manage` (owner via wildcard, location-manager) and `restaurant.guestorder.manage` (+ service-team).
-- `apps/api/src/guestmenu/guestmenu.providers.ts` is an empty, unreferenced leftover of the first run. Deletions are disabled on the mount; please `git rm` it.
+- `apps/api/src/guestmenu/guestmenu.providers.ts` is an empty, unreferenced leftover of the first run. Round 2 reduced it to `export {};`; deletions are disabled on the mount, so `git rm` it when convenient.
 - Env (all optional in dev, see `.env.example`): `MEDIA_DIR` (**required in production**, else uploads 503), `MEDIA_MAX_UPLOAD_BYTES`, `MEDIA_PUBLIC_BASE_URL`, `QR_PUBLIC_BASE_URL`, `GUESTMENU_LIMIT_*`, `GUESTMENU_*`.
 - Back up the `media` volume with the database. Table tokens are secrets: Caddy's own access log still records the full URI (documented; the API log redacts it).
 - `sharp` is intentionally not added to `package.json` (no lockfile change possible here). To enable resizing/WebP/thumbnails: `npm i -w @nexus/api sharp` in the build stage; no code change needed.
 
-## 7. Nothing here was committed or pushed.
+## 7. Round 2 fixes (2026-11-02, Q-API-FIX)
+
+Triggered by `16_QWEB_REPORT.md` section 4 and the first-round review. All in `apps/api/src/guestmenu/**` except where noted. No migration, no schema change, no new dependency.
+
+| # | Issue | Fix |
+|---|---|---|
+| 1 | A waiter edit of a guest order before confirmation sent no event (the hub signed an order as `status:editCount`, and `editCount` only counts kitchen-visible edits). Guest saw it only on the page's 10 s poll. | `GuestHub` signature is now `status:editCount:version`. `OrderEditService` bumps `version` on every edit, so quantity changes, removals and note changes all publish `order.updated {orderId,status}` (status stays `AWAITING_CONFIRMATION`). Payload is still hints only. |
+| 2 | Opening a waiter call was silent; only the ack was announced. | The hub now tracks the id of the table's newest OPEN call. A new id emits `waiter.call {}` to every guest stream of that table; closing still emits `waiter.ack {}`. Pressing the same call again (deduped by the partial unique index) emits nothing. Staff: `callWaiter` already published the `tables` topic on the RealtimeBus, which is what the staff alerts screen (`useLiveRefresh(['orders','tables','sessions'])`) refetches on; now covered by a test. No new RealtimeBus topic (that contract is mirrored in the web). |
+| 3 | `POST /admin/guest-orders/:id/edit` validated lines before honouring the `Idempotency-Key`, so a replay after a line was removed returned 400 `LINE_NOT_FOUND`. | `GuestOrderAdminService.edit` looks the (order-namespaced) key up in `service_request_edit` first and, if this order already has that edit, returns 200 with the order as it is now, before the status and line checks (also after the order was confirmed or rejected in between). A different key is validated as before. Nothing is applied twice (`version` unchanged on replay). |
+| 4 | Multer's own size limit surfaced as `413` with generic code `ERROR`; "too small" shared `UNSUPPORTED_MEDIA`. | New `UploadErrorsInterceptor` (in front of `FileInterceptor` on all picture routes) maps the 413 to `PAYLOAD_TOO_LARGE` with the same envelope as the service-level check. New `ImageTooSmallError` (subclass of `UnsupportedMediaError`): still HTTP 415, code `IMAGE_TOO_SMALL`, `details {minSidePx,width,height}`. All other unusable pictures keep `UNSUPPORTED_MEDIA`. I did not touch the shared exception filter. |
+| 5 | Rejected orders reported `totalMinor: 0`. | Guest `/state` and the staff inbox now report the rejected total (the same lines the order lists). Applies to cancelled orders too, so their lines and total agree. Lines a waiter dropped by editing before the rejection (`cancelReason` "Removed by order edit" / "Replaced by order edit") are excluded from both the list and the total. `totalMinor` stays a number, so the web type is unchanged. |
+| 6 | `guestmenu.providers.ts` empty leftover. | Now the one-line `export {};` (deletion is disabled on the mount; `git rm` it when convenient, nothing imports it). |
+
+Also: ADR-035 section 6 and plan section B list `waiter.call`.
+
+### Web compatibility (nothing in `apps/web` was edited)
+
+- **`waiter.call` needs a one-line web change** to be heard. `apps/web/src/guestmenu/api.ts` registers listeners only for the names in `STREAM_EVENTS` (`types.ts`), so an unknown named event is ignored. Until then nothing breaks (the page ignores it and keeps its polling). To use it: add `'waiter.call'` to `StreamEventName` and `STREAM_EVENTS` in `types.ts`, and add `case 'waiter.call':` next to `case 'waiter.ack':` in `useSession.ts` (re-read `/state`). The mock (`mock.ts`) may emit it for symmetry.
+- **`order.updated` for edits**: no change needed, the page already re-reads `/state` on every `order.updated`. Its own 10 s "waiting for the waiter" poll can stay as a safety net or be relaxed.
+- **Picture errors** (`apps/web/src/qr/errors.ts`): no change needed. `IMAGE_TOO_SMALL` is still 415, so the status branch applies and `specific(e)` shows the API's sentence; 413 `PAYLOAD_TOO_LARGE` hits the existing code branch (it now shows the API sentence "The picture is larger than N MB." instead of the translated "under 6 MB" text when N differs from 6, which is more accurate). Optional: handle `code === 'IMAGE_TOO_SMALL'` explicitly with a translated string.
+- **Rejected total**: `TableSheet` already hides the total for REJECTED orders and `wasAdjusted` returns false for them. For CANCELLED orders the page shows `totalMinor`; it is now the order's real total instead of 0, and `wasAdjusted` no longer sees a false difference between the submitted and the (previously 0) cancelled total.
+
+### Verification (scratch copy `$HOME/qapi`, embedded PostgreSQL 17 on 15434, same Prisma client-engine hacks as section 2; none of it is in the repo)
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` (src + test) | clean |
+| `eslint src/guestmenu test` | 0 errors in anything touched; the single remaining error is the pre-existing unused `waiter` in `test/order-edit.e2e-spec.ts` |
+| Unit `jest src/guestmenu` | 5 suites, **32 tests, all pass** (was 31 + the new `isEditDropped` test; `image-sanitize.spec` now also asserts `IMAGE_TOO_SMALL` and its details) |
+| `guestmenu*` e2e | **4 suites, 57 tests, all pass**: `guestmenu` 33 (+2: idempotent edit replay, rejected total after an edit), `guestmenu-limits` 5, `guestmenu-stream` 10 (+2: pre-confirmation edit pushes `order.updated`; waiter call announced once to all streams of the table, not to another table, staff bus gets `tables`, ack still announced), `guestmenu-media` 9 (extended: `IMAGE_TOO_SMALL`, other codes unchanged, multipart-layer 413 is `PAYLOAD_TOO_LARGE`) |
+| Regression e2e | `restaurant-mvp` + `restaurant-operations` + `realtime`: 3 suites, 133 tests pass. `restaurant-workflow` + `checkout` + `checkout-invoice-list` + `order-edit` + `waiter-bill-timeline` + `order-config-refund-idempotency`: 6 suites, 150 tests pass. `security`: 55 tests pass (with the guestmenu run: 5 suites, 112 tests) |
+| Mutation check | with the `version` term removed from the hub signature, the new "edit BEFORE confirmation" stream test fails (no event in 6 s), so it guards the fix |
+
+Not run this round: the other e2e suites (auth*, config-center, reports, costs, printing, notifications, onboarding, concurrency ...) since nothing outside `guestmenu/**` changed; `apps/web` tests; real `sharp` path; `prisma migrate diff` (no schema change this round). `concurrency.e2e-spec.ts` known-environmental failures from section 2 were not re-run. Nothing committed or pushed.
+
+## 8. Nothing here was committed or pushed.
+

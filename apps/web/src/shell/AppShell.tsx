@@ -8,6 +8,8 @@ import { Wordmark } from '../brand/Wordmark';
 import { cn } from '../lib/cn';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { ConnectionIndicator } from '../realtime/LiveBadge';
+import { GuestOrdersNavBadge } from '../qr/GuestBadges';
+import { GuestOrderProvider } from '../qr/GuestOrderProvider';
 import { PageHeader } from '../ui/PageHeader';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { KeyCombo, Kbd } from '../ui/Kbd';
@@ -156,6 +158,7 @@ export function AppShell() {
                   >
                     <Icon className="size-[1.125rem]" />
                     {t(labelKey)}
+                    {path === '/guest-orders' && <GuestOrdersNavBadge />}
                   </NavLink>
                 </li>
               ))}
@@ -169,6 +172,8 @@ export function AppShell() {
   const mod = modKeyLabel();
 
   return (
+    // One loader for the guest-order inbox, the sidebar badge and the Tables chips (chime + toast once per event).
+    <GuestOrderProvider enabled={access.canManageGuestOrders}>
     <div className="flex h-screen w-full flex-col">
       <a
         href="#main"
@@ -278,5 +283,6 @@ export function AppShell() {
       {passwordOpen && <ChangePasswordDialog onClose={() => setPasswordOpen(false)} />}
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} goShortcuts={goShortcuts} />
     </div>
+    </GuestOrderProvider>
   );
 }

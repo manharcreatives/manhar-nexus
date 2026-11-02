@@ -2,15 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/cn';
-import { describeError } from '../restaurant/errors';
 import { useSingleFlight } from '../restaurant/hooks';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { SectionHeader } from '../ui/SectionHeader';
 import { useToast } from '../ui/Toast';
 import { assetUrl, qrApi } from './api';
+import { describeQrError, isVersionConflict } from './errors';
 import * as Icons from './icons';
-import type { ImageKind, ImageProblem } from './imageTools';
+import type { ImageProblem } from './imageTools';
 import { PhonePreview } from './PhonePreview';
 import { Switch } from './Switch';
 import type { OrderingMode, QrSettings, QrSettingsPatch } from './types';
@@ -27,11 +27,12 @@ function BrandImageField({
   url,
   onChanged,
 }: {
-  kind: Exclude<ImageKind, 'dish'>;
+  kind: 'logo' | 'cover';
   label: string;
   hint: string;
   url: string | null;
-  onChanged: (next: string | null) => void;
+  /** The picture was saved or removed on the server (the settings version moved: the parent reloads). */
+  onChanged: () => void;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -45,11 +46,11 @@ function BrandImageField({
     onBlob: async (blob) => {
       setProgress(0);
       try {
-        const next = await qrApi.uploadBrandImage(kind, blob, { onProgress: setProgress });
-        onChanged(next);
+        await qrApi.uploadBrandImage(kind, blob, { onProgress: setProgress });
+        onChanged();
         toast.show(t('qr.settings.imageSaved', { what: label }));
       } catch (err) {
-        toast.show(describeError(err, t, 'qr.settings.imageFailed'), 'bad');
+        toast.show(describeQrError(err, t, 'qr.settings.imageFailed'), 'bad');
       } finally {
         setProgress(null);
       }
@@ -59,9 +60,9 @@ function BrandImageField({
   const remove = async () => {
     try {
       await qrApi.removeBrandImage(kind);
-      onChanged(null);
+      onChanged();
     } catch (err) {
-      toast.show(describeError(err, t, 'qr.settings.imageFailed'), 'bad');
+      toast.show(describeQrError(err, t, 'qr.settings.imageFailed'), 'bad');
     }
   };
   return (
@@ -110,12 +111,15 @@ export function MenuSettingsPanel({
   businessName,
   defaultAccent,
   onSaved,
+  onConflict,
 }: {
   settings: QrSettings;
   businessName: string;
   /** The restaurant's own accent, used when no menu accent is chosen. */
   defaultAccent: string;
   onSaved: (next: QrSettings) => void;
+  /** Another admin saved first (409 VERSION_CONFLICT): reload the server copy. */
+  onConflict?: () => void;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -134,17 +138,27 @@ export function MenuSettingsPanel({
   const hexValid = draft.accentColor === null || HEX.test(draft.accentColor);
   const set = <K extends keyof QrSettings>(k: K, v: QrSettings[K]) => setDraft((d) => ({ ...d, [k]: v }));
 
+  /** Logo / cover saved or removed: they bump the version, so take the server copy (new URLs + version). */
+  async function imageChanged() {
+    try {
+      onSaved(await qrApi.settings());
+    } catch {
+      /* the next reload picks it up */
+    }
+  }
+
   async function save() {
     if (!hexValid) return setError(t('qr.settings.accentInvalid'));
     setError('');
     await run(async () => {
       try {
-        const next = await qrApi.saveSettings(patch);
+        const next = await qrApi.saveSettings(patch, settings.version);
         onSaved(next);
         setDraft(next);
         toast.show(t('qr.settings.saved'));
       } catch (err) {
-        setError(describeError(err, t, 'qr.settings.saveFailed'));
+        setError(describeQrError(err, t, 'qr.settings.saveFailed'));
+        if (isVersionConflict(err)) onConflict?.();
       }
     });
   }
@@ -216,8 +230,8 @@ export function MenuSettingsPanel({
               hint={t('qr.settings.taglineCount', { count: draft.tagline.length, max: TAGLINE_MAX })}
             />
           </div>
-          <BrandImageField kind="logo" label={t('qr.settings.logo')} hint={t('qr.settings.logoHint')} url={draft.logoUrl} onChanged={(u) => onSaved({ ...settings, logoUrl: u })} />
-          <BrandImageField kind="cover" label={t('qr.settings.cover')} hint={t('qr.settings.coverHint')} url={draft.coverUrl} onChanged={(u) => onSaved({ ...settings, coverUrl: u })} />
+          <BrandImageField kind="logo" label={t('qr.settings.logo')} hint={t('qr.settings.logoHint')} url={draft.logoUrl} onChanged={() => void imageChanged()} />
+          <BrandImageField kind="cover" label={t('qr.settings.cover')} hint={t('qr.settings.coverHint')} url={draft.coverUrl} onChanged={() => void imageChanged()} />
           <div>
             <p className="mb-1.5 text-sm font-medium">{t('qr.settings.accent')}</p>
             <div className="flex flex-wrap items-center gap-3">

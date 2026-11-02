@@ -20,6 +20,7 @@ import { RealtimeBus } from '../realtime/realtime.bus';
 import { OrderEditService } from '../restaurant/order/order-edit.service';
 import type { EditOp } from '../restaurant/order/order-edit.dto';
 import type { EditGuestOrderDto, GuestOrderListQuery } from './guestmenu.dto';
+import { isEditDropped } from './guest-status';
 import { OrderingLockedError } from './guestmenu.errors';
 import { idempotencyUuid } from './guestmenu.tokens';
 import { lower } from './guestmenu.types';
@@ -232,6 +233,17 @@ export class GuestOrderAdminService extends TenantScopedRepository {
    */
   async edit(scope: TenantScope, principal: Principal, id: string, dto: EditGuestOrderDto, clientKey: string): Promise<AdminGuestOrderOut> {
     const found = await this.find(scope, principal, id);
+
+    // Replay first: an Idempotency-Key that already produced an edit of THIS order answers the original 200 (with the order as it
+    // is now) before anything is re-validated. The lines may have been removed, the order confirmed or rejected since; the
+    // client retrying a lost response must not get a 400/409 for work that was in fact done.
+    const key = idempotencyUuid(found.id, clientKey);
+    const prior = await this.prisma.serviceRequestEdit.findFirst({
+      where: { businessId: scope.businessId, serviceRequestId: found.serviceRequestId, idempotencyKey: key },
+      select: { id: true },
+    });
+    if (prior) return this.toOut(found);
+
     if (found.decision === GuestOrderDecision.REJECTED || found.serviceRequest.status !== ServiceRequestStatus.DRAFT) {
       throw new ConflictError('Only an order that is still waiting for confirmation can be edited here. Use the order edit for confirmed orders.', { reason: 'NOT_AWAITING_CONFIRMATION' });
     }
@@ -247,7 +259,7 @@ export class GuestOrderAdminService extends TenantScopedRepository {
     if (removing > 0 && removing >= lineById.size) throw new ValidationError('Removing every item leaves an empty order. Reject it instead.', { reason: 'EMPTY_ORDER' });
 
     await this.editor.editOrder(scope, found.serviceRequestId, {
-      idempotencyKey: idempotencyUuid(found.id, clientKey),
+      idempotencyKey: key,
       expectedVersion: found.serviceRequest.version,
       reason: 'Edited by staff before confirmation',
       ops,
@@ -350,7 +362,8 @@ export class GuestOrderAdminService extends TenantScopedRepository {
           cancelled: l.status === ServiceLineStatus.CANCELLED,
         };
       }),
-      totalMinor: active.reduce((s, l) => s + l.unitPriceMinorUnits * l.quantity, 0),
+      // A rejected / cancelled order reports what was asked for (lines a waiter dropped by editing first are not part of it), not 0.
+      totalMinor: (req.status === ServiceRequestStatus.CANCELLED ? req.lines.filter((l) => !isEditDropped(l)) : active).reduce((s, l) => s + l.unitPriceMinorUnits * l.quantity, 0),
     };
   }
 }

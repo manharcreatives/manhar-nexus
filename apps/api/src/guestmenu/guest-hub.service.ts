@@ -28,7 +28,8 @@ interface TableSnap {
   menuEtag: string;
   orders: Map<string, string>;
   billSig: string;
-  waiterOpen: boolean;
+  /** Id of the table's newest OPEN waiter call ('' = none). A different id = a new call. */
+  callId: string;
 }
 
 /** Bus topics that can change what a guest sees. */
@@ -39,7 +40,7 @@ const RELEVANT: ReadonlySet<RealtimeTopic> = new Set<RealtimeTopic>(['orders', '
  * RealtimeBus (ADR-032); this hub listens per business ONLY while a guest stream is open, debounces bursts, recomputes a
  * small PUBLIC-SAFE snapshot per table and sends just the differences:
  *
- *   menu.changed {etag}   table.updated {open}   order.updated {orderId,status}   bill.updated {}   waiter.ack {}
+ *   menu.changed {etag}   table.updated {open}   order.updated {orderId,status}   bill.updated {}   waiter.call {}   waiter.ack {}
  *
  * Events are hints: they carry ids and statuses only, never names, items or amounts, because a stream is addressed by the
  * table token alone (EventSource cannot send the guest token). The page re-reads /state with its guest token.
@@ -195,7 +196,7 @@ export class GuestHub implements OnModuleDestroy {
       session
         ? this.prisma.serviceRequest.findMany({
             where: { businessId: ctx.businessId, sessionId: session.id },
-            select: { id: true, status: true, editCount: true, guestOrder: { select: { decision: true } } },
+            select: { id: true, status: true, editCount: true, version: true, guestOrder: { select: { decision: true } } },
             take: 200,
           })
         : Promise.resolve([]),
@@ -205,9 +206,12 @@ export class GuestHub implements OnModuleDestroy {
     const orders = new Map<string, string>();
     for (const r of requests) {
       if (r.status === ServiceRequestStatus.DRAFT && !r.guestOrder) continue; // a waiter's private draft
-      orders.set(r.id, `${guestStatusOf(r)}:${r.editCount}`);
+      // status:editCount:version. A waiter's edit BEFORE confirmation (a DRAFT) changes lines, note and total but neither
+      // the guest status nor editCount (that one only counts kitchen-visible edits), so the row version is part of the
+      // signature: every edit bumps it and the guest page re-reads /state at once. The event payload keeps only the status.
+      orders.set(r.id, `${guestStatusOf(r)}:${r.editCount}:${r.version}`);
     }
-    return { open, menuEtag, orders, billSig: fingerprint(bill), waiterOpen: !!call };
+    return { open, menuEtag, orders, billSig: fingerprint(bill), callId: call?.id ?? '' };
   }
 
   private diff(c: HubConn, before: TableSnap, after: TableSnap): void {
@@ -217,6 +221,7 @@ export class GuestHub implements OnModuleDestroy {
       if (before.orders.get(id) !== sig) c.write('order.updated', { orderId: id, status: sig.split(':')[0] });
     }
     if (before.billSig !== after.billSig) c.write('bill.updated', {});
-    if (before.waiterOpen && !after.waiterOpen) c.write('waiter.ack', {});
+    if (after.callId && before.callId !== after.callId) c.write('waiter.call', {});
+    else if (before.callId && !after.callId) c.write('waiter.ack', {});
   }
 }

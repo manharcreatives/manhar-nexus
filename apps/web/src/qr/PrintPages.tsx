@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { QrSvg } from './QrSvg';
 import { assetUrl } from './api';
 import { PER_PAGE, chunk, pageClass, type PrintLayout } from './printLayout';
-import { menuUrl } from './qrCode';
+import { tableMenuUrl } from './qrCode';
 import type { QrTable } from './types';
 import './qr.css';
 
@@ -27,7 +27,7 @@ export function PrintCard({ table, brand, origin }: { table: QrTable; brand: Pri
         {brand.tagline && <p className="qr-card__tagline">{brand.tagline}</p>}
       </div>
       <div className="qr-card__frame">
-        <QrSvg className="qr-card__qr" text={menuUrl(table.token, origin)} label={t('qr.print.qrLabel', { code: table.code })} />
+        <QrSvg className="qr-card__qr" text={tableMenuUrl(table, origin)} label={t('qr.print.qrLabel', { code: table.code })} />
       </div>
       <div className="qr-card__bottom">
         <p className="qr-card__eyebrow">{t('qr.print.scan')}</p>

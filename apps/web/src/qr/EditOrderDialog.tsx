@@ -22,8 +22,9 @@ export function buildEdit(order: GuestOrder, qty: Record<string, number>, note: 
  * note. The server recomputes prices; the total shown here is only a preview (before tax).
  * ASSUMPTION: a richer edit flow from the order-edit work (S2) can replace this later.
  */
-export function EditOrderDialog({ order, busy, onSave, onClose }: { order: GuestOrder; busy: boolean; onSave: (edit: GuestOrderEdit | null) => void; onClose: () => void }) {
+export function EditOrderDialog({ order: fullOrder, busy, onSave, onClose }: { order: GuestOrder; busy: boolean; onSave: (edit: GuestOrderEdit | null) => void; onClose: () => void }) {
   const { t } = useTranslation();
+  const order = useMemo(() => ({ ...fullOrder, lines: fullOrder.lines.filter((l) => !l.cancelled) }), [fullOrder]);
   const [qty, setQty] = useState<Record<string, number>>(() => Object.fromEntries(order.lines.map((l) => [l.id, l.qty])));
   const [note, setNote] = useState(order.note ?? '');
 

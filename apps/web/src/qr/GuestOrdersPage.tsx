@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LiveBadge } from '../realtime/LiveBadge';
-import { describeError } from '../restaurant/errors';
 import { useNow } from '../restaurant/hooks';
 import { formatMoney } from '../lib/money';
 import { Button } from '../ui/Button';
@@ -10,6 +9,7 @@ import { SectionHeader } from '../ui/SectionHeader';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { useToast } from '../ui/Toast';
 import { newIdempotencyKey, qrApi } from './api';
+import { describeQrError, isGone, isOrderConflict, isOrderingLocked } from './errors';
 import { EditOrderDialog } from './EditOrderDialog';
 import { GuestOrderCard } from './GuestOrderCard';
 import { useGuestOrders } from './GuestOrderProvider';
@@ -17,9 +17,6 @@ import * as Icons from './icons';
 import { RejectDialog } from './RejectDialog';
 import { formatWaiting, waitingMinutes } from './time';
 import type { GuestOrder, GuestOrderEdit, WaiterAlert } from './types';
-
-const isConflict = (err: unknown) => (err as { status?: number } | null)?.status === 409;
-const isGone = (err: unknown) => (err as { status?: number } | null)?.status === 404;
 
 function CallRow({ call, now, busy, onDone }: { call: WaiterAlert; now: number; busy: boolean; onDone: (c: WaiterAlert) => void }) {
   const { t } = useTranslation();
@@ -47,8 +44,11 @@ export function GuestOrdersPage() {
   const now = useNow(30_000);
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const inFlight = useRef(new Set<string>());
-  // One key per (order, action) until it succeeds, so a retry after a dropped response cannot double-apply.
+  // Confirm and reject are idempotent on the server (a replay answers the same row). Edit is not a pure replay, so it
+  // gets one Idempotency-Key per order until it succeeds, and an order whose edit already went through is not edited twice
+  // when the accept that followed it has to be retried.
   const keys = useRef(new Map<string, string>());
+  const edited = useRef(new Set<string>());
   const [rejecting, setRejecting] = useState<GuestOrder | null>(null);
   const [editing, setEditing] = useState<GuestOrder | null>(null);
 
@@ -70,11 +70,15 @@ export function GuestOrdersPage() {
   /** Shared failure handling: someone else may have handled the order already. */
   const fail = useCallback(
     (err: unknown, contextKey: string) => {
-      if (isConflict(err) || isGone(err)) {
+      if (isOrderingLocked(err)) {
+        // A bill was generated for the table: this order can no longer be added to it.
+        toast.show(t('qr.orders.billExists'), 'bad');
+        g.refresh();
+      } else if (isOrderConflict(err) || isGone(err)) {
         toast.show(t('qr.orders.alreadyHandled'), 'bad');
         g.refresh();
       } else {
-        toast.show(describeError(err, t, contextKey), 'bad');
+        toast.show(describeQrError(err, t, contextKey), 'bad');
       }
     },
     [g, t, toast],
@@ -85,8 +89,7 @@ export function GuestOrdersPage() {
       if (inFlight.current.has(o.id)) return;
       mark(o.id, true);
       try {
-        await qrApi.confirm(o.id, keyFor(o.id, 'confirm'));
-        keys.current.delete(`${o.id}:confirm`);
+        await qrApi.confirm(o.id);
         g.dropOrder(o.id);
         toast.show(t('qr.orders.accepted', { table: o.tableCode }));
         g.refresh();
@@ -96,7 +99,7 @@ export function GuestOrdersPage() {
         mark(o.id, false);
       }
     },
-    [fail, g, keyFor, mark, t, toast],
+    [fail, g, mark, t, toast],
   );
 
   const reject = useCallback(
@@ -104,40 +107,52 @@ export function GuestOrdersPage() {
       if (inFlight.current.has(o.id)) return;
       mark(o.id, true);
       try {
-        await qrApi.reject(o.id, reason, keyFor(o.id, 'reject'));
-        keys.current.delete(`${o.id}:reject`);
+        await qrApi.reject(o.id, reason);
         g.dropOrder(o.id);
         setRejecting(null);
         toast.show(t('qr.orders.rejected', { table: o.tableCode }));
         g.refresh();
       } catch (err) {
-        if (isConflict(err) || isGone(err)) setRejecting(null);
+        if (isOrderConflict(err) || isGone(err)) setRejecting(null);
         fail(err, 'qr.orders.rejectFailed');
       } finally {
         mark(o.id, false);
       }
     },
-    [fail, g, keyFor, mark, t, toast],
+    [fail, g, mark, t, toast],
   );
 
   const saveAndAccept = useCallback(
     async (o: GuestOrder, edit: GuestOrderEdit | null) => {
       if (inFlight.current.has(o.id)) return;
       mark(o.id, true);
+      let step: 'edit' | 'accept' = 'edit';
       try {
-        if (edit) {
+        if (edit && !edited.current.has(o.id)) {
           await qrApi.edit(o.id, edit, keyFor(o.id, 'edit'));
+          edited.current.add(o.id);
           keys.current.delete(`${o.id}:edit`);
         }
-        await qrApi.confirm(o.id, keyFor(o.id, 'confirm'));
-        keys.current.delete(`${o.id}:confirm`);
+        step = 'accept';
+        await qrApi.confirm(o.id);
+        edited.current.delete(o.id);
         g.dropOrder(o.id);
         setEditing(null);
         toast.show(t('qr.orders.accepted', { table: o.tableCode }));
         g.refresh();
       } catch (err) {
-        if (isConflict(err) || isGone(err)) setEditing(null);
-        fail(err, 'qr.orders.editFailed');
+        const status = (err as { status?: number } | null)?.status;
+        if (isOrderConflict(err) || isGone(err)) setEditing(null);
+        // A server answer (not a dropped connection) to the edit means the order is not what this dialog was built from
+        // (someone edited it, or the first try was applied and its reply was lost): reload it rather than guess.
+        if (step === 'edit' && status !== undefined && !isOrderConflict(err) && !isGone(err)) {
+          keys.current.delete(`${o.id}:edit`);
+          setEditing(null);
+          toast.show(t('qr.orders.changedMeanwhile'), 'bad');
+          g.refresh();
+        } else {
+          fail(err, 'qr.orders.editFailed');
+        }
       } finally {
         mark(o.id, false);
       }
@@ -154,7 +169,7 @@ export function GuestOrdersPage() {
         await qrApi.ackAlert(c.tableId);
         g.dropCall(c.tableId);
       } catch (err) {
-        toast.show(describeError(err, t, 'qr.alerts.ackFailed'), 'bad');
+        toast.show(describeQrError(err, t, 'qr.alerts.ackFailed'), 'bad');
       } finally {
         mark(id, false);
       }

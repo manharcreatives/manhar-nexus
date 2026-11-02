@@ -93,7 +93,7 @@ export function TableQrPage() {
     );
   } else if (tab === 'settings') {
     body = (
-      <MenuSettingsPanel settings={settings} businessName={businessName} defaultAccent={defaultAccent} onSaved={setSettings} />
+      <MenuSettingsPanel settings={settings} businessName={businessName} defaultAccent={defaultAccent} onSaved={setSettings} onConflict={() => void load()} />
     );
   } else {
     body = (

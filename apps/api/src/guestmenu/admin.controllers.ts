@@ -27,6 +27,7 @@ import { mediaMaxBytes } from './guestmenu.config';
 import { IDEMPOTENCY_KEY_REGEX } from './guestmenu.tokens';
 import { ImageService, type BrandKind, type UploadedImage } from './image/image.service';
 import { QrAdminService } from './qr-admin.service';
+import { UploadErrorsInterceptor } from './upload-errors.interceptor';
 import { GuestHub } from './guest-hub.service';
 import { TenantScopedRepository } from '../common/tenant-scoped.repository';
 import { Injectable } from '@nestjs/common';
@@ -34,7 +35,7 @@ import { AuditService } from '../core/audit/audit.service';
 import type { MenuDietType } from '@prisma/client';
 
 const upload = () =>
-  UseInterceptors(FileInterceptor('file', { limits: { fileSize: mediaMaxBytes() + 1024, files: 1, fields: 6, parts: 8, fieldSize: 4096 } }));
+  UseInterceptors(UploadErrorsInterceptor, FileInterceptor('file', { limits: { fileSize: mediaMaxBytes() + 1024, files: 1, fields: 6, parts: 8, fieldSize: 4096 } }));
 
 const KINDS = ['logo', 'cover'] as const;
 

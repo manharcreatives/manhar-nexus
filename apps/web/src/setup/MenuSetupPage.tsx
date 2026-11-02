@@ -1,6 +1,7 @@
 import { useId, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { describeError } from '../restaurant/errors';
+import { describeQrError } from '../qr/errors';
 import { useSingleFlight } from '../restaurant/hooks';
 import type { CatalogCategory, CatalogVariant, ModifierGroup } from '../restaurant/api';
 import { cn } from '../lib/cn';
@@ -20,6 +21,10 @@ import { useToast } from '../ui/Toast';
 import { AddOnsSection } from './AddOnsSection';
 import { menuApi, type SetupItem, type TaxCategory } from './api';
 import { useLoad } from './useLoad';
+import { qrApi } from '../qr/api';
+import { EMPTY_PRESENTATION, ItemPresentationFields, samePresentation } from '../qr/ItemPresentationFields';
+import { toPresentation } from '../qr/normalize';
+import { useQrCaps } from '../qr/permissions';
 
 const pct = (rate: string | number) => `${Math.round(Number(rate) * 10000) / 100}%`;
 /** "GST 5%" already says its rate; "Exempt" does not. */
@@ -161,6 +166,10 @@ function ItemDialog({
   const [linked, setLinked] = useState<string[]>((item?.modifierGroups ?? []).map((g) => g.modifierGroupId));
   const [vName, setVName] = useState('');
   const [vPrice, setVPrice] = useState('');
+  // Guest-menu details (dietary mark, tags, spice): PATCH /admin/menu/items/:id/presentation, restaurant.qr.manage.
+  const canPresent = useQrCaps().canManageQr;
+  const initialPresentation = useMemo(() => (item ? toPresentation(item) : EMPTY_PRESENTATION), [item]);
+  const [presentation, setPresentation] = useState(initialPresentation);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(false);
   const { busy, run } = useSingleFlight();
@@ -174,9 +183,25 @@ function ItemDialog({
       try {
         if (item) {
           await menuApi.updateItem(item.id, { name: name.trim(), basePriceMinorUnits: minor, categoryId, taxCategoryId: taxId || null, isAvailable: available });
+          if (canPresent && !samePresentation(presentation, initialPresentation)) {
+            try {
+              await qrApi.setItemPresentation(item.id, presentation);
+            } catch (err) {
+              // The item itself is saved; keep the dialog open so the details can be retried.
+              return setError(describeQrError(err, t, 'qr.item.saveFailed'));
+            }
+          }
           onDone(t('setup.menu.itemSaved', { name: name.trim() }));
         } else {
-          await menuApi.createItem({ categoryId, name: name.trim(), basePriceMinorUnits: minor, ...(taxId ? { taxCategoryId: taxId } : {}) });
+          const created = await menuApi.createItem({ categoryId, name: name.trim(), basePriceMinorUnits: minor, ...(taxId ? { taxCategoryId: taxId } : {}) });
+          if (canPresent && !samePresentation(presentation, EMPTY_PRESENTATION)) {
+            try {
+              await qrApi.setItemPresentation(created.id, presentation);
+            } catch {
+              // Created, so never retry the create: close and tell the owner where to finish.
+              return onDone(t('qr.item.addedWithoutDetails', { name: name.trim() }));
+            }
+          }
           onDone(t('setup.menu.itemAdded', { name: name.trim() }));
         }
       } catch (err) {
@@ -281,6 +306,7 @@ function ItemDialog({
           ))}
         </Select>
         {item && <Checkbox label={t('setup.menu.available')} checked={available} onChange={(e) => setAvailable(e.target.checked)} />}
+        {canPresent && <ItemPresentationFields value={presentation} onChange={setPresentation} disabled={busy} />}
 
         {item ? (
           <fieldset className="rounded-control border border-white/10 p-3">

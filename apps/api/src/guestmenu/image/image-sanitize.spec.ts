@@ -1,4 +1,4 @@
-import { PayloadTooLargeError, UnsupportedMediaError } from '../guestmenu.errors';
+import { ImageTooSmallError, PayloadTooLargeError, UnsupportedMediaError } from '../guestmenu.errors';
 import { assertAcceptableSize, exifOrientation, inspectImage, sniffImage, stripMetadata, validBlur, validColor } from './image-sanitize';
 
 /** Synthetic, minimal containers: enough structure for the header parsers, no real pixel data needed. */
@@ -128,7 +128,15 @@ describe('inspectImage', () => {
 describe('assertAcceptableSize', () => {
   const info = (w: number, h: number, animated = false) => ({ kind: 'png' as const, width: w, height: h, orientation: 1, animated });
   it('accepts normal photos', () => expect(() => assertAcceptableSize(info(1600, 1200))).not.toThrow());
-  it('refuses tiny pictures', () => expect(() => assertAcceptableSize(info(32, 800))).toThrow(UnsupportedMediaError));
+  it('refuses tiny pictures with their own code (still a 415)', () => {
+    expect(() => assertAcceptableSize(info(32, 800))).toThrow(UnsupportedMediaError);
+    expect(() => assertAcceptableSize(info(32, 800))).toThrow(ImageTooSmallError);
+    try {
+      assertAcceptableSize(info(800, 32));
+    } catch (e) {
+      expect(e).toMatchObject({ code: 'IMAGE_TOO_SMALL', httpStatus: 415, details: { minSidePx: 64, width: 800, height: 32 } });
+    }
+  });
   it('refuses animation', () => expect(() => assertAcceptableSize(info(800, 800, true))).toThrow(UnsupportedMediaError));
   it('refuses decompression bombs (413)', () => {
     expect(() => assertAcceptableSize(info(7000, 700))).toThrow(PayloadTooLargeError);

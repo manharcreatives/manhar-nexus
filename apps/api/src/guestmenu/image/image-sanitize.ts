@@ -1,4 +1,4 @@
-import { PayloadTooLargeError, UnsupportedMediaError } from '../guestmenu.errors';
+import { ImageTooSmallError, PayloadTooLargeError, UnsupportedMediaError } from '../guestmenu.errors';
 
 /**
  * Pure helpers that make an uploaded picture safe to serve publicly without a native image library:
@@ -137,7 +137,9 @@ function inspectWebp(buf: Buffer): ImageInfo {
 /** Size/shape policy shared by every upload. */
 export function assertAcceptableSize(info: ImageInfo): void {
   if (info.animated) bad('Animated images are not supported. Upload a still photo.');
-  if (info.width < MIN_SIDE_PX || info.height < MIN_SIDE_PX) bad(`The picture is too small (at least ${MIN_SIDE_PX}px on each side).`);
+  if (info.width < MIN_SIDE_PX || info.height < MIN_SIDE_PX) {
+    throw new ImageTooSmallError(`The picture is too small (at least ${MIN_SIDE_PX}px on each side).`, { minSidePx: MIN_SIDE_PX, width: info.width, height: info.height });
+  }
   if (info.width > MAX_SIDE_PX || info.height > MAX_SIDE_PX || info.width * info.height > MAX_PIXELS) {
     throw new PayloadTooLargeError(`The picture is too large (at most ${MAX_SIDE_PX}px per side, ${MAX_PIXELS / 1_000_000} megapixels).`);
   }

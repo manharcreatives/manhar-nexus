@@ -27,7 +27,13 @@
       "toggle": "Could not change this table. Please try again.",
       "rotate": "Could not replace the QR code. The old code is still active.",
       "copy": "Could not copy the link. Select and copy it manually.",
-      "download": "Could not create the download. Try again or use SVG."
+      "download": "Could not create the download. Try again or use SVG.",
+      "versionConflict": "Someone else changed this just now. The latest version has been loaded, please try again.",
+      "orderingLocked": "A bill already exists for this table, so the order can no longer be added to it.",
+      "tooLarge": "That picture is too large. Use one under 6 MB.",
+      "unsupportedMedia": "Only JPEG, PNG or WebP pictures can be used.",
+      "mediaNotConfigured": "Picture uploads are not set up on this server yet. Ask your administrator to configure the media storage.",
+      "rateLimited": "Too many requests. Wait a few seconds and try again."
     },
     "page": {
       "title": "Table QR codes",
@@ -78,7 +84,14 @@
       "enabledToast": "Guest menu is on for table {{code}}.",
       "disabledToast": "Guest menu is off for table {{code}}.",
       "rotate": "Replace code",
-      "rotateAria": "Replace the QR code of table {{code}}"
+      "rotateAria": "Replace the QR code of table {{code}}",
+      "browseOnly": "Browse only",
+      "orderingOn": "Guest ordering on",
+      "orderingOff": "Guest ordering off",
+      "orderingOnAria": "Turn guest ordering off for table {{code}}",
+      "orderingOffAria": "Turn guest ordering on for table {{code}}",
+      "orderingOnToast": "Guests at table {{code}} can order again.",
+      "orderingOffToast": "Table {{code}} is browse only now."
     },
     "rotate": {
       "title": "Replace the QR code for {{code}}?",
@@ -185,7 +198,8 @@
       "help": {
         "dish": "Dish photos are shown at 4:5 (portrait). Drag to position, zoom to frame the dish.",
         "logo": "The logo is shown as a square. Drag to position, zoom to fit.",
-        "cover": "The cover is shown wide (16:9). Drag to position, zoom to frame."
+        "cover": "The cover is shown wide (16:9). Drag to position, zoom to frame.",
+        "category": "Category pictures are shown square. Drag to position, zoom to frame."
       },
       "frameLabel": "Crop area",
       "keys": "Arrow keys move the picture. Plus and minus zoom.",
@@ -317,7 +331,50 @@
       "removeAll": "Every item is removed. Reject the order instead.",
       "orderNote": "Note on the order",
       "previewTotal": "Updated total before tax",
-      "saveAccept": "Save and accept"
+      "saveAccept": "Save and accept",
+      "billExists": "A bill already exists for this table, so this order cannot be accepted. Reject it, or add the items to the table yourself.",
+      "changedMeanwhile": "This order changed in the meantime. It has been reloaded: check it and accept again."
+    },
+    "categories": {
+      "title": "Category pictures",
+      "hint": "Optional square picture for each category on the guest menu. Categories without one show the name only.",
+      "coverage": "{{with}} of {{total}}",
+      "has": "Picture set",
+      "none": "No picture",
+      "cropTitle": "Crop the picture of {{name}}",
+      "inputLabel": "Choose a picture for {{name}}",
+      "chooseAria": "Choose a picture for category {{name}}",
+      "removeAria": "Remove the picture of category {{name}}",
+      "saved": "Picture saved for {{name}}.",
+      "saveFailed": "Could not save the category picture. Please try again."
+    },
+    "item": {
+      "title": "Guest menu details",
+      "hint": "Shown on the guest menu: dietary mark, tags and spice level. Leave empty to show nothing.",
+      "diet": "Dietary mark",
+      "dietOptions": {
+        "none": "Not set",
+        "veg": "Veg",
+        "nonveg": "Non-veg",
+        "egg": "Egg"
+      },
+      "spice": "Spice level",
+      "spiceOptions": {
+        "none": "Not set",
+        "0": "No spice",
+        "1": "Mild",
+        "2": "Medium",
+        "3": "Hot"
+      },
+      "tags": "Tags",
+      "tagsList": "Tags on this dish",
+      "removeTag": "Remove tag {{tag}}",
+      "tagsPlaceholder": "Type a tag and press Enter",
+      "tagsFull": "At most {{max}} tags",
+      "suggestions": "Suggested tags",
+      "tagsCount": "{{count}} of {{max}} tags",
+      "saveFailed": "The dish was saved, but its guest menu details were not. Please try again.",
+      "addedWithoutDetails": "{{name}} added. Its guest menu details were not saved: open the dish to set them."
     }
   }
 }

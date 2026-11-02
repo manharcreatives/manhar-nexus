@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { StatusPill } from '../ui/StatusPill';
 import * as Icons from './icons';
 import { QrSvg } from './QrSvg';
-import { menuUrl } from './qrCode';
+import { tableMenuUrl } from './qrCode';
 import type { QrTable } from './types';
 
 export interface TableQrCardProps {
@@ -16,12 +16,14 @@ export interface TableQrCardProps {
   onPrintTent: (t: QrTable) => void;
   onRotate: (t: QrTable) => void;
   onToggle: (t: QrTable) => void;
+  /** Guest ordering on/off for this table; omit to hide the control (ordering is off restaurant-wide). */
+  onToggleOrdering?: (t: QrTable) => void;
 }
 
 /** One table: live QR, status, and the actions staff need (copy, download, tent, rotate, on/off). */
-export function TableQrCard({ table, busy, onCopy, onDownload, onPrintTent, onRotate, onToggle }: TableQrCardProps) {
+export function TableQrCard({ table, busy, onCopy, onDownload, onPrintTent, onRotate, onToggle, onToggleOrdering }: TableQrCardProps) {
   const { t } = useTranslation();
-  const url = menuUrl(table.token);
+  const url = tableMenuUrl(table);
   const tail = table.token.slice(-6);
   return (
     <article
@@ -34,7 +36,10 @@ export function TableQrCard({ table, busy, onCopy, onDownload, onPrintTent, onRo
           <h3 className="font-display text-[1.75rem] leading-none font-semibold tracking-[-0.02em]">{table.code}</h3>
           {table.areaName && <p className="mt-1.5 truncate text-sm text-muted">{table.areaName}</p>}
         </div>
-        <StatusPill tone={table.enabled ? 'ok' : 'neutral'}>{table.enabled ? t('qr.card.enabled') : t('qr.card.disabled')}</StatusPill>
+        <div className="flex flex-col items-end gap-1.5">
+          <StatusPill tone={table.enabled ? 'ok' : 'neutral'}>{table.enabled ? t('qr.card.enabled') : t('qr.card.disabled')}</StatusPill>
+          {table.enabled && !table.orderingEnabled && <StatusPill tone="warn">{t('qr.card.browseOnly')}</StatusPill>}
+        </div>
       </header>
 
       <div className="relative mx-auto mt-4 w-full max-w-[11rem]">
@@ -78,6 +83,19 @@ export function TableQrCard({ table, busy, onCopy, onDownload, onPrintTent, onRo
           SVG
         </Button>
       </div>
+      {onToggleOrdering && table.enabled && (
+        <Button
+          variant="ghost"
+          className="mt-2 w-full justify-start"
+          disabled={busy}
+          onClick={() => onToggleOrdering(table)}
+          aria-pressed={table.orderingEnabled}
+          aria-label={table.orderingEnabled ? t('qr.card.orderingOffAria', { code: table.code }) : t('qr.card.orderingOnAria', { code: table.code })}
+        >
+          <Icons.ShoppingBag className="size-4" aria-hidden />
+          {table.orderingEnabled ? t('qr.card.orderingOn') : t('qr.card.orderingOff')}
+        </Button>
+      )}
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-3">
         <Button variant="ghost" loading={busy} onClick={() => onToggle(table)} aria-pressed={table.enabled} aria-label={table.enabled ? t('qr.card.disableAria', { code: table.code }) : t('qr.card.enableAria', { code: table.code })}>
           <Icons.Power className="size-4" aria-hidden />

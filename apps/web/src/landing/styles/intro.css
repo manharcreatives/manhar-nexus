@@ -14,8 +14,12 @@
   display: block;
 }
 .lp-lit__w {
-  opacity: calc(0.18 + 0.82 * clamp(0, calc((var(--q) * (var(--n) + 7) - var(--i)) / 7), 1));
+  opacity: calc(0.52 + 0.48 * clamp(0, calc((var(--q) * (var(--n) + 7) - var(--i)) / 7), 1));
   transition: opacity 0.9s var(--lp-ease);
+}
+/* accent (green) words need a higher floor to keep AA while unlit */
+.lp-lit__w:has(.lp-accent) {
+  opacity: calc(0.78 + 0.22 * clamp(0, calc((var(--q) * (var(--n) + 7) - var(--i)) / 7), 1));
 }
 
 /* ---- head: the same section header, set larger ------------------------------ */
@@ -165,14 +169,14 @@
   justify-content: center;
   margin-top: 1.4em;
 }
-.lp-intro__stamp {
+.lp-stamp.lp-intro__stamp {
   font-size: 1.35em;
   border-color: var(--lp-ink);
   color: var(--lp-ink);
   opacity: 0;
   transform: rotate(-9deg) scale(1.8);
 }
-.lp-intro__slipwrap[data-in="true"] .lp-intro__stamp {
+.lp-intro__slipwrap[data-in="true"] .lp-stamp.lp-intro__stamp {
   opacity: 1;
   transform: rotate(-9deg);
   transition: opacity 0.6s var(--lp-ease) 0.8s, transform 0.9s var(--lp-ease) 0.8s;
@@ -199,7 +203,7 @@
   .lp-intro__slip {
     transition: none;
   }
-  .lp-intro__stamp {
+  .lp-stamp.lp-intro__stamp {
     opacity: 1;
     transform: rotate(-9deg);
     transition: none;

@@ -12,10 +12,10 @@ const visible = (key: string, realm: 'BUSINESS' | 'PLATFORM' = 'BUSINESS') =>
  */
 describe('role -> visible pages', () => {
   it('owner sees every tenant page, never the platform pages', () => {
-    expect(visible('owner')).toEqual(['/', '/modules', '/config', '/profile', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/floor', '/menu', '/costs']);
+    expect(visible('owner')).toEqual(['/', '/modules', '/config', '/profile', '/reports', '/team', '/activity', '/tables', '/guest-orders', '/kitchen', '/bills', '/floor', '/menu', '/qr', '/costs']);
   });
   it('location manager has no Module Center (no core.modules.view) but everything else', () => {
-    expect(visible('location-manager')).toEqual(['/', '/config', '/reports', '/team', '/activity', '/tables', '/kitchen', '/bills', '/floor', '/menu', '/costs']);
+    expect(visible('location-manager')).toEqual(['/', '/config', '/reports', '/team', '/activity', '/tables', '/guest-orders', '/kitchen', '/bills', '/floor', '/menu', '/qr', '/costs']);
   });
   it('accountant sees Reports, Activity and Costs only', () => {
     expect(visible('accountant')).toEqual(['/', '/reports', '/activity', '/costs']);
@@ -23,9 +23,18 @@ describe('role -> visible pages', () => {
     expect(as('location-manager').canManageCosts).toBe(true);
   });
   it('cashier: Tables and Bills', () => expect(visible('checkout-associate')).toEqual(['/', '/tables', '/bills']));
-  it('waiter: Tables and a read-only Kitchen', () => {
-    expect(visible('service-team')).toEqual(['/', '/tables', '/kitchen']);
+  it('waiter: Tables, the guest-order inbox and a read-only Kitchen', () => {
+    expect(visible('service-team')).toEqual(['/', '/tables', '/guest-orders', '/kitchen']);
     expect(as('service-team').canManageKitchen).toBe(false);
+  });
+  it('QR pages follow restaurant.qr.manage / restaurant.guestorder.manage', () => {
+    expect(as('owner')).toMatchObject({ canManageQr: true, canManageGuestOrders: true });
+    expect(as('location-manager')).toMatchObject({ canManageQr: true, canManageGuestOrders: true });
+    expect(as('service-team')).toMatchObject({ canManageQr: false, canManageGuestOrders: true });
+    for (const role of ['checkout-associate', 'kitchen-team', 'host', 'accountant']) {
+      expect(as(role)).toMatchObject({ canManageQr: false, canManageGuestOrders: false });
+    }
+    expect(as('owner', 'PLATFORM')).toMatchObject({ canManageQr: false, canManageGuestOrders: false });
   });
   it('kitchen: Kitchen only', () => expect(visible('kitchen-team')).toEqual(['/', '/kitchen']));
   it('host: Tables only', () => expect(visible('host')).toEqual(['/', '/tables']));

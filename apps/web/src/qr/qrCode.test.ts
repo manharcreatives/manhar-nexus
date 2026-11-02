@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fileSlug, isLocalOrigin, menuUrl, qrGeometry, qrSvgString } from './qrCode';
+import { fileSlug, isLocalOrigin, menuUrl, qrGeometry, qrSvgString, tableMenuUrl } from './qrCode';
 
 describe('menuUrl', () => {
   it('joins origin and token under /m/', () => {
@@ -57,5 +57,14 @@ describe('fileSlug', () => {
   it('makes file safe names', () => {
     expect(fileSlug('T 4/b')).toBe('T-4-b');
     expect(fileSlug('  ')).toBe('table');
+  });
+});
+
+describe('tableMenuUrl', () => {
+  it('prefers the absolute url the API knows (QR_PUBLIC_BASE_URL)', () => {
+    expect(tableMenuUrl({ token: 'abc', url: 'https://menu.example.com/m/abc' }, 'http://localhost:5173')).toBe('https://menu.example.com/m/abc');
+  });
+  it('otherwise builds /m/<token> on the page origin', () => {
+    expect(tableMenuUrl({ token: 'abc', url: null }, 'https://nexus.example.com')).toBe('https://nexus.example.com/m/abc');
   });
 });

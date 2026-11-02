@@ -1,60 +1,60 @@
 import type {
+  DietType,
   GuestOrder,
   GuestOrderLine,
   GuestOrderStatus,
+  ItemPresentation,
   OrderingMode,
   PhotoCategory,
   PhotoItem,
   QrSettings,
   QrTable,
+  SpiceLevel,
+  UploadedPicture,
   WaiterAlert,
   WaiterCall,
   WaiterReason,
 } from './types';
 
 /**
- * The API layer is written concurrently with this screen, so the wire format is read
- * defensively: known aliases are accepted and every field gets a safe default. Once the
- * contract is final these mappers stay as the single place that knows the wire shape.
+ * Wire -> UI mappers. The API (apps/api/src/guestmenu/**) is the source of truth for every shape read
+ * here; fields it does not send get a safe default so one odd row never blanks a screen.
  */
 type Raw = Record<string, unknown>;
 
 const isRaw = (v: unknown): v is Raw => typeof v === 'object' && v !== null && !Array.isArray(v);
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 const num = (v: unknown, fallback = 0): number => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
-const pick = (r: Raw, ...keys: string[]): unknown => {
-  for (const k of keys) if (r[k] !== undefined && r[k] !== null) return r[k];
-  return undefined;
-};
 
-/** Accepts `[...]` or `{ items: [...] }` / `{ data: [...] }`. */
+/** Every list endpoint answers with a bare JSON array. */
 export function asArray(v: unknown): Raw[] {
-  const list = Array.isArray(v) ? v : isRaw(v) ? (v.items ?? v.data ?? v.results ?? v.tables ?? v.orders) : [];
-  return Array.isArray(list) ? list.filter(isRaw) : [];
+  return Array.isArray(v) ? v.filter(isRaw) : [];
 }
 
 const REASONS: readonly WaiterReason[] = ['call', 'bill', 'water', 'other'];
-const reason = (v: unknown): WaiterReason => (REASONS as readonly unknown[]).includes(v) ? (v as WaiterReason) : 'call';
+const reason = (v: unknown): WaiterReason => ((REASONS as readonly unknown[]).includes(v) ? (v as WaiterReason) : 'call');
 
+/** `waiterCall` is `{ open: true, reason, at }` or null. */
 function toCall(v: unknown): WaiterCall | null {
-  if (!isRaw(v)) return null;
-  if (v.open === false) return null;
-  const at = str(pick(v, 'at', 'requestedAt', 'createdAt'));
-  if (!at && v.open !== true) return null;
-  return { reason: reason(v.reason), at: at ?? new Date().toISOString() };
+  if (!isRaw(v) || v.open !== true) return null;
+  return { reason: reason(v.reason), at: str(v.at) ?? new Date().toISOString() };
 }
 
 export function toQrTable(raw: Raw): QrTable {
-  const area = pick(raw, 'area', 'diningArea');
   return {
-    tableId: str(pick(raw, 'tableId', 'diningTableId', 'id')) ?? '',
-    code: str(pick(raw, 'code', 'label', 'tableCode', 'tableLabel')) ?? '',
-    areaName: str(pick(raw, 'areaName')) ?? (isRaw(area) ? str(area.name) : null),
-    token: str(pick(raw, 'token', 'tableToken', 'publicToken')) ?? '',
-    enabled: pick(raw, 'enabled', 'isEnabled', 'guestMenuEnabled') !== false,
-    rotatedAt: str(pick(raw, 'rotatedAt', 'tokenRotatedAt')),
-    pendingGuestOrders: num(pick(raw, 'pendingGuestOrders', 'pendingOrders', 'awaitingConfirmation')),
-    waiterCall: toCall(pick(raw, 'waiterCall', 'waiterRequest')),
+    tableId: str(raw.tableId) ?? '',
+    code: str(raw.code) ?? '',
+    areaName: str(raw.areaName),
+    locationId: str(raw.locationId) ?? '',
+    token: str(raw.token) ?? '',
+    url: str(raw.url),
+    enabled: raw.enabled !== false,
+    orderingEnabled: raw.orderingEnabled !== false,
+    rotatedAt: str(raw.rotatedAt),
+    rotationCount: num(raw.rotationCount),
+    version: num(raw.version, 1),
+    pendingGuestOrders: num(raw.pendingGuestOrders),
+    waiterCall: toCall(raw.waiterCall),
   };
 }
 
@@ -62,73 +62,67 @@ const ORDERING: readonly OrderingMode[] = ['off', 'confirm', 'auto'];
 
 export function toQrSettings(raw: unknown): QrSettings {
   const r = isRaw(raw) ? raw : {};
-  const payment = isRaw(r.payment) ? r.payment : {};
-  const ordering = pick(r, 'ordering', 'orderingMode');
   return {
-    enabled: pick(r, 'enabled', 'guestMenuEnabled') !== false,
-    ordering: (ORDERING as readonly unknown[]).includes(ordering) ? (ordering as OrderingMode) : 'confirm',
-    callWaiter: pick(r, 'callWaiter') !== false,
-    upi: pick(r, 'upi', 'upiEnabled') !== undefined ? pick(r, 'upi', 'upiEnabled') === true : payment.upi === true,
+    enabled: r.enabled !== false,
+    ordering: (ORDERING as readonly unknown[]).includes(r.ordering) ? (r.ordering as OrderingMode) : 'confirm',
+    callWaiter: r.callWaiter !== false,
+    upi: r.upi === true,
     tagline: str(r.tagline) ?? '',
     logoUrl: str(r.logoUrl),
     coverUrl: str(r.coverUrl),
     accentColor: str(r.accentColor),
+    version: num(r.version, 1),
   };
 }
 
 function toLine(raw: Raw, i: number): GuestOrderLine {
-  const addOns = pick(raw, 'addOns', 'modifiers', 'options');
+  const addOns = Array.isArray(raw.addOns) ? raw.addOns : [];
   return {
     id: str(raw.id) ?? `line-${i}`,
-    name: str(pick(raw, 'name', 'itemName', 'itemNameSnapshot')) ?? '',
-    variantName: str(pick(raw, 'variantName', 'variantNameSnapshot')),
-    qty: num(pick(raw, 'qty', 'quantity'), 1),
-    unitPriceMinor: num(pick(raw, 'unitPriceMinor', 'unitPriceMinorUnits', 'priceMinor')),
-    addOns: Array.isArray(addOns)
-      ? addOns.filter(isRaw).map((a) => ({
-          name: str(pick(a, 'name', 'optionNameSnapshot')) ?? '',
-          priceMinor: num(pick(a, 'priceMinor', 'priceAdjMinorUnits')),
-        }))
-      : [],
-    note: str(pick(raw, 'note', 'notes')),
+    name: str(raw.name) ?? '',
+    variantName: str(raw.variantName),
+    qty: num(raw.qty, 1),
+    unitPriceMinor: num(raw.unitPriceMinor),
+    addOns: addOns.filter(isRaw).map((a) => ({ name: str(a.name) ?? '', priceMinor: num(a.priceMinor) })),
+    note: str(raw.note),
+    cancelled: raw.cancelled === true,
   };
 }
 
 const STATUSES: readonly GuestOrderStatus[] = ['AWAITING_CONFIRMATION', 'CONFIRMED', 'REJECTED', 'CANCELLED'];
 
 export function toGuestOrder(raw: Raw): GuestOrder {
-  const table = pick(raw, 'table');
   const lines = Array.isArray(raw.lines) ? raw.lines.filter(isRaw).map(toLine) : [];
-  const status = pick(raw, 'status');
-  const computed = lines.reduce(
-    (sum, l) => sum + l.qty * (l.unitPriceMinor + l.addOns.reduce((s, a) => s + a.priceMinor, 0)),
-    0,
-  );
+  const live = lines.filter((l) => !l.cancelled);
+  const computed = live.reduce((sum, l) => sum + l.qty * (l.unitPriceMinor + l.addOns.reduce((s, a) => s + a.priceMinor, 0)), 0);
   return {
     id: str(raw.id) ?? '',
-    requestNumber: str(pick(raw, 'requestNumber', 'number')),
-    status: (STATUSES as readonly unknown[]).includes(status) ? (status as GuestOrderStatus) : 'AWAITING_CONFIRMATION',
-    tableId: str(pick(raw, 'tableId', 'diningTableId')) ?? (isRaw(table) ? str(table.id) : null) ?? '',
-    tableCode:
-      str(pick(raw, 'tableCode', 'tableLabel')) ?? (isRaw(table) ? str(pick(table, 'code', 'label')) : null) ?? '',
-    areaName: str(pick(raw, 'areaName')) ?? (isRaw(table) ? str(table.areaName) : null),
-    guestName: str(pick(raw, 'guestName', 'displayName')),
-    placedAt: str(pick(raw, 'placedAt', 'createdAt', 'sentAt')) ?? new Date().toISOString(),
-    note: str(pick(raw, 'note', 'notes')),
+    requestNumber: str(raw.requestNumber),
+    status: (STATUSES as readonly unknown[]).includes(raw.status) ? (raw.status as GuestOrderStatus) : 'AWAITING_CONFIRMATION',
+    tableId: str(raw.tableId) ?? '',
+    tableCode: str(raw.tableCode) ?? '',
+    areaName: str(raw.areaName),
+    locationId: str(raw.locationId) ?? '',
+    guestName: str(raw.guestName),
+    placedAt: str(raw.placedAt) ?? new Date().toISOString(),
+    note: str(raw.note),
+    rejectReason: str(raw.rejectReason),
     lines,
-    totalMinor: num(pick(raw, 'totalMinor', 'totalMinorUnits'), computed),
+    totalMinor: num(raw.totalMinor, computed),
   };
 }
 
 export function toWaiterAlert(raw: Raw): WaiterAlert {
   return {
-    tableId: str(pick(raw, 'tableId', 'diningTableId')) ?? '',
-    tableCode: str(pick(raw, 'tableCode', 'code', 'label')) ?? '',
+    tableId: str(raw.tableId) ?? '',
+    tableCode: str(raw.tableCode) ?? '',
+    areaName: str(raw.areaName),
     reason: reason(raw.reason),
-    at: str(pick(raw, 'at', 'requestedAt', 'createdAt')) ?? new Date().toISOString(),
+    at: str(raw.at) ?? new Date().toISOString(),
   };
 }
 
+/** GET /admin/catalog/items returns the raw catalog columns (imageUrl, imageThumbUrl, dietType, ...). */
 export function toPhotoItem(raw: Raw): PhotoItem {
   return {
     id: str(raw.id) ?? '',
@@ -136,10 +130,30 @@ export function toPhotoItem(raw: Raw): PhotoItem {
     categoryId: str(raw.categoryId),
     basePriceMinorUnits: num(raw.basePriceMinorUnits),
     isActive: raw.isActive !== false,
-    imageUrl: str(pick(raw, 'imageUrl', 'image')),
+    imageUrl: str(raw.imageUrl),
+    imageThumbUrl: str(raw.imageThumbUrl),
   };
 }
 
 export function toPhotoCategory(raw: Raw): PhotoCategory {
-  return { id: str(raw.id) ?? '', name: str(raw.name) ?? '' };
+  return { id: str(raw.id) ?? '', name: str(raw.name) ?? '', imageUrl: str(raw.imageUrl) };
+}
+
+/** `{ imageUrl, imageThumbUrl, ... }` answered by POST .../image and POST /admin/qr/settings/logo|cover. */
+export function toUploadedPicture(raw: unknown): UploadedPicture {
+  const r = isRaw(raw) ? raw : {};
+  return { imageUrl: str(r.imageUrl) ?? str(r.url), imageThumbUrl: str(r.imageThumbUrl) };
+}
+
+const DIETS: readonly DietType[] = ['VEG', 'NONVEG', 'EGG'];
+
+/** Dietary mark, tags and spice level of a catalog item row (any object; unknown values fall back to "not set"). */
+export function toPresentation(raw: unknown): ItemPresentation {
+  const r = isRaw(raw) ? raw : {};
+  const spice = r.spiceLevel;
+  return {
+    dietType: (DIETS as readonly unknown[]).includes(r.dietType) ? (r.dietType as DietType) : null,
+    menuTags: Array.isArray(r.menuTags) ? r.menuTags.filter((t): t is string => typeof t === 'string' && t !== '') : [],
+    spiceLevel: spice === 0 || spice === 1 || spice === 2 || spice === 3 ? (spice as SpiceLevel) : null,
+  };
 }

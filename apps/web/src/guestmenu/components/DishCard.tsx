@@ -46,7 +46,16 @@ function DishCardImpl({ item, currency, qty, canOrder, index, onOpen, onQuickAdd
       <div className="gm-card__tilt">
         {hasPhoto ? (
           <button type="button" className="gm-card__media gm-press" onClick={() => onOpen(item)} aria-label={`${item.name}, ${formatPrice(fromPrice(item), currency)}. Details`}>
-            <BlurImage src={item.imageUrl} blur={item.blurDataUri} className="gm-card__img" width={800} height={640} />
+            <BlurImage
+              src={item.imageUrl}
+              blur={item.blurDataUri}
+              color={item.color}
+              srcSet={item.thumbUrl && item.imageUrl ? `${item.thumbUrl} 480w, ${item.imageUrl} 1600w` : undefined}
+              sizes="(min-width: 1040px) 30vw, (min-width: 680px) 45vw, 92vw"
+              className="gm-card__img"
+              width={800}
+              height={640}
+            />
             <span className="gm-card__glare" aria-hidden="true" />
             <span className="gm-card__scrim" aria-hidden="true" />
             <span className="gm-card__badges">

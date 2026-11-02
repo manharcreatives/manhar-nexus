@@ -29,7 +29,7 @@ export function Spice({ level }: { level?: number | null }) {
 }
 
 // ───────────── Blur-up image ─────────────
-export function BlurImage({ src, blur, alt = '', priority = false, className = '', width, height }: { src?: string | null; blur?: string | null; alt?: string; priority?: boolean; className?: string; width?: number; height?: number }) {
+export function BlurImage({ src, blur, color, srcSet, sizes, alt = '', priority = false, className = '', width, height }: { src?: string | null; blur?: string | null; color?: string | null; srcSet?: string; sizes?: string; alt?: string; priority?: boolean; className?: string; width?: number; height?: number }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
@@ -37,11 +37,13 @@ export function BlurImage({ src, blur, alt = '', priority = false, className = '
     if (ref.current?.complete && ref.current.naturalWidth > 0) setLoaded(true);
   }, [src]);
   return (
-    <span className={`gm-img ${className}`} data-loaded={loaded || undefined} style={blur ? { backgroundImage: `url("${blur}")` } : undefined}>
+    <span className={`gm-img ${className}`} data-loaded={loaded || undefined} style={blur ? { backgroundImage: `url("${blur}")` } : color ? { backgroundColor: color } : undefined}>
       {src && !failed ? (
         <img
           ref={ref}
           src={src}
+          srcSet={srcSet}
+          sizes={srcSet ? sizes : undefined}
           alt={alt}
           width={width}
           height={height}

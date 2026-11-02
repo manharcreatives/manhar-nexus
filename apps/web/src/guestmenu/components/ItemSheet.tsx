@@ -37,7 +37,7 @@ export function ItemSheet({ item, currency, canOrder, onClose, onAdd }: ItemShee
       className={`gm-item ${it?.imageUrl ? 'gm-item--photo' : ''}`}
       hero={it?.imageUrl ? (
         <div className="gm-item__hero">
-          <BlurImage src={it.imageUrl} blur={it.blurDataUri} priority className="gm-item__img" width={800} height={640} />
+          <BlurImage src={it.imageUrl} blur={it.blurDataUri} color={it.color} priority className="gm-item__img" width={800} height={640} />
           <span className="gm-item__fade" aria-hidden="true" />
         </div>
       ) : undefined}

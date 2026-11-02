@@ -20,9 +20,14 @@ export function isGuestMenuPath(pathname: string): boolean {
   return p === '/m' || p.startsWith('/m/');
 }
 
-/** Mock mode: `?mock=1` (optionally `&mode=closed|off|auto`) or VITE_MENU_MOCK=1 at build time. */
-export function isMockMode(search: string, env: string | undefined): boolean {
+/**
+ * Mock mode is a development/test aid and is NEVER reachable in a production build:
+ *  - `VITE_MENU_MOCK=1` at build time turns it on (a deliberate demo build), otherwise
+ *  - `?mock=1` works only when the build is not a production build (`import.meta.env.PROD` false).
+ * A production visitor who types `?mock=1` gets the real menu.
+ */
+export function isMockMode(search: string, env: string | undefined, prod: boolean): boolean {
   if (env === '1') return true;
-  const q = new URLSearchParams(search);
-  return q.get('mock') === '1';
+  if (prod) return false;
+  return new URLSearchParams(search).get('mock') === '1';
 }

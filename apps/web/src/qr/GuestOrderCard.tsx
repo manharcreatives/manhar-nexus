@@ -60,7 +60,7 @@ export function GuestOrderCard({
       </div>
       <div className="nx-tear" />
       <ul className="flex-1 space-y-2.5 px-4 pt-3 pb-3">
-        {order.lines.map((line) => (
+        {order.lines.filter((l) => !l.cancelled).map((line) => (
           <li key={line.id} className="text-base">
             <p className="flex items-baseline gap-2">
               <span className="tabular w-7 shrink-0 font-semibold">{line.qty}×</span>

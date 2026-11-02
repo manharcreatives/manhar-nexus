@@ -1,4 +1,5 @@
-import type { BillState, StateOrder, TaxLine } from './types';
+import { T } from './strings';
+import type { BillState, GuestOrderStatus, StateOrder, TaxLine } from './types';
 
 /** The five customer-facing stages of an order. */
 export const STAGES = ['received', 'confirmed', 'preparing', 'ready', 'served'] as const;
@@ -6,43 +7,32 @@ export type Stage = (typeof STAGES)[number];
 export type StageOrEnd = Stage | 'cancelled';
 
 /**
- * Maps server order statuses to the five stages. Tolerant on purpose: the staff flows use several
- * names for the same moment (AWAITING_CONFIRMATION/PLACED, ACKNOWLEDGED/PREPARING, ...).
+ * Maps the API's guest status vocabulary (guest-status.ts) to the five stages. Unknown values fall back to the
+ * earliest stage, the safest thing to tell a guest.
+ *   AWAITING_CONFIRMATION -> received   (the waiter has not confirmed yet; nothing reached the kitchen)
+ *   CONFIRMED             -> confirmed  (received by the kitchen queue)
+ *   PREPARING | READY | SERVED as named; REJECTED | CANCELLED end the order.
  */
 export function stageOf(status: string | undefined | null): StageOrEnd {
-  const s = (status ?? '').toUpperCase().replace(/[\s-]+/g, '_');
-  switch (s) {
+  switch ((status ?? '').toUpperCase()) {
     case 'REJECTED':
     case 'CANCELLED':
-    case 'CANCELED':
-    case 'VOID':
-    case 'VOIDED':
       return 'cancelled';
     case 'CONFIRMED':
-    case 'ACCEPTED':
-    case 'OPEN':
-    case 'SENT':
-    case 'SENT_TO_KITCHEN':
       return 'confirmed';
-    case 'ACKNOWLEDGED':
     case 'PREPARING':
-    case 'IN_PROGRESS':
-    case 'COOKING':
-    case 'IN_PREPARATION':
       return 'preparing';
     case 'READY':
-    case 'READY_TO_SERVE':
       return 'ready';
     case 'SERVED':
-    case 'DELIVERED':
-    case 'COMPLETED':
-    case 'CLOSED':
       return 'served';
     default:
-      // AWAITING_CONFIRMATION, PLACED, RECEIVED, PENDING and anything unknown: the safest, earliest stage.
       return 'received';
   }
 }
+
+export const isAwaiting = (status: string | undefined | null) => (status ?? '').toUpperCase() === 'AWAITING_CONFIRMATION';
+export const isRejected = (status: string | undefined | null) => (status ?? '').toUpperCase() === 'REJECTED';
 
 export type StepState = 'done' | 'current' | 'todo';
 
@@ -58,20 +48,38 @@ export function progressOf(stage: StageOrEnd): number {
   return STAGES.indexOf(stage) / (STAGES.length - 1);
 }
 
-export const isActive = (o: StateOrder) => {
+export const isActive = (o: Pick<StateOrder, 'status'>) => {
   const s = stageOf(o.status);
   return s !== 'served' && s !== 'cancelled';
 };
 
-export function taxLabel(t: TaxLine): string {
+export function taxLabel(t: Partial<TaxLine>): string {
   if (t.name) return t.name;
-  if (t.label) return t.label;
-  const pct = t.ratePercent ?? (t.rateBp != null ? t.rateBp / 100 : undefined);
-  return pct != null ? `GST ${pct}%` : 'Tax';
+  if (t.label) return t.ratePercent != null ? `${t.label} ${t.ratePercent}%` : t.label;
+  return t.ratePercent != null ? `GST ${t.ratePercent}%` : 'Tax';
 }
 
-export function isBillPaid(b: BillState | null | undefined): boolean {
-  if (!b) return false;
-  if (b.status && /^(PAID|SETTLED|CLOSED)$/i.test(b.status)) return true;
-  return b.totalMinor > 0 && b.dueMinor <= 0;
+export const isBillPaid = (b: BillState | null | undefined): boolean => !!b && b.status === 'PAID';
+/** The cashier has finalised the invoice: only then can a UPI payment be started. */
+export const isBillFinal = (b: BillState | null | undefined): boolean => !!b && b.status === 'FINAL' && b.dueMinor > 0;
+
+/**
+ * Did the waiter change this order? True when the API says the kitchen-visible order was edited, or when the total
+ * differs from what this device submitted (the API does not flag edits made before confirmation).
+ */
+export function wasAdjusted(order: Pick<StateOrder, 'id' | 'edited' | 'totalMinor' | 'status'>, placedTotals: Record<string, number>): boolean {
+  if (isRejected(order.status)) return false;
+  if (order.edited) return true;
+  const placed = placedTotals[order.id];
+  return typeof placed === 'number' && placed !== order.totalMinor;
+}
+
+export type { GuestOrderStatus };
+
+/** Short, guest-facing label of an order status (dock, timeline). */
+export function statusLabel(status: string | undefined | null): string {
+  if (isAwaiting(status)) return T.awaiting;
+  if (isRejected(status)) return T.rejectedShort;
+  const g = stageOf(status);
+  return g === 'cancelled' ? T.cancelledShort : T.stage[g];
 }

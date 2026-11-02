@@ -201,7 +201,7 @@ export function SignatureRing({ items, currency, onOpen }: { items: MenuItem[]; 
                 else goTo(i);
               }}
             >
-              <BlurImage src={it.imageUrl} blur={it.blurDataUri} className="gm-ring__img" width={520} height={660} />
+              <BlurImage src={it.thumbUrl || it.imageUrl} blur={it.blurDataUri} color={it.color} className="gm-ring__img" width={520} height={660} />
               <span className="gm-ring__dim" aria-hidden="true" />
             </button>
           ))}

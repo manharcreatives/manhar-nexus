@@ -10,7 +10,7 @@ import './guestmenu.css';
  */
 export default function GuestMenuApp() {
   const token = guestMenuToken(window.location.pathname);
-  const mock = isMockMode(window.location.search, import.meta.env.VITE_MENU_MOCK as string | undefined) ? parseMockOptions(window.location.search) : null;
+  const mock = isMockMode(window.location.search, import.meta.env.VITE_MENU_MOCK as string | undefined, import.meta.env.PROD) ? parseMockOptions(window.location.search) : null;
 
   useEffect(() => {
     const prevTitle = document.title;

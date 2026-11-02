@@ -5,6 +5,7 @@ import { StatusPill } from '../ui/StatusPill';
 import { TableStatusLabel } from './StatusPills';
 import { minutesSince } from './time';
 import { type DiningTable, type GuestSession, timeAgo } from './api';
+import { TableGuestChips } from '../qr/GuestBadges';
 
 const EDGE: Record<DiningTable['status'], string> = {
   AVAILABLE: 'border-white/10 hover:border-accent/40',
@@ -30,6 +31,7 @@ function TileBody({ table, session }: { table: DiningTable; session?: GuestSessi
         )}
       </div>
       <p className="mt-1.5 text-sm text-muted">{t('restaurant.tables.seats', { count: table.capacity })}</p>
+      <TableGuestChips tableId={table.id} />
       {session && (
         <div className="mt-auto pt-4">
           <p className="tabular flex min-w-0 flex-wrap items-baseline justify-between gap-x-2 text-sm font-medium">

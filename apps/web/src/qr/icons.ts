@@ -5,5 +5,5 @@
 export {
   QrCode, Printer, Copy, Download, RotateCw, ImagePlus, Upload, Volume2, VolumeX, Bell, BellRing,
   Smartphone, Link, ExternalLink, Power, Crop, Check, X, HandPlatter, Receipt, Image, ImageOff,
-  Trash2, Pencil, Minus, Plus, Clock, Info, ScanLine, UserRound, Camera, TriangleAlert,
+  Trash2, ShoppingBag, Flame, Leaf, Pencil, Minus, Plus, Clock, Info, ScanLine, UserRound, Camera, TriangleAlert,
 } from 'lucide-react';

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { describeError } from '../restaurant/errors';
+import { describeQrError, isVersionConflict } from './errors';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { SectionHeader } from '../ui/SectionHeader';
@@ -12,7 +12,7 @@ import * as Icons from './icons';
 import { PrintDialog, PrintPortal } from './PrintDialog';
 import type { PrintBrand } from './PrintPages';
 import { type PrintLayout } from './printLayout';
-import { downloadBlob, fileSlug, isLocalOrigin, menuUrl, qrPngBlob, qrSvgString } from './qrCode';
+import { downloadBlob, fileSlug, isLocalOrigin, qrPngBlob, qrSvgString, tableMenuUrl } from './qrCode';
 import { RotateTokenDialog } from './RotateTokenDialog';
 import { TableQrCard } from './TableQrCard';
 import type { QrSettings, QrTable } from './types';
@@ -63,7 +63,7 @@ export function TableQrTab({
 
   const copy = useCallback(
     async (table: QrTable) => {
-      const ok = await copyText(menuUrl(table.token));
+      const ok = await copyText(tableMenuUrl(table));
       toast.show(ok ? t('qr.card.copied', { code: table.code }) : t('qr.errors.copy'), ok ? 'ok' : 'bad');
     },
     [t, toast],
@@ -71,7 +71,7 @@ export function TableQrTab({
 
   const download = useCallback(
     async (table: QrTable, format: 'png' | 'svg') => {
-      const url = menuUrl(table.token);
+      const url = tableMenuUrl(table);
       const base = `qr-${fileSlug(table.code)}`;
       try {
         if (format === 'svg') {
@@ -86,36 +86,58 @@ export function TableQrTab({
     [t, toast],
   );
 
-  const toggle = useCallback(
-    async (table: QrTable) => {
-      if (inFlight.current.has(table.tableId)) return;
+  /** One table mutation: busy flag, stale-version handling (somebody else changed the row: refetch), toast. */
+  const mutate = useCallback(
+    async (table: QrTable, run: () => Promise<QrTable>, okMessage: string, failKey: string): Promise<'ok' | 'conflict' | 'error' | 'busy'> => {
+      if (inFlight.current.has(table.tableId)) return 'busy';
       setBusy(table.tableId, true);
       try {
-        applyResult(await qrApi.setTableEnabled(table.tableId, !table.enabled));
-        toast.show(table.enabled ? t('qr.card.disabledToast', { code: table.code }) : t('qr.card.enabledToast', { code: table.code }));
+        applyResult(await run());
+        toast.show(okMessage);
+        return 'ok';
       } catch (err) {
-        toast.show(describeError(err, t, 'qr.errors.toggle'), 'bad');
+        toast.show(describeQrError(err, t, failKey), 'bad');
+        if (isVersionConflict(err)) {
+          onReload();
+          return 'conflict';
+        }
+        return 'error';
       } finally {
         setBusy(table.tableId, false);
       }
     },
-    [applyResult, setBusy, t, toast],
+    [applyResult, onReload, setBusy, t, toast],
+  );
+
+  const toggle = useCallback(
+    (table: QrTable) =>
+      void mutate(
+        table,
+        () => qrApi.setTableEnabled(table, !table.enabled),
+        table.enabled ? t('qr.card.disabledToast', { code: table.code }) : t('qr.card.enabledToast', { code: table.code }),
+        'qr.errors.toggle',
+      ),
+    [mutate, t],
+  );
+
+  const toggleOrdering = useCallback(
+    (table: QrTable) =>
+      void mutate(
+        table,
+        () => qrApi.setTableOrdering(table, !table.orderingEnabled),
+        table.orderingEnabled ? t('qr.card.orderingOffToast', { code: table.code }) : t('qr.card.orderingOnToast', { code: table.code }),
+        'qr.errors.toggle',
+      ),
+    [mutate, t],
   );
 
   const confirmRotate = useCallback(async () => {
     const table = rotating;
-    if (!table || inFlight.current.has(table.tableId)) return;
-    setBusy(table.tableId, true);
-    try {
-      applyResult(await qrApi.rotate(table.tableId));
-      toast.show(t('qr.rotate.done', { code: table.code }));
-      setRotating(null);
-    } catch (err) {
-      toast.show(describeError(err, t, 'qr.errors.rotate'), 'bad');
-    } finally {
-      setBusy(table.tableId, false);
-    }
-  }, [applyResult, rotating, setBusy, t, toast]);
+    if (!table) return;
+    const res = await mutate(table, () => qrApi.rotate(table), t('qr.rotate.done', { code: table.code }), 'qr.errors.rotate');
+    // Stay open after a plain failure (retry); close once it worked or the row changed under us (the list reloads).
+    if (res === 'ok' || res === 'conflict') setRotating(null);
+  }, [mutate, rotating, t]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -150,7 +172,7 @@ export function TableQrTab({
           </Button>
         </div>
       )}
-      {isLocalOrigin() && (
+      {tables.some((tb) => !tb.url) && isLocalOrigin() && (
         <p role="note" className="flex items-start gap-2 rounded-panel border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted">
           <Icons.Info className="mt-0.5 size-4 shrink-0" aria-hidden />
           {t('qr.tables.localNote')}
@@ -184,7 +206,8 @@ export function TableQrTab({
                   onDownload={(tb, f) => void download(tb, f)}
                   onPrintTent={(tb) => setPrintDialog({ tables: [tb], layout: 'tent' })}
                   onRotate={setRotating}
-                  onToggle={(tb) => void toggle(tb)}
+                  onToggle={toggle}
+                  onToggleOrdering={settings && settings.ordering !== 'off' ? toggleOrdering : undefined}
                 />
               </li>
             ))}

@@ -166,7 +166,7 @@ export function PrintDialog({
           <p className="tabular text-sm text-muted" aria-live="polite">
             {selected.length === 0 ? t('qr.print.nothing') : t('qr.print.summary', { count: selected.length, pages })}
           </p>
-          {isLocalOrigin() && (
+          {tables.some((tb) => !tb.url) && isLocalOrigin() && (
             <p role="note" className="flex gap-2 rounded-control bg-warn-soft px-3 py-2 text-sm text-warn">
               <Icons.TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
               {t('qr.print.localWarning')}

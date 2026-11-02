@@ -1,5 +1,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { RealtimeBus } from '../src/realtime/realtime.bus';
 import { bootstrap, relaxLimits, uuid, type Fixture } from './guestmenu-harness';
 
 relaxLimits();
@@ -179,7 +180,7 @@ describe('QR digital menu live stream (e2e)', () => {
 
     from = s.mark();
     expect((await f.pub.post(qr, '/waiter', { reason: 'call' }, { 'x-guest-token': g })).status).toBe(202);
-    await new Promise((r) => setTimeout(r, 400)); // the hub must see the call open before it can see it acknowledged
+    await s.waitFor('waiter.call', undefined, from); // opening is announced too
     expect((await f.post(f.waiterToken, `/admin/guest-orders/alerts/${t.tableId}/ack`)).status).toBe(204);
     await s.waitFor('waiter.ack', undefined, from);
 
@@ -191,6 +192,79 @@ describe('QR digital menu live stream (e2e)', () => {
     expect(wire).not.toMatch(/Burger|Privacy Pat|Person|@test\.local|guestToken/);
     expect(wire).not.toContain(g);
     expect(wire).not.toContain(f.bizId);
+  });
+
+  it('a waiter edit BEFORE confirmation pushes order.updated, so the guest total updates at once', async () => {
+    const t = await f.table('S5E');
+    const qr = await f.qrToken(t.tableId);
+    const g = await f.guest(qr);
+    const placed = await f.order(qr, g, [
+      { itemId: f.ids.burger, qty: 3 },
+      { itemId: f.ids.tea, qty: 2 },
+    ]);
+    expect(placed.status).toBe(201);
+    const id = placed.body.orderId as string;
+    const s = await stream(qr);
+    await s.waitFor('hello');
+    await new Promise((r) => setTimeout(r, 300));
+    const lines = ((await f.get(f.waiterToken, '/admin/guest-orders?status=AWAITING_CONFIRMATION')).body as { id: string; lines: { id: string; name: string }[] }[]).find((o) => o.id === id)!.lines;
+
+    let from = s.mark();
+    expect((await f.post(f.waiterToken, `/admin/guest-orders/${id}/edit`, { lines: [{ id: lines.find((l) => l.name === 'Masala Tea')!.id, qty: 0 }] })).status).toBe(200);
+    const ev = await s.waitFor('order.updated', (d) => d.orderId === id, from);
+    expect(ev.status).toBe('AWAITING_CONFIRMATION'); // still waiting: only the content changed
+    expect((await f.pub.get(qr, '/state', g)).body.orders[0].totalMinor).toBe(3000);
+
+    // A note-only edit and a quantity change are announced as well.
+    from = s.mark();
+    expect((await f.post(f.waiterToken, `/admin/guest-orders/${id}/edit`, { note: 'Extra spicy' })).status).toBe(200);
+    await s.waitFor('order.updated', (d) => d.orderId === id, from);
+    expect((await f.pub.get(qr, '/state', g)).body.orders[0].note).toBe('Extra spicy');
+    from = s.mark();
+    expect((await f.post(f.waiterToken, `/admin/guest-orders/${id}/edit`, { lines: [{ id: lines.find((l) => l.name === 'Burger')!.id, qty: 1 }] })).status).toBe(200);
+    await s.waitFor('order.updated', (d) => d.orderId === id && d.status === 'AWAITING_CONFIRMATION', from);
+    expect(JSON.stringify(s.events)).not.toMatch(/Burger|Extra spicy/); // hints only
+  });
+
+  it('opening a waiter call is announced to every guest stream of the table and to staff (once per call)', async () => {
+    const t = await f.table('S5W');
+    const qr = await f.qrToken(t.tableId);
+    const g = await f.guest(qr);
+    const other = await f.table('S5X');
+    const otherQr = await f.qrToken(other.tableId);
+    const mine = await stream(qr);
+    const second = await stream(qr); // a second phone at the same table
+    const elsewhere = await stream(otherQr);
+    await Promise.all([mine.waitFor('hello'), second.waitFor('hello'), elsewhere.waitFor('hello')]);
+    await new Promise((r) => setTimeout(r, 300));
+    const staff: { topic: string; locationId: string | null }[] = [];
+    const sub = f.app.get(RealtimeBus).subscribe(f.bizId).subscribe((e) => staff.push({ topic: e.topic, locationId: e.locationId }));
+    try {
+      const from = [mine.mark(), second.mark(), elsewhere.mark()] as const;
+      expect((await f.pub.post(qr, '/waiter', { reason: 'call' }, { 'x-guest-token': g })).status).toBe(202);
+      const call = await mine.waitFor('waiter.call', undefined, from[0]);
+      expect(call).toEqual({});
+      await second.waitFor('waiter.call', undefined, from[1]);
+      expect(staff.some((e) => e.topic === 'tables' && e.locationId === f.locId)).toBe(true); // staff screens refetch alerts on 'tables'
+      expect((await f.get(f.waiterToken, '/admin/guest-orders/alerts')).body.some((a: { tableId: string; reason: string }) => a.tableId === t.tableId && a.reason === 'call')).toBe(true);
+
+      // Pressing again is the same call: no second announcement.
+      const again = mine.mark();
+      expect((await f.pub.post(qr, '/waiter', { reason: 'call' }, { 'x-guest-token': g })).status).toBe(202);
+      await new Promise((r) => setTimeout(r, 400));
+      expect(mine.events.slice(again).some((e) => e.event === 'waiter.call')).toBe(false);
+
+      // Another table never hears about it.
+      expect(elsewhere.events.slice(from[2]).some((e) => e.event.startsWith('waiter.'))).toBe(false);
+
+      // Acknowledging closes it for everybody at the table.
+      const ackFrom = [mine.mark(), second.mark()] as const;
+      expect((await f.post(f.waiterToken, `/admin/guest-orders/alerts/${t.tableId}/ack`)).status).toBe(204);
+      await mine.waitFor('waiter.ack', undefined, ackFrom[0]);
+      await second.waitFor('waiter.ack', undefined, ackFrom[1]);
+    } finally {
+      sub.unsubscribe();
+    }
   });
 
   it('caps concurrent streams per table token and frees a slot when one closes', async () => {

@@ -2,7 +2,6 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/cn';
 import { formatMoney } from '../lib/money';
-import { describeError } from '../restaurant/errors';
 import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Dialog } from '../ui/Dialog';
@@ -13,10 +12,12 @@ import { StatusPill } from '../ui/StatusPill';
 import { useToast } from '../ui/Toast';
 import { useLoad } from '../setup/useLoad';
 import { assetUrl, qrApi } from './api';
+import { CategoryPhotos } from './CategoryPhotos';
+import { describeQrError } from './errors';
 import * as Icons from './icons';
 import type { ImageProblem } from './imageTools';
 import { useImagePicker } from './useImagePicker';
-import type { PhotoCategory, PhotoItem } from './types';
+import type { PhotoCategory, PhotoItem, UploadedPicture } from './types';
 
 interface Upload {
   /** 0..1 */
@@ -46,13 +47,15 @@ function PhotoTile({
     onProblem: (p) => onProblem(item, p),
     disabled: uploading,
   });
-  const src = assetUrl(item.imageUrl);
+  // The grid shows the 480 px copy when the server made one; "has a photo" is about the full picture.
+  const src = assetUrl(item.imageThumbUrl ?? item.imageUrl);
+  const hasPhoto = Boolean(item.imageUrl);
   const pct = Math.round((upload?.progress ?? 0) * 100);
 
   return (
     <article
       aria-label={item.name}
-      data-has-photo={Boolean(src)}
+      data-has-photo={hasPhoto}
       className={cn('nx-glass flex flex-col overflow-hidden rounded-panel transition-colors', picker.dragging && 'border-accent! bg-accent/10')}
       {...picker.dropProps}
     >
@@ -89,11 +92,11 @@ function PhotoTile({
         </div>
         {!item.isActive && <StatusPill>{t('qr.photos.hidden')}</StatusPill>}
         <div className="mt-auto flex gap-2">
-          <Button variant="secondary" className="flex-1 px-2" onClick={picker.open} disabled={uploading} aria-label={src ? t('qr.photos.replaceAria', { name: item.name }) : t('qr.photos.addAria', { name: item.name })}>
+          <Button variant="secondary" className="flex-1 px-2" onClick={picker.open} disabled={uploading} aria-label={hasPhoto ? t('qr.photos.replaceAria', { name: item.name }) : t('qr.photos.addAria', { name: item.name })}>
             <Icons.Upload className="size-4" aria-hidden />
-            {src ? t('qr.photos.replace') : t('qr.photos.upload')}
+            {hasPhoto ? t('qr.photos.replace') : t('qr.photos.upload')}
           </Button>
-          {src && (
+          {hasPhoto && (
             <Button variant="ghost" className="px-3 text-bad" onClick={() => onRemove(item)} disabled={uploading} aria-label={t('qr.photos.removeAria', { name: item.name })}>
               <Icons.Trash2 className="size-4" aria-hidden />
             </Button>
@@ -111,7 +114,7 @@ export function PhotoManager() {
   const toast = useToast();
   const loadItems = useCallback(() => Promise.all([qrApi.photoItems(), qrApi.photoCategories()]), []);
   const { data, loading, error, reload } = useLoad(loadItems);
-  const [overrides, setOverrides] = useState<Record<string, string | null>>({});
+  const [overrides, setOverrides] = useState<Record<string, UploadedPicture>>({});
   const [uploads, setUploads] = useState<Record<string, Upload>>({});
   const inFlight = useRef(new Set<string>());
   const [query, setQuery] = useState('');
@@ -121,7 +124,7 @@ export function PhotoManager() {
   const [removeBusy, setRemoveBusy] = useState(false);
 
   const items = useMemo<PhotoItem[]>(
-    () => (data?.[0] ?? []).map((i) => (i.id in overrides ? { ...i, imageUrl: overrides[i.id] } : i)),
+    () => (data?.[0] ?? []).map((i) => (i.id in overrides ? { ...i, ...overrides[i.id] } : i)),
     [data, overrides],
   );
   const categories: PhotoCategory[] = data?.[1] ?? [];
@@ -137,14 +140,14 @@ export function PhotoManager() {
       inFlight.current.add(item.id);
       setUploads((u) => ({ ...u, [item.id]: { progress: 0 } }));
       try {
-        const url = await qrApi.uploadItemImage(item.id, blob, {
+        const pic = await qrApi.uploadItemImage(item.id, blob, {
           onProgress: (f) => setUploads((u) => (item.id in u ? { ...u, [item.id]: { progress: f } } : u)),
         });
-        if (url) setOverrides((o) => ({ ...o, [item.id]: url }));
+        if (pic.imageUrl) setOverrides((o) => ({ ...o, [item.id]: pic }));
         else reload();
         toast.show(t('qr.photos.uploaded', { name: item.name }));
       } catch (err) {
-        toast.show(describeError(err, t, 'qr.photos.uploadFailed'), 'bad');
+        toast.show(describeQrError(err, t, 'qr.photos.uploadFailed'), 'bad');
       } finally {
         inFlight.current.delete(item.id);
         setUploads((u) => {
@@ -163,11 +166,11 @@ export function PhotoManager() {
     setRemoveBusy(true);
     try {
       await qrApi.removeItemImage(item.id);
-      setOverrides((o) => ({ ...o, [item.id]: null }));
+      setOverrides((o) => ({ ...o, [item.id]: { imageUrl: null, imageThumbUrl: null } }));
       toast.show(t('qr.photos.removed', { name: item.name }));
       setRemoving(null);
     } catch (err) {
-      toast.show(describeError(err, t, 'qr.photos.removeFailed'), 'bad');
+      toast.show(describeQrError(err, t, 'qr.photos.removeFailed'), 'bad');
     } finally {
       inFlight.current.delete(item.id);
       setRemoveBusy(false);
@@ -217,6 +220,7 @@ export function PhotoManager() {
         <p className="tabular ml-auto text-sm text-muted" aria-live="polite">{t('qr.photos.coverage', { with: withPhoto, total: items.length })}</p>
       </div>
       <p className="max-w-prose text-sm text-muted">{t('qr.photos.tip')}</p>
+      {categories.length > 0 && <CategoryPhotos categories={categories} />}
 
       {visible.length === 0 ? (
         <EmptyState title={t('qr.photos.noMatch')} />

@@ -11,13 +11,14 @@ export const MAX_INPUT_BYTES = 12 * 1024 * 1024;
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const MIN_SIDE_PX = 240;
 
-export type ImageKind = 'dish' | 'logo' | 'cover';
-export const ASPECT: Record<ImageKind, number> = { dish: 4 / 5, logo: 1, cover: 16 / 9 };
+export type ImageKind = 'dish' | 'logo' | 'cover' | 'category';
+export const ASPECT: Record<ImageKind, number> = { dish: 4 / 5, logo: 1, cover: 16 / 9, category: 1 };
 /** Output pixel size (never upscaled past the source). */
 export const OUTPUT: Record<ImageKind, { w: number; h: number }> = {
   dish: { w: 1200, h: 1500 },
   logo: { w: 512, h: 512 },
   cover: { w: 1600, h: 900 },
+  category: { w: 800, h: 800 },
 };
 
 export type ImageProblem = 'empty' | 'type' | 'size';
