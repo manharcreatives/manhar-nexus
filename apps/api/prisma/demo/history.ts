@@ -3,7 +3,7 @@
  *
  * Why Prisma writes and not the live services: every service stamps
  * `new Date()` (sentAt, finalisedAt, capturedAt, closedAt…), so it cannot
- * record a visit that happened last Tuesday. Instead this module writes the
+ * back-date a visit to last Tuesday. Instead this module writes the
  * exact rows the services would have written, while REUSING the services'
  * own logic wherever it matters for correctness:
  *
