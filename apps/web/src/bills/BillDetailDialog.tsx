@@ -26,6 +26,8 @@ interface Props {
   invoiceId: string | null;
   /** Display form of the bill number (location prefix applied); falls back to the stored number. */
   numberLabel?: string;
+  /** checkout.invoice.create + checkout.payment.process: hides refund/void for read-only roles. */
+  canManage: boolean;
   onClose: () => void;
   /** Called after a refund or void so the list can refresh. */
   onChanged: () => void;
@@ -37,7 +39,7 @@ const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : 
 
 const DETAIL_TOPICS = ['invoices', 'payments'] as const;
 
-export function BillDetailDialog({ invoiceId, numberLabel, onClose, onChanged }: Props) {
+export function BillDetailDialog({ invoiceId, numberLabel, canManage, onClose, onChanged }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
   const [mode, setMode] = useState<Mode>({ kind: 'view' });
@@ -296,11 +298,11 @@ export function BillDetailDialog({ invoiceId, numberLabel, onClose, onChanged }:
                         </ul>
                       </div>
                     )}
-                    {refundable > 0 ? (
+                    {canManage && refundable > 0 ? (
                       <Button variant="secondary" onClick={() => startRefund(p)}>
                         {t('bills.refund.action', { amount: formatMoney(refundable, p.currencyCode) })}
                       </Button>
-                    ) : p.status === 'CAPTURED' ? (
+                    ) : canManage && p.status === 'CAPTURED' ? (
                       <p className="text-muted">{t('bills.refund.fullyRefunded')}</p>
                     ) : null}
                   </li>
@@ -309,7 +311,7 @@ export function BillDetailDialog({ invoiceId, numberLabel, onClose, onChanged }:
             </ul>
           </section>
 
-          {canVoid(invoice.status) && (
+          {canManage && canVoid(invoice.status) && (
             <section className="space-y-2">
               <p className="text-sm text-muted">{t('bills.void.help')}</p>
               <Button
@@ -324,7 +326,8 @@ export function BillDetailDialog({ invoiceId, numberLabel, onClose, onChanged }:
               </Button>
             </section>
           )}
-          {invoice.status === 'PAID' && <p className="text-sm text-muted">{t('bills.void.paidHint')}</p>}
+          {canManage && invoice.status === 'PAID' && <p className="text-sm text-muted">{t('bills.void.paidHint')}</p>}
+          {!canManage && <p className="text-sm text-muted">{t('bills.detail.readOnly')}</p>}
         </div>
       )}
 

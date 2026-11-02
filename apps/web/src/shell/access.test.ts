@@ -17,8 +17,8 @@ describe('role -> visible pages', () => {
   it('location manager has no Module Center (no core.modules.view) but everything else', () => {
     expect(visible('location-manager')).toEqual(['/', '/config', '/reports', '/team', '/activity', '/tables', '/guest-orders', '/kitchen', '/bills', '/floor', '/menu', '/qr', '/costs']);
   });
-  it('accountant sees Reports, Activity and Costs only', () => {
-    expect(visible('accountant')).toEqual(['/', '/reports', '/activity', '/costs']);
+  it('accountant sees Reports, Activity, read-only Bills and Costs', () => {
+    expect(visible('accountant')).toEqual(['/', '/reports', '/activity', '/bills', '/costs']);
     expect(as('accountant').canManageCosts).toBe(false);
     expect(as('location-manager').canManageCosts).toBe(true);
   });

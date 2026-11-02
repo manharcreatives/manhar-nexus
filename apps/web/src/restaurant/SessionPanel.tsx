@@ -18,6 +18,7 @@ import { useLiveRefresh } from '../realtime/RealtimeProvider';
 import { OrderEditDialog } from './order/OrderEditDialog';
 import { clientLockReason, showsEditButton } from './order/editRules';
 import {
+  type BillPreview,
   type CatalogCategory,
   type CatalogItem,
   type DiningTable,
@@ -167,6 +168,8 @@ export function SessionPanel({
   const { t } = useTranslation();
   const toast = useToast();
   const [orders, setOrders] = useState<ServiceRequest[] | null>(null);
+  const [bill, setBill] = useState<BillPreview | null>(null);
+  const [billError, setBillError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [showOrder, setShowOrder] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -198,16 +201,38 @@ export function SessionPanel({
     }
   }, [sessionId, t]);
 
+  const billSeq = useRef(0);
+  const haveBill = useRef(false);
+  const loadBill = useCallback(async () => {
+    const id = ++billSeq.current;
+    try {
+      const data = await sessionApi.billPreview(sessionId);
+      if (id !== billSeq.current) return;
+      haveBill.current = true;
+      setBill(data);
+      setBillError('');
+    } catch (err) {
+      if (id !== billSeq.current) return;
+      // A failed refresh keeps the last total on screen; the bill card stays hidden until we have one.
+      if (!haveBill.current) setBillError(describeError(err, t, 'restaurant.errors.loadBill'));
+    }
+  }, [sessionId, t]);
+
   useEffect(() => {
     haveOrders.current = false;
+    haveBill.current = false;
     void loadOrders();
-  }, [loadOrders]);
+    void loadBill();
+  }, [loadOrders, loadBill]);
 
-  // Live: a ticket moving through the kitchen (or another waiter's change) updates the list in place.
-  useLiveRefresh(['orders', 'kitchen'], loadOrders);
+  // Live: tickets and checkout changes update both the order list and the running bill.
+  useLiveRefresh(['orders', 'kitchen', 'invoices', 'payments'], loadOrders);
+  useLiveRefresh(['orders', 'kitchen', 'invoices', 'payments'], loadBill);
 
-  const replaceOrder = (updated: ServiceRequest) =>
+  const replaceOrder = (updated: ServiceRequest) => {
     setOrders((prev) => (prev ? prev.map((o) => (o.id === updated.id ? updated : o)) : prev));
+    void loadBill();
+  };
 
   async function closeSession() {
     setActionError('');
@@ -320,6 +345,45 @@ export function SessionPanel({
           ))}
         </div>
 
+        {bill && bill.itemCount > 0 && (
+          <section aria-labelledby="session-bill" className="mt-4 rounded-panel border border-line bg-white/[0.03] px-4 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h3 id="session-bill" className="eyebrow">
+                {t('restaurant.session.bill.title')}
+              </h3>
+              <span className="text-sm text-muted">{t('restaurant.session.bill.items', { count: bill.itemCount })}</span>
+            </div>
+            <dl className="tabular mt-2 space-y-1 text-sm">
+              <div className="flex justify-between text-muted">
+                <dt>{t('restaurant.session.bill.subtotal')}</dt>
+                <dd>{formatMinorUnits(bill.subtotalMinorUnits)}</dd>
+              </div>
+              <div className="flex justify-between text-muted">
+                <dt>{t('restaurant.session.bill.tax')}</dt>
+                <dd>{formatMinorUnits(bill.totalTaxMinorUnits)}</dd>
+              </div>
+              <div className="flex items-end justify-between gap-4 pt-1">
+                <dt className="font-medium">{t('restaurant.session.bill.total')}</dt>
+                <dd className="font-display text-xl font-semibold">{formatMinorUnits(bill.grandTotalMinorUnits)}</dd>
+              </div>
+            </dl>
+            {bill.invoice && (
+              <p className="mt-2 text-xs text-muted">
+                {t('restaurant.session.bill.invoiceStatus', {
+                  status: t(`restaurant.session.bill.status.${bill.invoice.status}`, { defaultValue: bill.invoice.status }),
+                  amount: formatMinorUnits(bill.invoice.grandTotalMinorUnits),
+                })}
+              </p>
+            )}
+            {bill.invoice && bill.uninvoiced.itemCount > 0 && (
+              <p className="mt-1 text-xs font-medium text-warn">
+                {t('restaurant.session.bill.uninvoiced', { amount: formatMinorUnits(bill.uninvoiced.grandTotalMinorUnits) })}
+              </p>
+            )}
+          </section>
+        )}
+        {billError && <p className="mt-2 text-sm text-muted">{billError}</p>}
+
         {hasActiveOrders && <p className="mt-3 text-sm text-muted">{t('restaurant.session.closeBlocked')}</p>}
         <p role="alert" className="mt-2 text-sm text-bad">
           {actionError}
@@ -334,6 +398,7 @@ export function SessionPanel({
           items={items}
           onSent={(order) => {
             setOrders((prev) => [order, ...(prev ?? [])]);
+            void loadBill();
             setShowOrder(false);
             toast.show(t('restaurant.builder.sentToast'));
           }}
@@ -391,6 +456,11 @@ export function SessionPanel({
         }
       >
         <p>{t('restaurant.session.closeDialogBody')}</p>
+        {hasBillable && (bill?.invoice?.status !== 'PAID' || (bill?.uninvoiced.itemCount ?? 0) > 0) && (
+          <p role="alert" className="mt-3 text-sm font-medium text-warn">
+            {t('restaurant.session.closeUnpaidWarning')}
+          </p>
+        )}
       </Dialog>
 
       <Dialog

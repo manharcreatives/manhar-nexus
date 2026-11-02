@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { CurrentActor } from '../../common/current-actor.decorator';
 import { RequirePermission } from '../../iam/principal';
 import { zodBody } from '../../common/zod-validation.pipe';
@@ -7,8 +7,10 @@ import type { ActorContext } from '../../common/tenant-scope';
 import { BusinessService } from './business.service';
 import {
   createBusinessSchema,
+  deleteBusinessSchema,
   updateBusinessSchema,
   type CreateBusinessDto,
+  type DeleteBusinessDto,
   type UpdateBusinessDto,
 } from './business.dto';
 
@@ -46,5 +48,14 @@ export class BusinessController {
     @Body(zodBody(updateBusinessSchema)) dto: UpdateBusinessDto,
   ) {
     return this.business.update(actor, id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermission('platform.business.delete')
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(zodBody(deleteBusinessSchema)) _dto: DeleteBusinessDto,
+  ) {
+    return this.business.remove(id);
   }
 }

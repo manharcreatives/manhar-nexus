@@ -3,9 +3,18 @@ import { getAccessToken, tryRefresh } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useWorkLocation } from '../context/LocationContext';
 import { createCoalescer } from './coalesce';
-import { RealtimeClient, type RealtimeSignal, type RealtimeStatus, type Topic } from './client';
+import {
+  RealtimeClient,
+  type RealtimeSignal,
+  type RealtimeStatus,
+  type RealtimeTransport,
+  type Topic,
+} from './client';
+import { PollingClient } from './pollingClient';
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000';
+const REALTIME_MODE =
+  (import.meta.env.VITE_REALTIME_MODE as string | undefined) === 'poll' ? 'poll' : 'sse';
 /** A tab hidden longer than this drops its stream and resyncs on return. */
 export const HIDDEN_PAUSE_MS = 60_000;
 export const COALESCE_MS = 150;
@@ -26,14 +35,26 @@ export interface RealtimeProviderCoreProps {
   enabled: boolean;
   locationId: string | null;
   /** Injectable for tests; defaults to a client wired to the api() token + silent refresh. */
-  client?: RealtimeClient;
+  client?: RealtimeTransport;
+  /** SSE is the default; serverless deployments use the polling fallback. */
+  mode?: 'sse' | 'poll';
 }
 
 /** Owns the single stream for this tab and fans signals out to subscribers. */
-export function RealtimeProviderCore({ children, enabled, locationId, client: injected }: RealtimeProviderCoreProps) {
+export function RealtimeProviderCore({
+  children,
+  enabled,
+  locationId,
+  client: injected,
+  mode = REALTIME_MODE,
+}: RealtimeProviderCoreProps) {
   const client = useMemo(
-    () => injected ?? new RealtimeClient({ baseUrl: API_BASE, getToken: getAccessToken, refresh: tryRefresh }),
-    [injected],
+    () =>
+      injected ??
+      (mode === 'poll'
+        ? new PollingClient()
+        : new RealtimeClient({ baseUrl: API_BASE, getToken: getAccessToken, refresh: tryRefresh })),
+    [injected, mode],
   );
   const [status, setStatus] = useState<RealtimeStatus>(client.getStatus());
 
@@ -133,11 +154,13 @@ export function useRealtimeTopics(topics: readonly Topic[], onChange: () => void
 
 const POLL_LIVE_MS = 60_000;
 const POLL_DEGRADED_MS = 15_000;
+const POLL_SERVERLESS_MS = 10_000;
 
 /**
  * Realtime refetch plus a safety-net poll: every 60 s while the stream is
- * live, every 15 s when it is not (also the behaviour with no provider).
- * Hidden tabs do not poll. `load` may change identity freely.
+ * live, every 15 s when it is not (also the behaviour with no provider), and
+ * every 10 s in the serverless polling mode. Hidden tabs do not poll.
+ * `load` may change identity freely.
  */
 export function useLiveRefresh(topics: readonly Topic[], load: () => unknown, enabled = true): void {
   const status = useRealtimeStatus();
@@ -152,7 +175,7 @@ export function useLiveRefresh(topics: readonly Topic[], load: () => unknown, en
       () => {
         if (document.visibilityState !== 'hidden') void latest.current();
       },
-      status === 'live' ? POLL_LIVE_MS : POLL_DEGRADED_MS,
+      status === 'polling' ? POLL_SERVERLESS_MS : status === 'live' ? POLL_LIVE_MS : POLL_DEGRADED_MS,
     );
     return () => clearInterval(id);
   }, [status, enabled]);

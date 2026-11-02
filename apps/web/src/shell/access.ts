@@ -6,7 +6,7 @@
 
 const FULL_ACCESS_ROLES = new Set(['owner', 'location-manager', 'platform-admin']);
 const TABLE_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 'service-team', 'host']);
-const BILLS_ROLES = new Set(['owner', 'location-manager', 'checkout-associate']);
+const BILLS_ROLES = new Set(['owner', 'location-manager', 'checkout-associate', 'accountant']);
 // Roles holding core.user.view (owner via wildcard).
 const TEAM_ROLES = new Set(['owner', 'location-manager']);
 // restaurant.kitchen.view: waiters get a read-only queue; only these roles hold .manage and may advance tickets.

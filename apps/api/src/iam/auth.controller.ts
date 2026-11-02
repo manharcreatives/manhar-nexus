@@ -148,6 +148,11 @@ export class AuthController {
     return raw;
   }
 
+  /** Same-origin proxies mount the API under /api; keep the cookie scoped there. */
+  private refreshCookiePath(): string {
+    return this.config.get<string>('REFRESH_COOKIE_PATH', '/auth');
+  }
+
   private cookieName(slot: string | null): string {
     return slot ? slotCookieName(slot) : DEVICE_REFRESH_COOKIE;
   }
@@ -157,7 +162,7 @@ export class AuthController {
       httpOnly: true,
       secure: this.config.get('NODE_ENV') === 'production',
       sameSite: 'strict',
-      path: '/auth',
+      path: this.refreshCookiePath(),
       // Device session: persistent (survives closing the browser, the "remember this device" behaviour).
       // Tab session: a SESSION cookie (no Max-Age), so it dies with the browser session like the tab's
       // sessionStorage slot does, and abandoned tabs do not leave 30-day credentials behind (ADR-034).
@@ -166,7 +171,7 @@ export class AuthController {
   }
 
   private clearRefreshCookie(res: Response, slot: string | null): void {
-    res.clearCookie(this.cookieName(slot), { path: '/auth' });
+    res.clearCookie(this.cookieName(slot), { path: this.refreshCookiePath() });
   }
 
   /** Expire tab-session cookies that are dead or beyond the per-browser cap; never touches `keep` or the device cookie. */
@@ -178,7 +183,7 @@ export class AuthController {
       candidates[name] = value;
     }
     for (const name of await this.auth.deadSlotCookies(candidates)) {
-      res.clearCookie(name, { path: '/auth' });
+      res.clearCookie(name, { path: this.refreshCookiePath() });
     }
   }
 }

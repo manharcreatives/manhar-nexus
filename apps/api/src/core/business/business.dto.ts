@@ -43,3 +43,11 @@ export const updateBusinessSchema = z
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: 'No fields to update' });
 export type UpdateBusinessDto = z.infer<typeof updateBusinessSchema>;
+
+/** Permanent-deletion guard: the caller must repeat the exact phrase. */
+export const deleteBusinessSchema = z
+  .object({
+    confirmation: z.literal('delete this restaurant'),
+  })
+  .strict();
+export type DeleteBusinessDto = z.infer<typeof deleteBusinessSchema>;

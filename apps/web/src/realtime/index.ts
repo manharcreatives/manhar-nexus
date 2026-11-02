@@ -2,4 +2,5 @@ export { RealtimeProvider, RealtimeProviderCore, useRealtimeStatus, useRealtimeT
 export { useLiveAsync } from './useLiveAsync';
 export { LiveBadge, ConnectionIndicator } from './LiveBadge';
 export { RealtimeClient, TOPICS } from './client';
-export type { RealtimeStatus, Topic, RealtimeSignal } from './client';
+export { PollingClient } from './pollingClient';
+export type { RealtimeStatus, RealtimeTransport, Topic, RealtimeSignal } from './client';

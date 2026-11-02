@@ -7,6 +7,7 @@
   "bills": {
     "title": "Bills",
     "description": "Find a past bill to review its payments, refund money, or cancel an unpaid bill.",
+    "descriptionReadOnly": "Find and review past bills and their payments. Your role has read-only access.",
     "loading": "Loading bills",
     "loadError": "We could not load the bills.",
     "retry": "Try again",
@@ -101,7 +102,8 @@
       "payments": "Payments",
       "noPayments": "No payments were recorded.",
       "reference": "Reference: {{ref}}",
-      "refundedSoFar": "Refunded so far: {{amount}}"
+      "refundedSoFar": "Refunded so far: {{amount}}",
+      "readOnly": "Read-only access. Refunds and voids require checkout permissions."
     },
     "refund": {
       "action": "Refund (up to {{amount}})",

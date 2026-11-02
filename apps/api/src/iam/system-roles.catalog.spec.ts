@@ -26,7 +26,7 @@ describe('system role catalog', () => {
     host: ['restaurant.dining.view', 'restaurant.session.view', 'restaurant.order.view', 'catalog.item.view', 'catalog.category.view', 'catalog.modifier.view'],
     // Settings > Alerts tab, Costs location filter.
     'location-manager': ['core.alert.view', 'core.alert.edit', 'core.setting.view', 'core.audit.view', 'reports.sales.view', 'costs.expense.view'],
-    accountant: ['core.location.view', 'costs.expense.view', 'costs.category.view', 'reports.sales.view', 'core.audit.view'],
+    accountant: ['core.location.view', 'costs.expense.view', 'costs.category.view', 'reports.sales.view', 'core.audit.view', 'checkout.invoice.view', 'checkout.payment.view'],
   };
   for (const [role, needed] of Object.entries(pageCalls)) {
     it(`${role} holds what its pages load`, () => {

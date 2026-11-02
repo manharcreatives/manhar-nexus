@@ -8,41 +8,12 @@ import { NumberingService } from '../../core/numbering/numbering.service';
 import type { TenantScope } from '../../common/tenant-scope';
 import type { Principal } from '../../iam/principal';
 import type { CreateInvoiceDto, FinaliseInvoiceDto, ListInvoicesQuery, VoidInvoiceDto } from './invoice.dto';
+import { computeInvoiceTotals } from './invoice-totals';
 
 const INVOICE_WITH_LINES = {
   lines: { orderBy: { itemNameSnapshot: 'asc' as const } },
   payments: { orderBy: { createdAt: 'desc' as const } },
 } satisfies Prisma.InvoiceInclude;
-
-interface TaxBreakdownEntry {
-  name: string;
-  rate: number;
-  taxableAmountMinorUnits: number;
-  taxAmountMinorUnits: number;
-}
-
-interface InvoiceLineData {
-  serviceRequestLineId: string;
-  itemNameSnapshot: string;
-  variantNameSnapshot?: string;
-  modifiersSummary?: string;
-  quantity: number;
-  unitPriceMinorUnits: number;
-  modifiersMinorUnits: number;
-  taxRateSnapshot: number;
-  taxCategoryName?: string;
-  lineSubtotalMinorUnits: number;
-  lineTaxMinorUnits: number;
-  lineTotalMinorUnits: number;
-}
-
-interface InvoiceTotals {
-  subtotalMinorUnits: number;
-  totalTaxMinorUnits: number;
-  grandTotalMinorUnits: number;
-  taxBreakdown: TaxBreakdownEntry[];
-  lines: InvoiceLineData[];
-}
 
 @Injectable()
 export class InvoiceService extends TenantScopedRepository {
@@ -67,7 +38,7 @@ export class InvoiceService extends TenantScopedRepository {
    * Paginated invoice list (newest first) with payments and refund totals.
    * Tenant-scoped; additionally restricted to the caller's permitted locations
    * (and an optional `locationId` filter). Two queries total (page + count),
-   * relations are batched by Prisma � no per-row lookups.
+   * relations are batched by Prisma � no per-row lookups.
    */
   async listInvoices(scope: TenantScope, principal: Principal, q: ListInvoicesQuery) {
     if (q.locationId) await this.assertLocationInScope(scope, q.locationId);
@@ -95,7 +66,15 @@ export class InvoiceService extends TenantScopedRepository {
       where.createdAt = createdAt;
     }
 
-    const [rows, total] = await this.prisma.$transaction([
+    // Totals for the whole filtered set, not just the current page. The Bills UI
+    // shows these even when the list is paginated.
+    const billedWhere: Prisma.InvoiceWhereInput = {
+      ...where,
+      status:
+        q.status && q.status !== InvoiceStatus.VOIDED ? q.status : { not: InvoiceStatus.VOIDED },
+    };
+
+    const [rows, total, billed, voided] = await this.prisma.$transaction([
       this.prisma.invoice.findMany({
         where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -129,6 +108,11 @@ export class InvoiceService extends TenantScopedRepository {
         },
       }),
       this.prisma.invoice.count({ where }),
+      this.prisma.invoice.aggregate({
+        where: billedWhere,
+        _sum: { grandTotalMinorUnits: true },
+      }),
+      this.prisma.invoice.count({ where: { ...where, status: InvoiceStatus.VOIDED } }),
     ]);
 
     const items = rows.map(({ session, payments, ...inv }) => ({
@@ -142,7 +126,15 @@ export class InvoiceService extends TenantScopedRepository {
           .reduce((sum, r) => sum + r.amountMinorUnits, 0),
       })),
     }));
-    return { items, total };
+    return {
+      items,
+      total,
+      totals: {
+        billedMinorUnits: billed._sum.grandTotalMinorUnits ?? 0,
+        voidedCount: q.status && q.status !== InvoiceStatus.VOIDED ? 0 : voided,
+        currencyCode: rows[0]?.currencyCode ?? 'INR',
+      },
+    };
   }
 
   async findSessionInvoice(scope: TenantScope, sessionId: string): Promise<Invoice | null> {
@@ -194,7 +186,7 @@ export class InvoiceService extends TenantScopedRepository {
       throw new ValidationError('No billable items found for this session — at least one sent service request is required', { sessionId });
     }
 
-    const totals = this.computeTotals(billableLines);
+    const totals = computeInvoiceTotals(billableLines);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -342,75 +334,69 @@ export class InvoiceService extends TenantScopedRepository {
     });
   }
 
-  // ─── Tax computation ─────────────────────────────────────────────────────────
+  /**
+   * Live bill for the Tables panel. Totals use the same billable-line filter
+   * and calculator as invoice creation, so the displayed total matches what
+   * checkout will charge when no invoice has been opened yet.
+   */
+  async previewSessionBill(scope: TenantScope, sessionId: string) {
+    await this.assertSessionInScope(scope, sessionId);
 
-  private computeTotals(
-    lines: Array<{
-      id: string;
-      itemNameSnapshot: string;
-      variantNameSnapshot: string | null;
-      quantity: number;
-      unitPriceMinorUnits: number;
-      taxRateSnapshot: { toNumber(): number };
-      taxCategoryNameSnapshot: string | null;
-      modifiers: Array<{ optionNameSnapshot: string; priceAdjMinorUnits: number }>;
-    }>,
-  ): InvoiceTotals {
-    let subtotal = 0;
-    let totalTax = 0;
-    const taxGroups = new Map<string, TaxBreakdownEntry>();
-    const invoiceLines: InvoiceLineData[] = [];
+    const billableLines = await this.prisma.serviceRequestLine.findMany({
+      where: {
+        businessId: scope.businessId,
+        serviceRequest: {
+          sessionId,
+          businessId: scope.businessId,
+          status: { notIn: ['DRAFT', 'CANCELLED'] },
+        },
+        status: { not: 'CANCELLED' },
+      },
+      include: { modifiers: true },
+      orderBy: { createdAt: 'asc' },
+    });
 
-    for (const line of lines) {
-      const modifiersSum = line.modifiers.reduce((s, m) => s + m.priceAdjMinorUnits, 0);
-      // The order line's unit price already includes variant and modifier
-      // adjustments (OrderService.resolveLineSnapshots); modifiersSum is kept
-      // on the invoice line for display only and must not be added again.
-      const lineSubtotal = line.unitPriceMinorUnits * line.quantity;
-      const taxRate = line.taxRateSnapshot.toNumber();
-      const lineTax = Math.round(lineSubtotal * taxRate);
-      const lineTotal = lineSubtotal + lineTax;
+    const live = computeInvoiceTotals(billableLines);
+    const invoice = await this.prisma.invoice.findFirst({
+      where: this.scoped(scope, { sessionId, status: { not: InvoiceStatus.VOIDED } }),
+      include: INVOICE_WITH_LINES,
+    });
 
-      subtotal += lineSubtotal;
-      totalTax += lineTax;
-
-      const taxName = line.taxCategoryNameSnapshot ?? 'No Tax';
-      const taxKey = `${taxName}:${taxRate}`;
-      const grp = taxGroups.get(taxKey);
-      if (grp) {
-        grp.taxableAmountMinorUnits += lineSubtotal;
-        grp.taxAmountMinorUnits += lineTax;
-      } else {
-        taxGroups.set(taxKey, {
-          name: taxName,
-          rate: taxRate,
-          taxableAmountMinorUnits: lineSubtotal,
-          taxAmountMinorUnits: lineTax,
-        });
-      }
-
-      invoiceLines.push({
-        serviceRequestLineId: line.id,
-        itemNameSnapshot: line.itemNameSnapshot,
-        variantNameSnapshot: line.variantNameSnapshot ?? undefined,
-        modifiersSummary: line.modifiers.length > 0 ? line.modifiers.map((m) => m.optionNameSnapshot).join(', ') : undefined,
-        quantity: line.quantity,
-        unitPriceMinorUnits: line.unitPriceMinorUnits,
-        modifiersMinorUnits: modifiersSum,
-        taxRateSnapshot: taxRate,
-        taxCategoryName: line.taxCategoryNameSnapshot ?? undefined,
-        lineSubtotalMinorUnits: lineSubtotal,
-        lineTaxMinorUnits: lineTax,
-        lineTotalMinorUnits: lineTotal,
-      });
-    }
+    const invoicedLineIds = new Set(
+      (invoice?.lines ?? [])
+        .map((line) => line.serviceRequestLineId)
+        .filter((id): id is string => id !== null),
+    );
+    const uninvoicedLines = invoice
+      ? billableLines.filter((line) => !invoicedLineIds.has(line.id))
+      : billableLines;
+    const uninvoiced = computeInvoiceTotals(uninvoicedLines);
 
     return {
-      subtotalMinorUnits: subtotal,
-      totalTaxMinorUnits: totalTax,
-      grandTotalMinorUnits: subtotal + totalTax,
-      taxBreakdown: Array.from(taxGroups.values()),
-      lines: invoiceLines,
+      sessionId,
+      currencyCode: invoice?.currencyCode ?? 'INR',
+      itemCount: live.lines.reduce((sum, line) => sum + line.quantity, 0),
+      subtotalMinorUnits: live.subtotalMinorUnits,
+      totalTaxMinorUnits: live.totalTaxMinorUnits,
+      grandTotalMinorUnits: live.grandTotalMinorUnits,
+      taxBreakdown: live.taxBreakdown,
+      invoice: invoice
+        ? {
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            status: invoice.status,
+            itemCount: invoice.lines.reduce((sum, line) => sum + line.quantity, 0),
+            subtotalMinorUnits: invoice.subtotalMinorUnits,
+            totalTaxMinorUnits: invoice.totalTaxMinorUnits,
+            grandTotalMinorUnits: invoice.grandTotalMinorUnits,
+          }
+        : null,
+      uninvoiced: {
+        itemCount: uninvoiced.lines.reduce((sum, line) => sum + line.quantity, 0),
+        subtotalMinorUnits: uninvoiced.subtotalMinorUnits,
+        totalTaxMinorUnits: uninvoiced.totalTaxMinorUnits,
+        grandTotalMinorUnits: uninvoiced.grandTotalMinorUnits,
+      },
     };
   }
 

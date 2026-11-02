@@ -131,6 +131,12 @@ describe('Auth & Access (e2e)', () => {
       const res = await login(process.env.PLATFORM_BOOTSTRAP_EMAIL ?? 'platform@manhar.local', process.env.PLATFORM_BOOTSTRAP_PASSWORD ?? 'ChangeMe!Dev12345');
       expect(res.body.refreshToken).toBeUndefined();
       expect(extractRefresh(res)).toBeTruthy();
+      const cookie = (res.headers['set-cookie'] as unknown as string[]).find((c) =>
+        c.startsWith('nexus_refresh='),
+      );
+      expect(cookie).toContain('Path=/auth');
+      expect(cookie).toContain('HttpOnly');
+      expect(cookie).toContain('SameSite=Strict');
     });
 
     it('rotates refresh tokens and revokes the family on reuse', async () => {

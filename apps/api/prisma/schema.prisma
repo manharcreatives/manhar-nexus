@@ -7,12 +7,18 @@
 // Money/time (ADR-015): currency code stored; timestamps are UTC (timestamptz).
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Vercel Functions run on Amazon Linux 2023 (OpenSSL 3). "native" keeps the
+  // local development binary; the rhel target ships the serverless engine.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Direct (non-pooled) connection for migrations/seeds. Neon's pooler cannot
+  // run DDL reliably; the runtime client keeps using the pooled DATABASE_URL.
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -5,6 +5,8 @@
 
 The short operator checklist is `docs/ui/DEPLOYMENT_READINESS.md`. This runbook holds the full procedure and the reasons behind it.
 
+For the Hobby demo on **Vercel + Neon** (no Docker, one project, polling realtime), use `vercel-neon.md` instead. The Docker/Caddy runbook below remains the persistent-host path and the only one that supports SSE.
+
 ---
 
 ## 1. What gets deployed

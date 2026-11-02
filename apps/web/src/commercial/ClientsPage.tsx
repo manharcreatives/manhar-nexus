@@ -14,6 +14,7 @@ import { EmptyState, ErrorState, Skeleton } from '../ui/states';
 import { useToast } from '../ui/Toast';
 import {
   createActivationRequest,
+  deleteClient,
   getClient,
   listActivationRequests,
   listBundles,
@@ -43,6 +44,7 @@ import { FormError, ListSkeleton } from './Shared';
 const REQUEST_FORM = 'activation-request-form';
 const TRANSITION_FORM = 'activation-transition-form';
 const MODULE_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
+const DELETE_CONFIRMATION = 'delete this restaurant';
 
 // ─── List ────────────────────────────────────────────────────────────────────
 
@@ -184,6 +186,10 @@ function ClientDetailView({ summary, onBack }: { summary: ClientSummary; onBack:
   const [requestOpen, setRequestOpen] = useState(false);
   const [transition, setTransition] = useState<{ req: ActivationRequest; to: ActivationStatus } | null>(null);
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTyped, setDeleteTyped] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
   const load = useCallback(async () => {
     setLoadFailed(false);
     try {
@@ -222,6 +228,21 @@ function ClientDetailView({ summary, onBack }: { summary: ClientSummary; onBack:
     if (!detail || status === detail.commercialStatus) return;
     if (status === 'SUSPENDED' || status === 'CHURNED') setPendingStatus(status);
     else void applyStatus(status);
+  }
+
+  async function applyDelete() {
+    if (deleteTyped.trim() !== DELETE_CONFIRMATION || deleteBusy) return;
+    setDeleteBusy(true);
+    try {
+      await deleteClient(summary.id);
+      toast.show(t('commercial.clients.deleted'));
+      setDeleteOpen(false);
+      onBack();
+    } catch (err) {
+      toast.show(errorMessage(err, t('commercial.errors.deleteFailed')), 'bad');
+    } finally {
+      setDeleteBusy(false);
+    }
   }
 
   const backButton = (
@@ -357,6 +378,63 @@ function ClientDetailView({ summary, onBack }: { summary: ClientSummary; onBack:
           </ul>
         )}
       </section>
+
+      <section aria-labelledby="danger-h" className="border-t border-line pt-6">
+        <h3 id="danger-h" className="text-lg font-semibold text-bad">
+          {t('commercial.clients.dangerZone')}
+        </h3>
+        <p className="mt-1 max-w-2xl text-sm text-muted">{t('commercial.clients.deleteHelp')}</p>
+        <Button
+          variant="danger"
+          className="mt-3"
+          onClick={() => {
+            setDeleteTyped('');
+            setDeleteOpen(true);
+          }}
+        >
+          {t('commercial.clients.deleteRestaurant')}
+        </Button>
+      </section>
+
+      <Dialog
+        open={deleteOpen}
+        onClose={() => !deleteBusy && setDeleteOpen(false)}
+        title={t('commercial.clients.deleteTitle')}
+        footer={
+          <>
+            <Button variant="secondary" disabled={deleteBusy} onClick={() => setDeleteOpen(false)}>
+              {t('commercial.cancel')}
+            </Button>
+            <Button
+              variant="danger"
+              loading={deleteBusy}
+              disabled={deleteTyped.trim() !== DELETE_CONFIRMATION}
+              onClick={() => void applyDelete()}
+            >
+              {t('commercial.clients.deletePermanently')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-bad">
+            {t('commercial.clients.deleteWarning', { name: detail.name })}
+          </p>
+          <div>
+            <p className="text-sm">
+              {t('commercial.clients.typeToConfirm')}{' '}
+              <code className="rounded bg-sunken px-1.5 py-0.5 font-mono text-xs">{DELETE_CONFIRMATION}</code>
+            </p>
+            <Field
+              label={t('commercial.clients.deleteConfirmationLabel')}
+              value={deleteTyped}
+              onChange={(e) => setDeleteTyped(e.target.value)}
+              autoComplete="off"
+              autoFocus
+            />
+          </div>
+        </div>
+      </Dialog>
 
       <Dialog
         open={!!pendingStatus}

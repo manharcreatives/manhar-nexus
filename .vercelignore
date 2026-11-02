@@ -1,0 +1,23 @@
+.git
+.github
+node_modules
+coverage
+logs
+*.log
+*.tsbuildinfo
+*.dump
+backups
+
+# Local env/secrets; production values live in Vercel project settings.
+.env
+.env.*
+!.env.example
+deploy/*.env
+
+# Generated locally; Vercel rebuilds both during deployment.
+apps/api/dist
+apps/web/dist
+packages/shared/dist
+
+# Local portable development data.
+infra/.local

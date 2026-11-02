@@ -81,7 +81,8 @@
     "errors": {
       "loadTitle": "We could not load this",
       "loadFailed": "Check your connection and try again. If it keeps failing, contact support.",
-      "saveFailed": "Your changes were not saved. Check your connection and try again."
+      "saveFailed": "Your changes were not saved. Check your connection and try again.",
+      "deleteFailed": "The restaurant was not deleted. Check your connection and try again."
     },
     "clients": {
       "title": "Client accounts",
@@ -99,7 +100,16 @@
       "confirmStatusTitle": "Change client status?",
       "confirmStatus": "Mark as {{status}}",
       "confirmSuspend": "Suspending {{name}} is a commercial flag. It does not delete data, and you can set the status back to Active at any time.",
-      "confirmChurn": "Marking {{name}} as churned records that they have left. Their data is kept, and you can change the status again later."
+      "confirmChurn": "Marking {{name}} as churned records that they have left. Their data is kept, and you can change the status again later.",
+      "dangerZone": "Danger zone",
+      "deleteHelp": "Deleting a restaurant permanently removes its business profile, locations, staff, catalog, sessions, bills, payments, and activity history. This cannot be undone.",
+      "deleteRestaurant": "Delete restaurant",
+      "deleteTitle": "Delete this restaurant?",
+      "deleteWarning": "{{name}} and all of its data will be permanently deleted. There is no backup or undo.",
+      "typeToConfirm": "To confirm, type",
+      "deleteConfirmationLabel": "Confirmation phrase",
+      "deletePermanently": "Permanently delete restaurant",
+      "deleted": "Restaurant deleted."
     },
     "activation": {
       "title": "Module activation requests",

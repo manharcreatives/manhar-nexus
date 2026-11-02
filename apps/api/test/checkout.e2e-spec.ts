@@ -251,6 +251,54 @@ describe('Checkout & Payments — Phase 9 (e2e)', () => {
       expect(res.body.id).toBe(invoiceId);
     });
 
+    it('previews the live running bill alongside the active invoice', async () => {
+      const res = await aGet(ownerAToken, `/admin/sessions/${sessionId}/bill-preview`);
+      expect(res.status).toBe(200);
+      expect(res.body.sessionId).toBe(sessionId);
+      expect(res.body.itemCount).toBe(2);
+      expect(res.body.subtotalMinorUnits).toBe(2000);
+      expect(res.body.totalTaxMinorUnits).toBe(100);
+      expect(res.body.grandTotalMinorUnits).toBe(2100);
+      expect(res.body.invoice).toMatchObject({
+        id: invoiceId,
+        status: 'DRAFT',
+        itemCount: 2,
+        subtotalMinorUnits: 2000,
+        totalTaxMinorUnits: 100,
+        grandTotalMinorUnits: 2100,
+      });
+      expect(res.body.uninvoiced).toEqual({
+        itemCount: 0,
+        subtotalMinorUnits: 0,
+        totalTaxMinorUnits: 0,
+        grandTotalMinorUnits: 0,
+      });
+    });
+
+    it('separates new billable items from the active invoice in the preview', async () => {
+      const draftRes = await aPost(ownerAToken, '/admin/orders', {
+        sessionId,
+        idempotencyKey: freshKey(),
+        lines: [{ catalogItemId, quantity: 1 }],
+      });
+      expect(draftRes.status).toBe(201);
+      await aPost(ownerAToken, `/admin/orders/${draftRes.body.id}/send`, {});
+
+      const res = await aGet(ownerAToken, `/admin/sessions/${sessionId}/bill-preview`);
+      expect(res.status).toBe(200);
+      expect(res.body.itemCount).toBe(3);
+      expect(res.body.subtotalMinorUnits).toBe(3000);
+      expect(res.body.totalTaxMinorUnits).toBe(150);
+      expect(res.body.grandTotalMinorUnits).toBe(3150);
+      expect(res.body.invoice.grandTotalMinorUnits).toBe(2100);
+      expect(res.body.uninvoiced).toEqual({
+        itemCount: 1,
+        subtotalMinorUnits: 1000,
+        totalTaxMinorUnits: 50,
+        grandTotalMinorUnits: 1050,
+      });
+    });
+
     it('returns 400 if session has no billable service requests', async () => {
       // Open a fresh session with no orders
       const tableRes = await aPost(ownerAToken, '/admin/dining/tables', {

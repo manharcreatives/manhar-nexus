@@ -2,6 +2,7 @@
   "realtime": {
     "status": {
       "live": "Live",
+      "polling": "Live · 10s",
       "connecting": "Connecting…",
       "reconnecting": "Reconnecting…",
       "offline": "Offline — retrying"

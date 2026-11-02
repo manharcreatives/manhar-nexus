@@ -30,9 +30,16 @@ export interface BillListItem {
   payments: BillPaymentSummary[];
 }
 
+export interface BillTotals {
+  billedMinorUnits: number;
+  voidedCount: number;
+  currencyCode: string;
+}
+
 export interface BillList {
   items: BillListItem[];
   total: number;
+  totals: BillTotals;
 }
 
 export interface BillQuery {

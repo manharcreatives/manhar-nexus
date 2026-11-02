@@ -33,7 +33,7 @@ export interface UpiUriInput {
 /** Letters (any script), digits and a few harmless separators; everything else is dropped. */
 function cleanText(value: string, max: number): string {
   const cleaned = value
-    .replace(/[^\p{L}\p{N} .,_\-/#()']/gu, ' ')
+    .replace(/[^\p{L}\p{M}\p{N} .,_\-/#()']/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   return Array.from(cleaned).slice(0, max).join('').trim();

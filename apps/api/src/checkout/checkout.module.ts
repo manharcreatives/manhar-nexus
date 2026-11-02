@@ -4,7 +4,7 @@ import { CashProvider } from './provider/cash.provider';
 import { ManualUpiProvider } from './provider/manual-upi.provider';
 import { PaymentProviderRegistry } from './provider/payment-provider.registry';
 import { InvoiceService } from './invoice/invoice.service';
-import { InvoiceController } from './invoice/invoice.controller';
+import { InvoiceController, SessionBillController } from './invoice/invoice.controller';
 import { PaymentService } from './payment/payment.service';
 import { PaymentController } from './payment/payment.controller';
 import { BillViewController } from './bill-view/bill-view.controller';
@@ -22,7 +22,7 @@ import { CheckoutSettingsRegistrar } from './checkout.settings';
  */
 @Module({
   imports: [CoreModule],
-  controllers: [InvoiceController, PaymentController, BillViewController],
+  controllers: [InvoiceController, SessionBillController, PaymentController, BillViewController],
   providers: [
     CashProvider,
     ManualUpiProvider,

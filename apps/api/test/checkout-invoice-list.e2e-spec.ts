@@ -169,10 +169,12 @@ describe('Checkout invoice list (e2e)', () => {
     await app.close();
   });
 
-  it('returns { items, total } newest first with payments and table code', async () => {
+  it('returns { items, total, totals } newest first with payments and table code', async () => {
     const res = await aGet(ownerAToken, '/admin/checkout/invoices');
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(3);
+    // Voided invoices are excluded from the billed total.
+    expect(res.body.totals).toEqual({ billedMinorUnits: 3150, voidedCount: 1, currencyCode: 'INR' });
     expect(res.body.items.map((i: { id: string }) => i.id)).toEqual([
       voidedInvoiceId,
       finalisedInvoiceId,
@@ -218,9 +220,11 @@ describe('Checkout invoice list (e2e)', () => {
     const p1 = await aGet(ownerAToken, '/admin/checkout/invoices?take=2&skip=0');
     expect(p1.body.items).toHaveLength(2);
     expect(p1.body.total).toBe(3);
+    expect(p1.body.totals.billedMinorUnits).toBe(3150);
     const p2 = await aGet(ownerAToken, '/admin/checkout/invoices?take=2&skip=2');
     expect(p2.body.items).toHaveLength(1);
     expect(p2.body.items[0].id).toBe(paidInvoiceId);
+    expect(p2.body.totals.billedMinorUnits).toBe(3150);
   });
 
   it('enforces pagination bounds', async () => {
@@ -242,7 +246,11 @@ describe('Checkout invoice list (e2e)', () => {
   it('is tenant isolated: another business sees nothing', async () => {
     const res = await aGet(ownerBToken, '/admin/checkout/invoices');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ items: [], total: 0 });
+    expect(res.body).toEqual({
+      items: [],
+      total: 0,
+      totals: { billedMinorUnits: 0, voidedCount: 0, currencyCode: 'INR' },
+    });
   });
 
   it('rejects a locationId from another business', async () => {

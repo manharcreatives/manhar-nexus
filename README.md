@@ -57,6 +57,7 @@ See [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) for the daily development
   Checkout, KOS, Sold-Out, Business Workspace…). Use these terms in code, UI and
   docs.
 - **Deploying** — `docs/ui/DEPLOYMENT_READINESS.md` (operator checklist) and
-  `docs/runbooks/` (deploy, backup-restore, rollback, incident-response).
+  `docs/runbooks/` (Docker/Caddy deploy, Vercel + Neon demo, backup-restore,
+  rollback, incident-response).
 - **Decisions** — `docs/adr/` (ADR-001…ADR-030). Propose changes by adding a new
   ADR, never by editing accepted ones.

@@ -168,6 +168,33 @@ export interface Invoice {
   lines: InvoiceLine[];
 }
 
+export interface BillPreview {
+  sessionId: string;
+  currencyCode: string;
+  itemCount: number;
+  subtotalMinorUnits: number;
+  totalTaxMinorUnits: number;
+  grandTotalMinorUnits: number;
+  taxBreakdown: { name: string; rate: number; taxableAmountMinorUnits: number; taxAmountMinorUnits: number }[];
+  invoice:
+    | {
+        id: string;
+        invoiceNumber: string | null;
+        status: Invoice['status'];
+        itemCount: number;
+        subtotalMinorUnits: number;
+        totalTaxMinorUnits: number;
+        grandTotalMinorUnits: number;
+      }
+    | null;
+  uninvoiced: {
+    itemCount: number;
+    subtotalMinorUnits: number;
+    totalTaxMinorUnits: number;
+    grandTotalMinorUnits: number;
+  };
+}
+
 export interface Payment {
   id: string;
   invoiceId: string;
@@ -217,6 +244,7 @@ export const sessionApi = {
     return api<GuestSession[]>(`/admin/sessions${q ? `?${q}` : ''}`);
   },
   get: (id: string) => api<GuestSession>(`/admin/sessions/${id}`),
+  billPreview: (id: string) => api<BillPreview>(`/admin/sessions/${id}/bill-preview`),
   open: (body: { locationId: string; diningTableId: string; partySize: number; notes?: string }) =>
     api<GuestSession>('/admin/sessions', { method: 'POST', body: JSON.stringify(body) }),
   close: (id: string, notes?: string) =>

@@ -60,6 +60,20 @@ describe('HealthService', () => {
     expect(report.components.every((c) => c.status === 'up')).toBe(true);
   });
 
+  it('omits optional probes when HEALTH_INCLUDE_OPTIONAL=false', async () => {
+    const service = await build(
+      {
+        ...allUpProbes,
+        redis: jest.fn().mockRejectedValue(new Error('redis down')),
+        storage: jest.fn().mockRejectedValue(new Error('storage down')),
+      },
+      { HEALTH_INCLUDE_OPTIONAL: false },
+    );
+    const report = await service.getReport();
+    expect(report.status).toBe(HEALTH_STATUS.OK);
+    expect(report.components.map((c) => c.name)).toEqual(['api', 'database']);
+  });
+
   it('marks storage as optional by default so its outage only degrades', async () => {
     const service = await build({
       ...allUpProbes,

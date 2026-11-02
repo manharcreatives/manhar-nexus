@@ -210,6 +210,12 @@ export const updateClient = (
     body: JSON.stringify(body),
   });
 
+export const deleteClient = (businessId: string) =>
+  api<void>(`/internal/businesses/${businessId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ confirmation: 'delete this restaurant' }),
+  });
+
 export const getClientUsage = (businessId: string) =>
   api<{ businessId: string; moduleActivations: { moduleKey: string; status: string }[]; locationCount: number; userCount: number; sessionCount: number }>(
     `/internal/commercial/clients/${businessId}/usage`,

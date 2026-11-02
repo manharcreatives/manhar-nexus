@@ -103,6 +103,37 @@ NEXUS_SMOKE_EXPECT_COOKIE_PATH=/api/auth NEXUS_SMOKE_READ_PATH=/admin/dining/tab
 - [ ] For every release, the **previous `IMAGE_TAG`** and the **pre-deploy dump** are recorded
 - [ ] Rollback = previous `IMAGE_TAG` + `up -d` (code only), plus `scripts/restore.sh --clean` of the pre-deploy dump when the migration was destructive (`rollback.md`)
 
+## 8. Vercel + Neon demo
+
+Use `docs/runbooks/vercel-neon.md`. This is a demo/testing deployment, not
+commercial production on Hobby. It uses one Vercel project, the
+`api/index.js` handler (reached through a `/api/(.*)` rewrite), and **polling**
+instead of SSE.
+
+- [x] Neon pooled URL is `DATABASE_URL`; direct URL is
+      `DATABASE_URL_UNPOOLED`; both use TLS and the password is URL-encoded
+- [x] `npx prisma migrate deploy` and the reference `npx prisma db seed` ran from
+      the operator machine with the direct URL, never from the function. The
+      demo seed is partial (live-table scenario hit Neon's 5.2s transaction
+      timeout).
+- [x] Vercel Root Directory is empty; build/output come from `vercel.json`
+- [x] Production env includes `CORS_ORIGIN=https://manhar-nexus.vercel.app`,
+      `TRUST_PROXY=1`, `REFRESH_COOKIE_PATH=/api/auth`,
+      `HEALTH_INCLUDE_OPTIONAL=false`, `VITE_API_URL=/api`, and
+      `VITE_REALTIME_MODE=poll`
+- [x] The remote Vercel build packaged the Prisma Linux engine, `@node-rs/argon2`,
+      and `packages/shared/dist`; `api/index` is 10.26 MB
+- [x] `scripts/smoke.ps1` passes with
+      `NEXUS_BASE_URL=https://manhar-nexus.vercel.app/api` and
+      `NEXUS_SMOKE_EXPECT_COOKIE_PATH=/api/auth`
+- [x] `/api/health` is `ok`; `/api/does-not-exist` is a JSON 404, not HTML;
+      deep links return the SPA shell; missing `/assets/*` returns 404
+- [ ] Two browser contexts show `Live · 10s` and a mutation appears within
+      about 10 seconds
+- [ ] Vercel function logs show no boot, Prisma, or argon2 errors
+- [x] The deployment is treated as Hobby/non-commercial; shared rate limiting
+      and a real multi-instance realtime transport are required before selling
+
 ---
 
 ## PENDING — needs host
@@ -118,6 +149,9 @@ These cannot be closed on the development machine (no Docker daemon, no public D
 | SSE through the real edge (cloud load balancer or CDN, if any) | Verified only through Caddy on localhost; intermediaries may add buffering or idle timeouts | Smoke the stream after the first deploy (`deploy.md`, "Realtime stream") |
 | Realtime with more than one API replica | The bus is in-process | Redis pub/sub adapter before scaling out (ADR-032) |
 | Monitoring wiring (uptime, log shipping, error tracking DSN) | Provider not chosen | Operator choice (`deploy.md` section 7) |
+| Demo seed live-table scenario | The business, users, catalog, tables, history and expenses exist; the live-table transaction hit Neon's 5.2s limit | Re-run with a larger transaction timeout |
+| Polling end-to-end on the deployed URL | The bundle contains `Live · 10s` and the polling client, but two-context hosted behaviour is unverified | Two-context smoke on `https://manhar-nexus.vercel.app` |
+| Future Git-integration deploys | HEAD commits authored by `mohitoza08` are blocked on this Hobby team (`TEAM_ACCESS_REQUIRED`); the current release was deployed from a tree copy without `.git` | Commit under a team-member identity, or upgrade to Pro / add the author |
 | Physical ESC/POS printer validation, card-payment decision | Unchanged roadmap conditions | Pilot preparation |
 
 ---
@@ -157,6 +191,32 @@ Notes from the drill:
 - Building the web bundle from Git Bash on Windows rewrites `VITE_API_URL=/api` into `C:/Program Files/Git/api` (MSYS path conversion) and the browser then blocks every request with a CSP error. Use `MSYS_NO_PATHCONV=1` or build from PowerShell or CI. The Docker build is unaffected.
 - `curl` on Windows (schannel) needs `--ssl-no-revoke` for Caddy's local CA (no OCSP/CRL); Linux curl does not.
 - No production bug was found: `deploy/Caddyfile`, the API config and the Dockerfiles needed no change.
+
+### Vercel + Neon demo deployment (2026-10-30)
+
+- Full API E2E suite passed against local Postgres: **90 suites, 678 tests**,
+  with `DATABASE_URL_UNPOOLED` set.
+- Production URL: `https://manhar-nexus.vercel.app` (Vercel team
+  `manhar-creatives-projects`, region `sin1`, Neon `sin1`).
+- 18 Prisma migrations applied to Neon; reference seed created 10 business types,
+  9 system roles and the platform admin. Demo seed is partial.
+- The first adapter used `api/[...path].js`. Vercel's non-Next bracket catch-all
+  only matched single-segment paths, so `/api/health` reached Nest but
+  `/api/auth/login` returned a Vercel edge 404. Renamed it to `api/index.js` and
+  added `"/api/(.*)" -> "/api"` as the first rewrite. Nested routes now reach
+  Nest; the deployment reports `λ api/index (10.26 MB)`.
+- `scripts/smoke.ps1` through `https://manhar-nexus.vercel.app/api`:
+  health `ok`, login 200 with `nexus_refresh; Path=/api/auth; HttpOnly; Secure;
+  SameSite=Strict`, `GET /auth/me` 200, `GET /admin/dining/tables` 200 (13
+  items). Exit 0.
+- `POST /api/auth/refresh` with only the cookie (`{}`) returned a new access
+  token; the owner read succeeded with that bearer token.
+- `GET /api/does-not-exist` returned the Nest JSON 404; `/tables` returned the
+  SPA shell; missing `/assets/nope-123.js` returned Vercel 404 instead of HTML.
+- Root responses carry HSTS, CSP, `X-Content-Type-Options`,
+  `X-Frame-Options: DENY`, and `Referrer-Policy`.
+- The production bundle contains the polling client and `Live · 10s`; the two-
+  browser-context mutation check is still pending.
 
 ### Static artifact review
 

@@ -3,7 +3,16 @@ import { createSseParser, type SseMessage } from './sse';
 
 export const TOPICS = ['orders', 'kitchen', 'tables', 'sessions', 'invoices', 'payments', 'expenses', 'notifications'] as const;
 export type Topic = (typeof TOPICS)[number];
-export type RealtimeStatus = 'connecting' | 'live' | 'reconnecting' | 'offline';
+export type RealtimeStatus = 'connecting' | 'live' | 'polling' | 'reconnecting' | 'offline';
+
+/** Shared surface for the SSE client and the serverless polling fallback. */
+export interface RealtimeTransport {
+  getStatus(): RealtimeStatus;
+  subscribe(fn: (s: RealtimeSignal) => void): () => void;
+  onStatus(fn: (s: RealtimeStatus) => void): () => void;
+  start(locationId: string | null): void;
+  stop(): void;
+}
 
 /** `resync` is synthetic: emitted on every (re)connect so pages refetch a fresh snapshot. */
 export type RealtimeSignal = { kind: 'change'; topic: Topic; locationId: string | null } | { kind: 'resync' };
@@ -28,7 +37,7 @@ const isTopic = (v: unknown): v is Topic => typeof v === 'string' && (TOPICS as 
  * One SSE stream over fetch() (EventSource cannot send Authorization). Framework
  * free so it can be tested directly; RealtimeProvider owns the single instance.
  */
-export class RealtimeClient {
+export class RealtimeClient implements RealtimeTransport {
   private status: RealtimeStatus = 'offline';
   private signalListeners = new Set<(s: RealtimeSignal) => void>();
   private statusListeners = new Set<(s: RealtimeStatus) => void>();

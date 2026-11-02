@@ -51,7 +51,6 @@ describe('Order edit before the kitchen starts (e2e)', () => {
     post: (p: string, b: object = {}) => request(http()).post(p).set('authorization', `Bearer ${token}`).send(b),
   });
   const owner = () => as(ownerToken);
-  const waiter = () => as(waiterToken);
   const kitchen = () => as(kitchenToken);
 
   const activate = async (module: string) => {

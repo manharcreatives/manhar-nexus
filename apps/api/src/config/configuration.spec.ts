@@ -62,6 +62,17 @@ describe('validateEnv', () => {
       expect(env.TRUST_PROXY).toBe(2);
     });
 
+    it('defaults health probes to include optional dependencies and accepts the serverless override', () => {
+      expect(validateEnv({}).HEALTH_INCLUDE_OPTIONAL).toBe(true);
+      expect(validateEnv({ HEALTH_INCLUDE_OPTIONAL: 'false' }).HEALTH_INCLUDE_OPTIONAL).toBe(false);
+    });
+
+    it('validates the refresh cookie path', () => {
+      expect(validateEnv({}).REFRESH_COOKIE_PATH).toBe('/auth');
+      expect(validateEnv({ REFRESH_COOKIE_PATH: '/api/auth' }).REFRESH_COOKIE_PATH).toBe('/api/auth');
+      expect(issuesOf({ REFRESH_COOKIE_PATH: 'api/auth' }).join()).toMatch(/REFRESH_COOKIE_PATH/);
+    });
+
     it('still fails fast on malformed values', () => {
       const issues = issuesOf({
         PORT: 'abc',

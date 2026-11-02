@@ -73,3 +73,23 @@ export class InvoiceController {
     return this.invoices.voidInvoice(scopeFromPrincipal(p), id, dto);
   }
 }
+
+/**
+ * Live bill preview for the Tables panel. Deliberately gated by the restaurant
+ * session permission (not checkout) so waiters and hosts can show guests the
+ * running total before the cashier opens a bill.
+ */
+@Controller('admin/sessions')
+@RequireModule('restaurant')
+export class SessionBillController {
+  constructor(private readonly invoices: InvoiceService) {}
+
+  @Get(':sessionId/bill-preview')
+  @RequirePermission('restaurant.session.view')
+  preview(
+    @CurrentPrincipal() p: Principal,
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+  ) {
+    return this.invoices.previewSessionBill(scopeFromPrincipal(p), sessionId);
+  }
+}

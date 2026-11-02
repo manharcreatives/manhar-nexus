@@ -8,7 +8,7 @@
  * own logic wherever it matters for correctness:
  *
  *   - Invoice totals / per-line tax rounding / tax breakdown come from
- *     InvoiceService.computeTotals itself (called directly, it is pure).
+ *     the shared computeInvoiceTotals calculator (pure).
  *   - Invoice + service-request numbers are taken from the real
  *     NumberingSeries rows under the same per-business advisory lock
  *     (lockBusiness) NumberingService uses, so the series' nextValue moves
@@ -29,7 +29,7 @@
  */
  
 import { Prisma, PrismaClient } from '@prisma/client';
-import { InvoiceService } from '../../src/checkout/invoice/invoice.service';
+import { computeInvoiceTotals } from '../../src/checkout/invoice/invoice-totals';
 import { lockBusiness } from '../../src/common/locks';
 import { Rng, addMinutes, formatNumber, istDate, istDayOfWeek, istInstant, uuidFrom } from './util';
 
@@ -203,12 +203,7 @@ type TotalsResult = {
   }>;
 };
 
-const computeTotals = (
-  InvoiceService.prototype as unknown as { computeTotals: (lines: TotalsInputLine[]) => TotalsResult }
-).computeTotals;
-if (typeof computeTotals !== 'function') {
-  throw new Error('InvoiceService.computeTotals not found — demo history must reuse the service calculation');
-}
+const computeTotals = computeInvoiceTotals as (lines: TotalsInputLine[]) => TotalsResult;
 
 function totalsFor(bill: PlannedBill): TotalsResult {
   const lines = bill.rounds.flatMap((r) => r.lines);

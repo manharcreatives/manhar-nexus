@@ -130,6 +130,32 @@ describe('RealtimeProvider', () => {
     expect(badge.textContent).toBe('Reconnecting…');
   });
 
+  it('polling mode shows a polling badge and refetches every 10 s without SSE', async () => {
+    const load = vi.fn();
+    function Page() {
+      useLiveRefresh(['orders'], load);
+      return null;
+    }
+    render(
+      <RealtimeProviderCore enabled locationId={null} mode="poll">
+        <LiveBadge />
+        <Page />
+      </RealtimeProviderCore>,
+    );
+    await act(async () => {
+      await flush();
+    });
+    expect(screen.getByRole('status').textContent).toBe('Live · 10s');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_100);
+    });
+    expect(load).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
   it('safety-net poll: every 60 s while live, every 15 s otherwise', async () => {
     const s = mockStream();
     const { client } = makeClient([s]);

@@ -19,6 +19,7 @@ import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { EmptyBillsArt } from '../brand/illustrations';
 import { EmptyState, ErrorState, Skeleton } from '../ui/states';
+import { useRestaurantCaps } from '../restaurant/permissions';
 
 const PAGE_SIZE = 25;
 const BILL_TOPICS = ['invoices', 'payments'] as const;
@@ -30,6 +31,7 @@ const timeOf = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'nu
 
 export function BillsPage() {
   const { t } = useTranslation();
+  const caps = useRestaurantCaps();
   const [status, setStatus] = useState<StatusFilter>('');
   const initial = presetRange('today');
   const [from, setFrom] = useState(initial.from);
@@ -84,12 +86,9 @@ export function BillsPage() {
   const lastShown = Math.min(skip + items.length, total);
   const dateInvalid = from !== '' && to !== '' && from > to;
 
-  // A money total is only honest when every bill in the filter is on screen:
-  // the list endpoint pages, and there is no aggregate endpoint.
-  const complete = !!data && skip === 0 && items.length === total && total > 0;
-  const billedMinor = complete ? items.filter((b) => b.status !== 'VOIDED').reduce((sum, b) => sum + b.grandTotalMinorUnits, 0) : null;
-  const voidedCount = complete ? items.filter((b) => b.status === 'VOIDED').length : 0;
-  const currency = items[0]?.currencyCode;
+  const billedMinor = data ? data.totals.billedMinorUnits : null;
+  const voidedCount = data?.totals.voidedCount ?? 0;
+  const currency = data?.totals.currencyCode ?? items[0]?.currencyCode;
 
   const locationOf = (id: string) => locations.find((l) => l.id === id);
   const numberOf = (b: BillListItem) => formatBillNumber(b.invoiceNumber, locationOf(b.locationId)) ?? t('bills.draft');
@@ -115,7 +114,7 @@ export function BillsPage() {
 
   return (
     <div>
-      <PageHeader title={t('bills.title')} description={t('bills.description')} />
+      <PageHeader title={t('bills.title')} description={t(caps.canCheckout ? 'bills.description' : 'bills.descriptionReadOnly')} />
 
       <Panel className="mb-6 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -257,7 +256,13 @@ export function BillsPage() {
         </div>
       )}
 
-      <BillDetailDialog invoiceId={openId} numberLabel={openBill ? numberOf(openBill) : undefined} onClose={() => setOpenId(null)} onChanged={reload} />
+      <BillDetailDialog
+        invoiceId={openId}
+        numberLabel={openBill ? numberOf(openBill) : undefined}
+        canManage={caps.canCheckout}
+        onClose={() => setOpenId(null)}
+        onChanged={reload}
+      />
     </div>
   );
 }

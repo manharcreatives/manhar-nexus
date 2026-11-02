@@ -36,3 +36,9 @@ Thumbs.db
 
 # Local portable dev data (never commit)
 infra/.local/
+
+.vercel
+.env*.local
+
+# local media uploads
+apps/api/var/

@@ -5,6 +5,7 @@ describe('PermissionRegistry', () => {
     const r = new PermissionRegistry();
     expect(r.has('core.user.create')).toBe(true);
     expect(r.has('platform.business.create')).toBe(true);
+    expect(r.has('platform.business.delete')).toBe(true);
     expect(r.has('core.nonexistent.action')).toBe(false);
   });
 
@@ -26,6 +27,7 @@ describe('PermissionRegistry', () => {
   it('flags platform + IAM-critical permissions as restricted', () => {
     const r = new PermissionRegistry();
     expect(r.isRestricted('platform.business.create')).toBe(true);
+    expect(r.isRestricted('platform.business.delete')).toBe(true);
     expect(r.isRestricted('core.role.create')).toBe(true);
     expect(r.isRestricted('core.user.view')).toBe(false);
   });

@@ -26,4 +26,15 @@ export default tseslint.config(
     },
     rules: { 'no-console': 'off' },
   },
+  {
+    // Vercel's Node runtime loads this as CommonJS.
+    files: ['api/**/*.js'],
+    languageOptions: {
+      globals: { require: 'readonly', module: 'readonly', console: 'readonly' },
+    },
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 );

@@ -25,6 +25,7 @@
       "loadInvoice": "Could not prepare the bill.",
       "payment": "The payment was not recorded.",
       "loadOrders": "Could not load the orders for this table.",
+      "loadBill": "Could not load the running total for this table.",
       "loadKitchen": "Could not load the kitchen queue.",
       "kitchenAction": "Could not update the ticket. The queue has been refreshed.",
       "lineConfig": "That option isn't available for this item. Refresh the menu and try again."
@@ -80,7 +81,24 @@
       "loadErrorTitle": "Could not load orders",
       "closeDialogTitle": "Close table {{code}}?",
       "closeDialogBody": "The session ends and the table moves to cleaning. This cannot be undone.",
+      "closeUnpaidWarning": "This table has unbilled items. Closing does not create a bill; use Check out first.",
       "closeBlocked": "Orders are still active. Wait until they are served or cancel them before closing.",
+      "bill": {
+        "title": "Bill",
+        "items_one": "{{count}} item",
+        "items_other": "{{count}} items",
+        "subtotal": "Subtotal",
+        "tax": "Tax",
+        "total": "Total",
+        "invoiceStatus": "Bill {{status}} at {{amount}}.",
+        "uninvoiced": "{{amount}} in new items is not in the open bill.",
+        "status": {
+          "DRAFT": "open",
+          "FINALISED": "finalised",
+          "PAID": "paid",
+          "VOIDED": "voided"
+        }
+      },
       "closeConfirm": "Close session",
       "closing": "Closing",
       "closedToast": "Table {{code}} closed.",

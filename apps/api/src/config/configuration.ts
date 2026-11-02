@@ -28,6 +28,12 @@ const boolFlag = z
   .refine((v) => v === 'true' || v === 'false', { message: 'must be "true" or "false"' })
   .transform((v) => v === 'true');
 
+const boolFlagDefaultTrue = z
+  .string()
+  .default('true')
+  .refine((v) => v === 'true' || v === 'false', { message: 'must be "true" or "false"' })
+  .transform((v) => v === 'true');
+
 /** A bare browser origin: scheme + host (+ port), no path/query/trailing slash. */
 function parseOrigin(value: string): URL | null {
   try {
@@ -69,6 +75,9 @@ export const envSchema = z
     REDIS_REQUIRED: boolFlag,
     STORAGE_HEALTH_URL: z.string().min(1).default('http://localhost:19000/minio/health/live'),
     STORAGE_REQUIRED: boolFlag,
+    // Set false on serverless hosts where Redis/Storage are intentionally not
+    // provisioned, so /health reports "ok" instead of "degraded".
+    HEALTH_INCLUDE_OPTIONAL: boolFlagDefaultTrue,
 
     // ── Authentication (ADR-004/022/023) ──
     /** HS256 access-token signing secret. Must be strong + overridden in prod. */
@@ -76,6 +85,15 @@ export const envSchema = z
     JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(300),
     REFRESH_TTL_DAYS: z.coerce.number().int().positive().default(30),
     REFRESH_ABSOLUTE_TTL_DAYS: z.coerce.number().int().positive().default(90),
+    // Browser-visible path of the refresh cookie. Same-origin deployments that
+    // proxy the API under /api must use /api/auth so the cookie is sent back.
+    REFRESH_COOKIE_PATH: z
+      .string()
+      .default('/auth')
+      .refine(
+        (v) => v.startsWith('/') && !v.includes('?') && !v.includes('#') && (v === '/' || !v.endsWith('/')),
+        { message: 'must be an absolute cookie path such as /auth or /api/auth' },
+      ),
     // argon2id params (OWASP 2024 floor).
     ARGON2_MEMORY_KIB: z.coerce.number().int().positive().default(19456),
     ARGON2_TIME_COST: z.coerce.number().int().positive().default(2),

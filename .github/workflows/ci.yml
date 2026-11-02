@@ -39,6 +39,7 @@ jobs:
       # E2E boots the real AppModule; ConfigModule + Prisma read these from the
       # environment (no apps/api/.env is used in CI). Throwaway CI-only values.
       DATABASE_URL: postgresql://nexus:nexus-ci-only@localhost:5432/nexus_ci?schema=public
+      DATABASE_URL_UNPOOLED: postgresql://nexus:nexus-ci-only@localhost:5432/nexus_ci?schema=public
       CORS_ORIGIN: http://localhost:5173
       PLATFORM_BOOTSTRAP_EMAIL: platform@manhar.local
       PLATFORM_BOOTSTRAP_PASSWORD: ChangeMe!Dev12345
@@ -150,6 +151,7 @@ jobs:
             echo "LOG_LEVEL=info"
             echo "CORS_ORIGIN=https://nexus.ci.test"
             echo "DATABASE_URL=postgresql://nexus_app:$pg_pass@postgres:5432/nexus?schema=public"
+            echo "DATABASE_URL_UNPOOLED=postgresql://nexus_app:$pg_pass@postgres:5432/nexus?schema=public"
             echo "JWT_ACCESS_SECRET=$(openssl rand -hex 48)"
             echo "PLATFORM_BOOTSTRAP_EMAIL=ci-admin@example.com"
             echo "PLATFORM_BOOTSTRAP_PASSWORD=$smoke_pass"

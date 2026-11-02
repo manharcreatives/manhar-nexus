@@ -55,16 +55,21 @@ export class HealthService {
   ) {}
 
   async getReport(): Promise<HealthReport> {
+    const includeOptional = this.config.get<boolean>('HEALTH_INCLUDE_OPTIONAL', true);
+    const redisRequired = this.config.get<boolean>('REDIS_REQUIRED', false);
+    const storageRequired = this.config.get<boolean>('STORAGE_REQUIRED', false);
+
     const components: ComponentHealth[] = [
       { name: 'api', status: 'up', required: true },
       await this.check('database', true, () => this.probes.database()),
-      await this.check('redis', this.config.get<boolean>('REDIS_REQUIRED', false), () =>
-        this.probes.redis(),
-      ),
-      await this.check('storage', this.config.get<boolean>('STORAGE_REQUIRED', false), () =>
-        this.probes.storage(),
-      ),
     ];
+    if (includeOptional || redisRequired) {
+      components.push(await this.check('redis', redisRequired, () => this.probes.redis()));
+    }
+    if (includeOptional || storageRequired) {
+      components.push(await this.check('storage', storageRequired, () => this.probes.storage()));
+    }
+
     return {
       status: aggregateHealth(components),
       uptimeSec: Math.floor((Date.now() - this.startedAt) / 1000),

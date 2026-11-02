@@ -83,6 +83,45 @@ describe('Nexus Core (e2e)', () => {
       expect(verify.body.count).toBeGreaterThanOrEqual(2);
     });
 
+    it('permanently deletes a business and its tenant data', async () => {
+      const id = await createBusiness('Delete Co');
+      await createLocation(id, 'Main');
+      const del = (target: string, confirmation = 'delete this restaurant') =>
+        auth(request(http()).delete(`/internal/businesses/${target}`).send({ confirmation }));
+      await del(id).expect(200);
+      await auth(request(http()).get(`/internal/businesses/${id}`)).expect(404);
+      const list = await auth(request(http()).get('/internal/businesses')).expect(200);
+      expect(list.body.map((b: { id: string }) => b.id)).not.toContain(id);
+    });
+
+    it('requires the exact deletion phrase', async () => {
+      const id = await createBusiness('Confirm Co');
+      await auth(
+        request(http()).delete(`/internal/businesses/${id}`).send({ confirmation: 'delete' }),
+      ).expect(400);
+      await auth(request(http()).get(`/internal/businesses/${id}`)).expect(200);
+      await auth(request(http()).delete(`/internal/businesses/${id}`).send({})).expect(400);
+      await auth(request(http()).delete(`/internal/businesses/${id}`)).expect(400);
+      await auth(
+        request(http())
+          .delete(`/internal/businesses/${id}`)
+          .send({ confirmation: 'delete this restaurant' }),
+      ).expect(200);
+    });
+
+    it('404s deleting an unknown business and 400s a malformed id', async () => {
+      await auth(
+        request(http())
+          .delete('/internal/businesses/00000000-0000-4000-8000-000000000000')
+          .send({ confirmation: 'delete this restaurant' }),
+      ).expect(404);
+      await auth(
+        request(http())
+          .delete('/internal/businesses/not-a-uuid')
+          .send({ confirmation: 'delete this restaurant' }),
+      ).expect(400);
+    });
+
     it('rejects an unknown business type (400)', async () => {
       const res = await auth(
         request(http()).post('/internal/businesses').send({ name: 'X', businessTypeKey: 'nope' }),

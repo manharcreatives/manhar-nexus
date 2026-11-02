@@ -215,6 +215,9 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'core.notification.view',
       'reports.daily.view',
       'reports.sales.view',
+      // Bills (read-only: list, inspect lines and payments; no refund/void)
+      'checkout.invoice.view',
+      'checkout.payment.view',
       // Operating Costs (view + approve; cannot create expenses)
       'costs.category.view',
       'costs.expense.view',

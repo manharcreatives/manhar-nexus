@@ -5,12 +5,14 @@ import type { RealtimeStatus } from './client';
 
 const DOT: Record<RealtimeStatus, string> = {
   live: 'bg-ok',
+  polling: 'bg-ok',
   connecting: 'bg-warn nx-live-dot',
   reconnecting: 'bg-warn nx-live-dot',
   offline: 'bg-bad',
 };
 const TEXT: Record<RealtimeStatus, string> = {
   live: 'text-muted',
+  polling: 'text-muted',
   connecting: 'text-muted',
   reconnecting: 'text-warn',
   offline: 'text-bad',

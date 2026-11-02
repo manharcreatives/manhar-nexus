@@ -87,6 +87,7 @@ export const CORE_PERMISSIONS: PermissionDefinition[] = [
   p('platform', 'business', 'view', 'View any business', true),
   p('platform', 'business', 'create', 'Provision a new business', true),
   p('platform', 'business', 'configure', 'Edit any business', true),
+  p('platform', 'business', 'delete', 'Permanently delete a business and all its data', true),
   p('platform', 'location', 'manage', 'Manage any business locations', true),
   p('platform', 'setting', 'manage', 'Manage any business settings', true),
   p('platform', 'audit', 'view', 'View any business activity history', true),
