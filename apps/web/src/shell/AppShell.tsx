@@ -22,6 +22,7 @@ import { EnvBadge } from './EnvBadge';
 import { PAGES, PAGE_GROUPS } from './pages';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { ShortcutHelp } from './ShortcutHelp';
+import { TourGuide } from '../tour/TourGuide';
 import { modKeyLabel, type ShortcutBinding } from './shortcuts';
 import { UserMenu } from './UserMenu';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
@@ -44,12 +45,18 @@ export function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [tourToken, setTourToken] = useState(0);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setNavOpen(false), [location.pathname]);
 
   const access = useMemo(() => computeAccess(user), [user]);
   const visiblePages = useMemo(() => PAGES.filter((p) => p.can(access)), [access]);
+  const tourPaths = useMemo(() => visiblePages.map((p) => p.path), [visiblePages]);
+  const replayTour = useCallback(() => {
+    setPaletteOpen(false);
+    setTourToken((n) => n + 1);
+  }, []);
 
   const openPalette = useCallback(() => {
     setNavOpen(false);
@@ -117,6 +124,14 @@ export function AppShell() {
         run: () => setHelpOpen(true),
       },
       {
+        id: 'action:tour',
+        label: t('shell.tour.replay'),
+        keywords: t('shell.tour.replayKeywords'),
+        group: 'actions',
+        icon: <Icons.Rocket className="size-4" />,
+        run: replayTour,
+      },
+      {
         id: 'action:signout',
         label: t('shell.signOut'),
         keywords: t('shell.keywords.signOut'),
@@ -126,7 +141,7 @@ export function AppShell() {
       },
     ];
     return [...pageCommands, ...locationCommands, ...actionCommands];
-  }, [visiblePages, work, location.pathname, navigate, doSignOut, t]);
+  }, [visiblePages, work, location.pathname, navigate, doSignOut, replayTour, t]);
 
   const goShortcuts = visiblePages.filter((p) => p.goKey).map((p) => ({ key: p.goKey as string, label: t(p.labelKey) }));
 
@@ -234,7 +249,15 @@ export function AppShell() {
           )}
         >
           {nav}
-          <p className="mt-auto hidden items-center gap-1.5 border-t border-line px-3 pt-4 text-xs text-muted lg:flex">
+          <button
+            type="button"
+            onClick={replayTour}
+            className="mt-auto flex min-h-11 items-center gap-2 rounded-control px-3 text-left text-sm text-muted hover:bg-white/[0.05] hover:text-ink"
+          >
+            <Icons.Rocket className="size-4" aria-hidden />
+            {t('shell.tour.replay')}
+          </button>
+          <p className="hidden items-center gap-1.5 border-t border-line px-3 pt-4 text-xs text-muted lg:flex">
             <Kbd>?</Kbd>
             {t('shell.help.title')}
           </p>
@@ -281,6 +304,16 @@ export function AppShell() {
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
       {passwordOpen && <ChangePasswordDialog onClose={() => setPasswordOpen(false)} />}
+      {user && (
+        <TourGuide
+          userId={user.id}
+          displayName={user.displayName}
+          visiblePaths={tourPaths}
+          onNavOpen={setNavOpen}
+          replayToken={tourToken}
+          enabled={!passwordOpen}
+        />
+      )}
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} goShortcuts={goShortcuts} />
     </div>
     </GuestOrderProvider>

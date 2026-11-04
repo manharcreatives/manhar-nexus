@@ -9,6 +9,7 @@
     "noRoles": "No roles assigned",
     "version": "Version {{version}}",
     "search": "Search or jump to…",
+    "tour": { "replay": "Take the tour", "replayKeywords": "tutorial guide help walkthrough manhar bot" },
     "openPalette": "Open command palette",
     "palette": {
       "label": "Command palette",

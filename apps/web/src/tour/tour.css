@@ -1,0 +1,39 @@
+/* Manhar Bot: all motion is decorative and switched off for people who ask for reduced motion. */
+
+.nx-bot { width: 5.5rem; height: 5.5rem; flex-shrink: 0; overflow: visible; }
+.nx-bot--sm { width: 3.5rem; height: 3.5rem; }
+
+.nx-bot__body { animation: nx-bot-float 3.2s ease-in-out infinite; transform-origin: 50% 80%; }
+.nx-bot__eye { animation: nx-bot-blink 4.5s infinite; transform-origin: center; transform-box: fill-box; }
+.nx-bot__arm { transform-origin: 82% 62%; transform-box: view-box; }
+.nx-bot--wave .nx-bot__arm { animation: nx-bot-wave 1.1s ease-in-out 2; }
+.nx-bot__mouth { transform-origin: center; transform-box: fill-box; }
+.nx-bot--talk .nx-bot__mouth { animation: nx-bot-talk 0.28s ease-in-out infinite; }
+.nx-bot__antenna { animation: nx-bot-ping 1.8s ease-out infinite; transform-origin: center; transform-box: fill-box; }
+
+@keyframes nx-bot-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes nx-bot-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes nx-bot-wave { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-28deg); } 75% { transform: rotate(14deg); } }
+@keyframes nx-bot-talk { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1.25); } }
+@keyframes nx-bot-ping { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2.4); } }
+
+/* The tour card slides up; the highlighted sidebar item pulses. */
+.nx-tour-card { animation: nx-tour-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes nx-tour-in { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+.nx-tour-spot {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 8px rgb(var(--accent-rgb) / 0.22);
+  animation: nx-tour-pulse 1.6s ease-in-out infinite;
+}
+@keyframes nx-tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 5px rgb(var(--accent-rgb) / 0.25); }
+  50% { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 11px rgb(var(--accent-rgb) / 0.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-bot__body, .nx-bot__eye, .nx-bot__antenna, .nx-bot--wave .nx-bot__arm, .nx-bot--talk .nx-bot__mouth,
+  .nx-tour-card, .nx-tour-spot { animation: none; }
+  .nx-tour-spot { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 7px rgb(var(--accent-rgb) / 0.22); }
+}
