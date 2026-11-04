@@ -5,6 +5,7 @@ import { ReportsPage } from '../reports/ReportsPage';
 import { ActivityPage } from '../activity/ActivityPage';
 import { CommercialPage } from '../commercial/CommercialPage';
 import { OnboardingPage } from '../onboarding/OnboardingPage';
+import { RegistrationsPage } from '../registrations/RegistrationsPage';
 import { TablesPage } from '../restaurant/TablesPage';
 import { KitchenPage } from '../restaurant/KitchenPage';
 import { CostsPage } from '../costs/CostsPage';
@@ -64,5 +65,6 @@ export const PAGES: PageDef[] = [
   { path: '/qr', labelKey: 'shell.nav.qr', keywordsKey: 'shell.keywords.qr', icon: ScanLine, group: 'restaurant', can: (a) => a.canManageQr, Component: TableQrRoute, goKey: 'q' },
   { path: '/costs', labelKey: 'shell.nav.costs', keywordsKey: 'shell.keywords.costs', icon: Icons.Wallet, group: 'operations', can: (a) => a.canSeeCosts, Component: CostsPage },
   { path: '/commercial', labelKey: 'shell.nav.commercial', keywordsKey: 'shell.keywords.commercial', icon: Icons.Receipt, group: 'platform', can: (a) => a.isPlatform, Component: CommercialPage },
+  { path: '/registrations', labelKey: 'shell.nav.registrations', keywordsKey: 'shell.keywords.registrations', icon: Icons.Inbox, group: 'platform', can: (a) => a.isPlatform, Component: RegistrationsPage },
   { path: '/onboarding', labelKey: 'shell.nav.onboarding', keywordsKey: 'shell.keywords.onboarding', icon: Icons.Rocket, group: 'platform', can: (a) => a.isPlatform, Component: OnboardingPage },
 ];

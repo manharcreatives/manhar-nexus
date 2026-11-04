@@ -65,3 +65,26 @@ describe('REGISTRATION_TRANSITIONS', () => {
     expect(REGISTRATION_TRANSITIONS.SPAM).toContain('NEW');
   });
 });
+
+describe('createRegistrationSchema: simplified landing form', () => {
+  it('defaults plan and billing when the form does not send them', () => {
+    const { planKey: _p, billingCycle: _b, ...bare } = valid;
+    const out = createRegistrationSchema.parse(bare);
+    expect(out.planKey).toBe('not-sure');
+    expect(out.billingCycle).toBe('yearly');
+  });
+
+  it.each(['9714571522', '+91 97145 71522', '+919714571522', '09714571522', '91-97145-71522', '(97145) 71522'])(
+    'normalises %s to +919714571522',
+    (phone) => {
+      expect(createRegistrationSchema.parse({ ...valid, phone }).phone).toBe('+919714571522');
+    },
+  );
+
+  it.each(['1234567890', '5714571522', '+1 415 555 0100', '97145', '97145715221', 'call me'])(
+    'rejects %s as an Indian mobile number',
+    (phone) => {
+      expect(createRegistrationSchema.safeParse({ ...valid, phone }).success).toBe(false);
+    },
+  );
+});

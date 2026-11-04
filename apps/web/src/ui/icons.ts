@@ -3,5 +3,5 @@ export {
   Home, LayoutGrid, Settings, BarChart3, History, Receipt, Rocket, Armchair, ChefHat,
   Wallet, Menu, X, LogOut, Eye, EyeOff, Search, Building2, ChevronRight,
   ChevronsUpDown, Check, MapPin, Keyboard, CornerDownLeft, Store, Users,
-  Plus, Pencil, Trash2, UtensilsCrossed, LayoutPanelTop, KeyRound,
+  Inbox, Plus, Pencil, Trash2, UtensilsCrossed, LayoutPanelTop, KeyRound,
 } from 'lucide-react';

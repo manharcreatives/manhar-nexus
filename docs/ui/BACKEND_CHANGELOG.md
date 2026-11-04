@@ -1,9 +1,8 @@
 # Backend Changelog (this branch)
-
 All changes are additive; no existing API contract changed.
 
 | Change | Files | Tests |
-|---|---|---|
+|  ---   |  ---  |  ---  |
 | `GET /admin/checkout/invoices` — paginated, tenant/location-scoped invoice list with payments and refunded totals. Query: `status`, `from`, `to` (date-only `to` is inclusive of the whole day, UTC), `skip`, `take` (default 25, max 100), `locationId`. Filters on invoice creation time. | `apps/api/src/checkout/invoice/invoice.{controller,dto,service}.ts` | `test/checkout-invoice-list.e2e-spec.ts` (shape, order, filters, bounds, isolation, 401/403) |
 | Refund amount check moved inside a transaction under the per-business lock to stop over-refunds under concurrency. Rules, messages and audit entries unchanged. | `apps/api/src/checkout/payment/payment.service.ts` | Same spec: 4 parallel refunds → exactly 1 succeeds |
 | Demo seed repaired for the current schema (`diningAreaId`, `capacity`, `rate`, location `status`); activates the `reports` module; adds variants and modifier groups (idempotent). | `apps/api/prisma/demo-seed.ts` | Ran twice; second run created 0 new rows |

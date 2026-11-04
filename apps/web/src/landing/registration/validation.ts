@@ -29,6 +29,11 @@ export function formatMobileDisplay(input: string): string {
   return mobile ? `${mobile.slice(0, 5)} ${mobile.slice(5)}` : input.trim();
 }
 
+/** Live filter for the mobile field: digits, one leading +, spaces and dashes only; at most 16 characters. */
+export function sanitizePhoneInput(input: string): string {
+  return input.replace(/[^\d+\s-]/g, '').replace(/(?!^)\+/g, '').slice(0, 16);
+}
+
 /** Keep digits only, capped at 3 characters (outlets are 1 to 500). */
 export function sanitizeOutlets(input: string): string {
   return input.replace(/\D/g, '').slice(0, 3);

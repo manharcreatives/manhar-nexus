@@ -69,14 +69,13 @@ describe('payload shape (the 03_PLAN.md contract)', () => {
     expect(payload.billingCycle).toBe('yearly');
   });
 
-  it('folds how-to-begin, the code and the updates opt-in into message and caps it at 1000 characters', () => {
+  it('folds a demo request and the hidden Founding code into message and caps it at 1000 characters', () => {
     const payload = toRegistrationPayload(
       { ...values, begin: 'demo', code: 'FOUNDING26', updates: true, message: 'x'.repeat(2000) },
       1,
     );
     expect(payload.message).toContain('[Begin: Live demo first]');
     expect(payload.message).toContain('[Code: FOUNDING26]');
-    expect(payload.message).toContain('[Product updates: yes]');
     expect((payload.message ?? '').length).toBeLessThanOrEqual(1000);
   });
 });

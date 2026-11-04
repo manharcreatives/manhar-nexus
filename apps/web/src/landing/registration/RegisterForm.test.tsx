@@ -56,7 +56,7 @@ describe('RegisterForm: structure and accessibility', () => {
     expect(field(/^Restaurant name/).getAttribute('autocomplete')).toBe('organization');
     expect(field(/^Your name/).getAttribute('autocomplete')).toBe('name');
     expect(field(/^Mobile number/).getAttribute('autocomplete')).toBe('tel');
-    expect(field(/^Mobile number/).getAttribute('inputmode')).toBe('tel');
+    expect(field(/^Mobile number/).getAttribute('inputmode')).toBe('numeric');
     expect(field(/^Email/).getAttribute('autocomplete')).toBe('email');
     expect(field(/^Email/).getAttribute('inputmode')).toBe('email');
     expect(field(/^City/).getAttribute('autocomplete')).toBe('address-level2');
@@ -91,37 +91,36 @@ describe('RegisterForm: structure and accessibility', () => {
   });
 });
 
-describe('RegisterForm: prefill from the registration intent', () => {
-  it('preselects plan and billing cycle from the Pricing choice', () => {
-    setRegistrationIntent({ plan: 'pass', cycle: 'monthly' });
+describe('RegisterForm: simplified fields', () => {
+  it('no longer asks for plan, billing, how to begin, a code or product updates', () => {
     setup(vi.fn());
-    expect((field(/^Plan you/) as unknown as HTMLSelectElement).value).toBe('pass');
-    expect((field(/^Billing/) as unknown as HTMLSelectElement).value).toBe('monthly');
+    for (const gone of [/^Plan you/, /^Billing/, /^How would you like/, /referral code/i, /occasional product updates/i]) {
+      expect(screen.queryByLabelText(gone)).toBeNull();
+    }
   });
 
-  it('switches "how to begin" to a live demo when the visitor chose Book a live demo', () => {
-    setRegistrationIntent({ begin: 'demo' });
+  it('offers only restaurant, cafe, food court and other as the type of business', () => {
     setup(vi.fn());
-    expect((field(/^How would you like/) as unknown as HTMLSelectElement).value).toBe('demo');
+    const select = field(/^Type of business/) as unknown as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(['restaurant', 'cafe', 'food-court', 'other']);
   });
 
-  it('follows later intent changes (a plan button pressed after the form is on screen)', () => {
-    setup(vi.fn());
-    act(() => setRegistrationIntent({ plan: 'floor', cycle: 'yearly' }));
-    expect((field(/^Plan you/) as unknown as HTMLSelectElement).value).toBe('floor');
+  it('still sends the plan chosen on the pricing cards, without showing a field for it', async () => {
+    setRegistrationIntent({ plan: 'floor', cycle: 'monthly' });
+    const fetchImpl = vi.fn().mockResolvedValue(ok());
+    setup(fetchImpl);
+    fillValid();
+    submit();
+    await screen.findByTestId('reference-code');
+    const body = JSON.parse((fetchImpl.mock.calls[0] as [string, RequestInit])[1].body as string) as Record<string, unknown>;
+    expect(body).toMatchObject({ planKey: 'floor', billingCycle: 'monthly' });
   });
 
-  it('writes a manual plan change back to the shared intent', () => {
+  it('strips letters and symbols from the mobile field as the visitor types', () => {
     setup(vi.fn());
-    fireEvent.change(field(/^Plan you/), { target: { value: 'counter' } });
-    expect((field(/^Plan you/) as unknown as HTMLSelectElement).value).toBe('counter');
-  });
-
-  it('offers Many Doors when four or more outlets are entered', () => {
-    setup(vi.fn());
-    fireEvent.change(field(/^Number of outlets/), { target: { value: '5' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Choose Many Doors' }));
-    expect((field(/^Plan you/) as unknown as HTMLSelectElement).value).toBe('many-doors');
+    const phone = field(/^Mobile number/);
+    fireEvent.change(phone, { target: { value: 'ab98x76#54' } });
+    expect(phone.value).toBe('987654');
   });
 });
 
@@ -195,7 +194,6 @@ describe('RegisterForm: submitting', () => {
         'consentVersion',
         'contactName',
         'email',
-        'message',
         'outlets',
         'phone',
         'planKey',
@@ -219,18 +217,7 @@ describe('RegisterForm: submitting', () => {
       website: '',
     });
     expect(typeof body.startedAt).toBe('number');
-    expect(body.message).toBe('[Begin: Pay and start]');
-  });
-
-  it('sends the plan chosen on the pricing cards', async () => {
-    setRegistrationIntent({ plan: 'floor', cycle: 'monthly' });
-    const fetchImpl = vi.fn().mockResolvedValue(ok());
-    setup(fetchImpl);
-    fillValid();
-    submit();
-    await screen.findByTestId('reference-code');
-    const body = JSON.parse((fetchImpl.mock.calls[0] as [string, RequestInit])[1].body as string) as Record<string, unknown>;
-    expect(body).toMatchObject({ planKey: 'floor', billingCycle: 'monthly' });
+    expect(body.message).toBeUndefined();
   });
 
   it('leaves the honeypot untouched when a human fills the form', async () => {

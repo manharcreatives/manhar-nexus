@@ -43,14 +43,33 @@ function CopyButton({ value, label }: { value: string; label: string }) {
  * location, owner login and the modules it paid for. Retry resumes at the step
  * that failed, so a network blip never leaves a half-created restaurant twice.
  */
-export function NewRestaurantDialog({ onClose, onOpenChecklist }: { onClose: () => void; onOpenChecklist: (businessId: string) => void }) {
+export interface NewRestaurantPrefill {
+  name?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  /** Free-form line shown above the form, e.g. "From request NX-7K2Q9M". */
+  note?: string;
+}
+
+export function NewRestaurantDialog({
+  onClose,
+  onOpenChecklist,
+  prefill,
+  onCreated,
+}: {
+  onClose: () => void;
+  onOpenChecklist: (businessId: string) => void;
+  prefill?: NewRestaurantPrefill;
+  /** Called once the workspace, owner login and modules exist (before the credentials are shown). */
+  onCreated?: (businessId: string) => void;
+}) {
   const { t } = useTranslation();
   const formId = useId();
   const [phase, setPhase] = useState<Phase>('form');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(prefill?.name ?? '');
   const [locationName, setLocationName] = useState('Main Location');
-  const [ownerName, setOwnerName] = useState('');
-  const [ownerEmail, setOwnerEmail] = useState('');
+  const [ownerName, setOwnerName] = useState(prefill?.ownerName ?? '');
+  const [ownerEmail, setOwnerEmail] = useState(prefill?.ownerEmail ?? '');
   const [password, setPassword] = useState(() => generatePassword());
   const [showPw, setShowPw] = useState(false);
   const [commercialStatus, setCommercialStatus] = useState<CommercialStatus>('TRIAL');
@@ -73,6 +92,7 @@ export function NewRestaurantDialog({ onClose, onOpenChecklist }: { onClose: () 
       const id = await runProvision(input, state.current, (step, status) => setStatuses((s) => ({ ...s, [step]: status })));
       setBusinessId(id);
       setPhase('done');
+      onCreated?.(id);
     } catch (err) {
       setFailedStep(state.current.failed ?? null);
       setSubmitError(errorMessage(err, t('provision.errors.failed')));
@@ -125,6 +145,7 @@ export function NewRestaurantDialog({ onClose, onOpenChecklist }: { onClose: () 
       {phase === 'form' && (
         <form id={formId} onSubmit={submit} noValidate className="space-y-5">
           <p className="text-sm text-muted">{t('provision.intro')}</p>
+          {prefill?.note ? <p className="rounded-control bg-white/[0.05] px-3 py-2 text-sm">{prefill.note}</p> : null}
           <Field label={t('provision.name')} value={name} onChange={(e) => setName(e.target.value)} error={errors.name} autoFocus data-autofocus />
           <Field label={t('provision.location')} hint={t('provision.locationHint')} value={locationName} onChange={(e) => setLocationName(e.target.value)} error={errors.location} />
 

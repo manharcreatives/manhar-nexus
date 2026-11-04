@@ -35,13 +35,23 @@ const text = (min: number, max: number) =>
     .max(max)
     .refine((v) => !CONTROL_CHARS.test(v), { message: 'contains invalid characters' });
 
-/** Digits with an optional leading +, spaces/dashes/brackets tolerated: 7-20 chars as typed. */
+/**
+ * Indian mobile number. Spaces, dashes and brackets are tolerated as typed; an optional
+ * +91 / 91 / 0 prefix is accepted; the stored value is always normalised to +91XXXXXXXXXX.
+ */
 const phone = z
   .string()
   .trim()
-  .min(7)
-  .max(20)
-  .regex(/^\+?[0-9][0-9\s\-()]{5,18}[0-9]$/, { message: 'invalid phone number' });
+  .max(24)
+  .transform((v) => {
+    let d = v.replace(/[\s\-()]/g, '');
+    if (d.startsWith('+')) d = d.slice(1);
+    if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+    else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+    return d;
+  })
+  .refine((d) => /^[6-9][0-9]{9}$/.test(d), { message: 'invalid phone number' })
+  .transform((d) => '+91' + d);
 
 /**
  * Public registration request. `.strict()`: unknown keys are a 400, so the contract
@@ -57,8 +67,9 @@ export const createRegistrationSchema = z
     city: text(2, 80),
     businessKind: z.enum(BUSINESS_KINDS),
     outlets: z.number().int().min(1).max(500),
-    planKey: z.enum(PLAN_KEYS),
-    billingCycle: z.enum(BILLING_CYCLES),
+    // The landing form no longer asks; the pricing buttons may still pre-select them.
+    planKey: z.enum(PLAN_KEYS).default('not-sure'),
+    billingCycle: z.enum(BILLING_CYCLES).default('yearly'),
     message: z
       .string()
       .trim()

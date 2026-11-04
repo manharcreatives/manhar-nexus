@@ -38,5 +38,5 @@ describe('role -> visible pages', () => {
   });
   it('kitchen: Kitchen only', () => expect(visible('kitchen-team')).toEqual(['/', '/kitchen']));
   it('host: Tables only', () => expect(visible('host')).toEqual(['/', '/tables']));
-  it('platform admin: platform pages only', () => expect(visible('platform-admin', 'PLATFORM')).toEqual(['/', '/commercial', '/onboarding']));
+  it('platform admin: platform pages only', () => expect(visible('platform-admin', 'PLATFORM')).toEqual(['/', '/commercial', '/registrations', '/onboarding']));
 });

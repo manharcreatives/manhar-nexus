@@ -410,9 +410,6 @@ export interface PricingContent {
 export type BusinessKind =
   | 'restaurant'
   | 'cafe'
-  | 'bakery'
-  | 'cloud-kitchen'
-  | 'hotel'
   | 'food-court'
   | 'other';
 

@@ -35,7 +35,7 @@ describe('page access (single definition)', () => {
     ]);
   });
   it('keeps the platform realm out of tenant pages', () => {
-    expect(visible('PLATFORM', 'platform-admin')).toEqual(['/', '/commercial', '/onboarding']);
+    expect(visible('PLATFORM', 'platform-admin')).toEqual(['/', '/commercial', '/registrations', '/onboarding']);
   });
   it('gives waiters a read-only kitchen queue', () => {
     expect(visible('BUSINESS', 'service-team')).toEqual(['/', '/tables', '/guest-orders', '/kitchen']);

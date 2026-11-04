@@ -45,9 +45,6 @@ export const REGISTER_NEXT_TITLE = 'What happens next';
 export const BUSINESS_KIND_OPTIONS: readonly SelectOption<BusinessKind>[] = [
   { value: 'restaurant', label: 'Restaurant' },
   { value: 'cafe', label: 'Café' },
-  { value: 'bakery', label: 'Bakery' },
-  { value: 'hotel', label: 'Hotel restaurant' },
-  { value: 'cloud-kitchen', label: 'Cloud kitchen' },
   { value: 'food-court', label: 'Food court' },
   { value: 'other', label: 'Other' },
 ];
@@ -94,9 +91,9 @@ export const REGISTRATION_FIELDS: Readonly<Record<RegistrationFieldName, Registr
     name: 'phone',
     label: 'Mobile number',
     placeholder: '98765 43210',
-    help: 'Digits only. We use this to reach you on WhatsApp.',
+    help: '10-digit Indian mobile number. We use this to reach you on WhatsApp.',
     required: true,
-    maxLength: 20,
+    maxLength: 16,
   },
   email: {
     name: 'email',
@@ -183,10 +180,6 @@ export const REGISTRATION_FIELD_ORDER: readonly RegistrationFieldName[] = [
   'city',
   'businessKind',
   'outlets',
-  'planKey',
-  'billingCycle',
-  'begin',
-  'code',
   'message',
 ];
 
@@ -347,11 +340,12 @@ const labelOf = <V extends string>(options: readonly SelectOption<V>[], value: V
  * updates opt-in) are folded into `message` so nothing is lost. The result never exceeds 1,000 characters.
  */
 export function composeMessage(values: RegistrationFormValues): string {
-  const extras: string[] = [`Begin: ${labelOf(BEGIN_OPTIONS, values.begin)}`];
+  const extras: string[] = [];
+  if (values.begin === 'demo') extras.push(`Begin: ${labelOf(BEGIN_OPTIONS, values.begin)}`);
   if (values.code.trim()) extras.push(`Code: ${values.code.trim()}`);
-  if (values.updates) extras.push('Product updates: yes');
   const prefix = extras.map((e) => `[${e}]`).join(' ');
   const note = values.message.trim();
+  if (!prefix) return note.slice(0, 1000);
   if (!note) return prefix;
   const room = Math.max(0, 1000 - prefix.length - 2);
   return `${prefix}\n\n${note.slice(0, room)}`.trimEnd();
@@ -396,12 +390,6 @@ function summaryLines(values: Summarisable, referenceCode?: string): string[] {
   add('City', values.city);
   if (values.businessKind) add('Type', labelOf(BUSINESS_KIND_OPTIONS, values.businessKind));
   add('Outlets', values.outlets);
-  if (values.planKey) {
-    const cycle = values.billingCycle ? ` (${values.billingCycle})` : '';
-    add('Plan', `${labelOf(PLAN_OPTIONS, values.planKey)}${cycle}`);
-  }
-  if (values.begin) add('How to begin', labelOf(BEGIN_OPTIONS, values.begin));
-  add('Code', values.code);
   add('Notes', values.message);
   add('Reference', referenceCode);
   return lines;

@@ -2,39 +2,31 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent,
 import { Link } from 'react-router-dom';
 import { Button } from '../components';
 import {
-  BEGIN_OPTIONS,
-  BILLING_OPTIONS,
   BUSINESS_KIND_OPTIONS,
   CONSENT_SEGMENTS,
   CONSENT_SMALL_PRINT,
   DEFAULT_FORM_VALUES,
   FAILURE_MESSAGES,
   FOUNDING_OFFER,
-  MANY_DOORS_NOTE,
-  MANY_DOORS_THRESHOLD,
-  PLAN_OPTIONS,
   REGISTRATION_FIELDS,
   SUBMIT_LABEL,
   SUBMIT_LOADING_LABEL,
   SUBMIT_MICROCOPY,
-  UPDATES_LABEL,
   toRegistrationPayload,
   validateRegistration,
   type BeginMode,
-  type BillingCycle,
   type BusinessKind,
-  type RegisterPlanKey,
   type RegistrationErrors,
   type RegistrationFieldName,
   type RegistrationFormValues,
 } from '../content';
-import { setRegistrationIntent, useRegistrationIntent } from '../hooks/useRegistrationIntent';
+import { useRegistrationIntent } from '../hooks/useRegistrationIntent';
 import { foundingState } from '../pricing/pricingMath';
 import { Field } from './Field';
 import { FallbackActions } from './FallbackActions';
 import { submitRegistration, type SubmitFailureKind, type SubmitOptions } from './submit';
 import { RegistrationTicket } from './Ticket';
-import { fieldId, formatMobileDisplay, orderedErrors, sanitizeOutlets, validateField } from './validation';
+import { fieldId, formatMobileDisplay, orderedErrors, sanitizeOutlets, sanitizePhoneInput, validateField } from './validation';
 
 /** Everything the visitor types. Plan and billing cycle live in the shared intent store, not here. */
 interface FormState {
@@ -205,9 +197,6 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
     setPhase('editing');
   };
 
-  const outletsNumber = Number(state.outlets);
-  const suggestManyDoors =
-    Number.isInteger(outletsNumber) && outletsNumber >= MANY_DOORS_THRESHOLD && intent.plan !== 'many-doors';
   const summary = orderedErrors(errors);
   const submitting = phase === 'submitting';
 
@@ -297,12 +286,16 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                   {...a}
                   className="lp-input"
                   type="tel"
-                  inputMode="tel"
+                  inputMode="numeric"
                   autoComplete="tel"
                   maxLength={REGISTRATION_FIELDS.phone.maxLength}
                   placeholder={REGISTRATION_FIELDS.phone.placeholder}
                   value={state.phone}
-                  onChange={onText('phone')}
+                  onChange={(e) => {
+                    const value = sanitizePhoneInput(e.target.value);
+                    set('phone', value);
+                    clearIfFixed('phone', { ...values, phone: value });
+                  }}
                   onBlur={() => {
                     const display = formatMobileDisplay(state.phone);
                     if (display !== state.phone) set('phone', display);
@@ -364,16 +357,6 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
             <Field
               name="outlets"
               error={errors.outlets}
-              help={
-                suggestManyDoors ? (
-                  <>
-                    {MANY_DOORS_NOTE}{' '}
-                    <button type="button" className="lp-reg-linkbtn" onClick={() => setRegistrationIntent({ plan: 'many-doors' })}>
-                      Choose Many Doors
-                    </button>
-                  </>
-                ) : undefined
-              }
             >
               {(a) => (
                 <input
@@ -392,77 +375,6 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                     clearIfFixed('outlets', { ...values, outlets: value });
                   }}
                   onBlur={() => onBlur('outlets')}
-                />
-              )}
-            </Field>
-            <Field name="planKey" error={errors.planKey}>
-              {(a) => (
-                <select
-                  {...a}
-                  className="lp-select"
-                  autoComplete="off"
-                  value={intent.plan}
-                  onChange={(e) => setRegistrationIntent({ plan: e.target.value as RegisterPlanKey })}
-                >
-                  {PLAN_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-            <Field name="billingCycle" error={errors.billingCycle}>
-              {(a) => (
-                <select
-                  {...a}
-                  className="lp-select"
-                  autoComplete="off"
-                  value={intent.cycle}
-                  onChange={(e) => setRegistrationIntent({ cycle: e.target.value as BillingCycle })}
-                >
-                  {BILLING_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-            <Field name="begin" error={errors.begin}>
-              {(a) => (
-                <select
-                  {...a}
-                  className="lp-select"
-                  autoComplete="off"
-                  value={state.begin}
-                  onChange={(e) => {
-                    const begin = e.target.value as BeginMode;
-                    set('begin', begin);
-                    setRegistrationIntent({ begin: begin === 'demo' ? 'demo' : 'register' });
-                  }}
-                >
-                  {BEGIN_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-            <Field name="code" error={errors.code}>
-              {(a) => (
-                <input
-                  {...a}
-                  className="lp-input"
-                  type="text"
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  maxLength={REGISTRATION_FIELDS.code.maxLength}
-                  placeholder={REGISTRATION_FIELDS.code.placeholder}
-                  value={state.code}
-                  onChange={onText('code')}
                 />
               )}
             </Field>
@@ -534,17 +446,6 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
               {errors.consent}
             </p>
           ) : null}
-
-          <div className="lp-check">
-            <input
-              id="reg-updates"
-              name="updates"
-              type="checkbox"
-              checked={state.updates}
-              onChange={(e) => set('updates', e.target.checked)}
-            />
-            <label htmlFor="reg-updates">{UPDATES_LABEL}</label>
-          </div>
 
           {failure ? (
             <div role="alert" className="lp-reg-failure">

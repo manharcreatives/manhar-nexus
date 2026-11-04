@@ -319,16 +319,6 @@ describe('Register section', () => {
     expect(wa?.getAttribute('target')).toBe('_blank');
     expect(wa?.getAttribute('rel')).toContain('noopener');
   });
-
-  it('prefills the Founding code only while the window is open', () => {
-    at(OPEN);
-    const open = inRouter(<Register />);
-    expect(screen.getByLabelText<HTMLInputElement>(/^Founding or referral code/).value).toBe('FOUNDING26');
-    open.unmount();
-    at(CLOSED);
-    inRouter(<Register />);
-    expect(screen.getByLabelText<HTMLInputElement>(/^Founding or referral code/).value).toBe('');
-  });
 });
 
 /* ───────────────────────────────── FAQ ───────────────────────────────── */

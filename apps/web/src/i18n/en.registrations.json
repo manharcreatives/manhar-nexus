@@ -1,0 +1,58 @@
+{
+  "registrations": {
+    "title": "Registrations",
+    "subtitle": "Requests from the website. Check the details, then create the restaurant account in one step.",
+    "filterLabel": "Request status",
+    "filter": {
+      "open": "Open",
+      "CONVERTED": "Account created",
+      "REJECTED": "Rejected",
+      "SPAM": "Spam"
+    },
+    "status": {
+      "NEW": "New",
+      "CONTACTED": "Contacted",
+      "QUALIFIED": "Qualified",
+      "CONVERTED": "Account created",
+      "REJECTED": "Rejected",
+      "SPAM": "Spam"
+    },
+    "kind": {
+      "restaurant": "Restaurant",
+      "cafe": "Café",
+      "bakery": "Bakery",
+      "cloud-kitchen": "Cloud kitchen",
+      "hotel": "Hotel restaurant",
+      "food-court": "Food court",
+      "other": "Other"
+    },
+    "field": {
+      "contact": "Contact",
+      "phone": "Mobile",
+      "email": "Email",
+      "where": "Business"
+    },
+    "outlets_one": "{{count}} outlet",
+    "outlets_other": "{{count}} outlets",
+    "loading": "Loading requests",
+    "emptyTitle": "No requests here",
+    "empty": "New requests from the website will show up here.",
+    "createAccount": "Create restaurant account",
+    "whatsapp": "WhatsApp",
+    "whatsappText": "Hello {{name}}, this is Manhar Nexus. We received your request ({{ref}}).",
+    "markContacted": "Mark contacted",
+    "reject": "Reject",
+    "spam": "Spam",
+    "reopen": "Reopen",
+    "openChecklist": "Go-live checklist",
+    "prefillNote": "From website request {{ref}}. Details are filled in; check them, then create.",
+    "moved": "Moved to {{status}}.",
+    "converted": "{{name}} is ready. Share the sign-in details with the owner.",
+    "errors": {
+      "loadTitle": "Could not load requests",
+      "load": "Check your connection and try again.",
+      "update": "Could not update this request.",
+      "linkFailed": "The restaurant was created, but this request could not be marked done. Open it again and mark it manually."
+    }
+  }
+}
