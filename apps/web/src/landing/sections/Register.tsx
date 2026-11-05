@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/w2-base.css';
 import '../styles/register.css';
@@ -5,6 +6,9 @@ import { Icon, Section } from '../components';
 import { SectionHead } from '../sectionsC/SectionHead';
 import { CONTACT, REGISTER_HEADER, REGISTER_NEXT_STEPS, REGISTER_NEXT_TITLE } from '../content';
 import { RegisterForm } from '../registration/RegisterForm';
+
+// The helper bot pulls in the avatar renderer, so it loads after the form is already usable.
+const RegisterBuddy = lazy(() => import('../registration/buddy/RegisterBuddy'));
 import { renderHeadline } from '../sectionsC/headline';
 import { Mail, MapPin, MessageCircle, Phone, ShieldCheck } from '../sectionsC/icons';
 
@@ -34,6 +38,10 @@ export default function Register() {
         <div className="lp-reg__form">
           <RegisterForm />
         </div>
+
+        <Suspense fallback={null}>
+          <RegisterBuddy />
+        </Suspense>
 
         <aside className="lp-reg__side" aria-label="About your details and how to reach us">
           <ul className="lp-reg__trust">

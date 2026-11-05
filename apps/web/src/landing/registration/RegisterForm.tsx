@@ -7,6 +7,7 @@ import {
   CONSENT_SMALL_PRINT,
   DEFAULT_FORM_VALUES,
   FAILURE_MESSAGES,
+  normalizeIndianMobile,
   FOUNDING_OFFER,
   REGISTRATION_FIELDS,
   SUBMIT_LABEL,
@@ -22,6 +23,7 @@ import {
 } from '../content';
 import { useRegistrationIntent } from '../hooks/useRegistrationIntent';
 import { foundingState } from '../pricing/pricingMath';
+import { emitBuddy } from './buddy/store';
 import { Field } from './Field';
 import { FallbackActions } from './FallbackActions';
 import { submitRegistration, type SubmitFailureKind, type SubmitOptions } from './submit';
@@ -155,6 +157,9 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
       const { [name]: _removed, ...rest } = prev;
       return rest;
     });
+    // Tell Manhar Bot how it went (a field the visitor never filled in is not worth a cheer).
+    if (message) emitBuddy({ type: 'invalid', field: name });
+    else if (name !== 'consent' && String(next[name as keyof RegistrationFormValues] ?? '').trim() !== '') emitBuddy({ type: 'valid', field: name });
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -165,20 +170,24 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
       setErrors(found);
       setShowSummary(true);
       setSummaryTick((t) => t + 1);
+      emitBuddy({ type: 'failure', kind: 'validation' });
       return;
     }
     setErrors({});
     setShowSummary(false);
     setFailure(null);
     setPhase('submitting');
+    emitBuddy({ type: 'submit' });
     const result = await submitRegistration(toRegistrationPayload(values, startedAt.current), submitOptions);
     if (!mounted.current) return;
     if (result.ok) {
       setReference(result.referenceCode);
       setPhase('success');
+      emitBuddy({ type: 'success', referenceCode: result.referenceCode });
       return;
     }
     setFailure({ kind: result.kind });
+    emitBuddy({ type: 'failure', kind: result.kind });
     if (result.fieldErrors) {
       setErrors(result.fieldErrors);
       setShowSummary(true);
@@ -261,6 +270,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                   placeholder={REGISTRATION_FIELDS.restaurantName.placeholder}
                   value={state.restaurantName}
                   onChange={onText('restaurantName')}
+                  onFocus={() => emitBuddy({ type: 'focus', field: 'restaurantName' })}
                   onBlur={() => onBlur('restaurantName')}
                 />
               )}
@@ -276,6 +286,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                   placeholder={REGISTRATION_FIELDS.contactName.placeholder}
                   value={state.contactName}
                   onChange={onText('contactName')}
+                  onFocus={() => emitBuddy({ type: 'focus', field: 'contactName' })}
                   onBlur={() => onBlur('contactName')}
                 />
               )}
@@ -295,7 +306,9 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                     const value = sanitizePhoneInput(e.target.value);
                     set('phone', value);
                     clearIfFixed('phone', { ...values, phone: value });
+                    emitBuddy({ type: 'typing', field: 'phone', digits: value.replace(/D/g, '').length, valid: normalizeIndianMobile(value) !== null });
                   }}
+                  onFocus={() => emitBuddy({ type: 'focus', field: 'phone' })}
                   onBlur={() => {
                     const display = formatMobileDisplay(state.phone);
                     if (display !== state.phone) set('phone', display);
@@ -318,6 +331,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                   placeholder={REGISTRATION_FIELDS.email.placeholder}
                   value={state.email}
                   onChange={onText('email')}
+                  onFocus={() => emitBuddy({ type: 'focus', field: 'email' })}
                   onBlur={() => onBlur('email')}
                 />
               )}
@@ -333,6 +347,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                   placeholder={REGISTRATION_FIELDS.city.placeholder}
                   value={state.city}
                   onChange={onText('city')}
+                  onFocus={() => emitBuddy({ type: 'focus', field: 'city' })}
                   onBlur={() => onBlur('city')}
                 />
               )}
@@ -344,7 +359,11 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                   className="lp-select"
                   autoComplete="off"
                   value={state.businessKind}
-                  onChange={(e) => set('businessKind', e.target.value as BusinessKind)}
+                  onFocus={() => emitBuddy({ type: 'focus', field: 'businessKind' })}
+                  onChange={(e) => {
+                    set('businessKind', e.target.value as BusinessKind);
+                    emitBuddy({ type: 'valid', field: 'businessKind' });
+                  }}
                 >
                   {BUSINESS_KIND_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -374,6 +393,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                     set('outlets', value);
                     clearIfFixed('outlets', { ...values, outlets: value });
                   }}
+                  onFocus={() => emitBuddy({ type: 'focus', field: 'outlets' })}
                   onBlur={() => onBlur('outlets')}
                 />
               )}
@@ -390,6 +410,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
                 placeholder={REGISTRATION_FIELDS.message.placeholder}
                 value={state.message}
                 onChange={onText('message')}
+                onFocus={() => emitBuddy({ type: 'focus', field: 'message' })}
               />
             )}
           </Field>
@@ -422,7 +443,9 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
               onChange={(e) => {
                 set('consent', e.target.checked);
                 clearIfFixed('consent', { ...values, consent: e.target.checked });
+                emitBuddy({ type: 'consent', checked: e.target.checked });
               }}
+              onFocus={() => emitBuddy({ type: 'focus', field: 'consent' })}
               onBlur={() => onBlur('consent')}
             />
             <label htmlFor={fieldId('consent')}>

@@ -5,7 +5,19 @@ import { ManharBot } from './ManharBot';
 import definition from './manharbot.avatar.json';
 
 /** What the bot is doing; each mood is one animation in manharbot.avatar.json. */
-export type BotMood = 'idle' | 'ask' | 'hello' | 'explain' | 'fly' | 'done';
+export type BotMood =
+  | 'idle'
+  | 'ask'
+  | 'hello'
+  | 'explain'
+  | 'fly'
+  | 'done'
+  | 'watch'
+  | 'think'
+  | 'cheer'
+  | 'worry'
+  | 'nudge'
+  | 'sleep';
 
 /** Reduced motion: a still face per mood instead of a running animation. */
 const STILL: Record<BotMood, string> = {
@@ -15,6 +27,12 @@ const STILL: Record<BotMood, string> = {
   explain: 'look-left',
   fly: 'look-left',
   done: 'happy',
+  watch: 'look-left',
+  think: 'thinking',
+  cheer: 'happy-left',
+  worry: 'worried',
+  nudge: 'curious',
+  sleep: 'sleepy',
 };
 
 const prefersReducedMotion = (): boolean =>

@@ -365,6 +365,35 @@
         "body": "none"
       }
     },
+    "worried": {
+      "head": {
+        "x": 10,
+        "y": -6,
+        "z": 0
+      },
+      "eyes": {
+        "left": {
+          "width": 24,
+          "height": 46,
+          "x": 0,
+          "y": 2,
+          "angle": 14
+        },
+        "right": {
+          "width": 24,
+          "height": 46,
+          "x": 0,
+          "y": 2,
+          "angle": -14
+        },
+        "spacing": 44
+      },
+      "perspective": 1,
+      "motion": {
+        "eyes": "none",
+        "body": "none"
+      }
+    },
     "sleepy": {
       "head": {
         "x": 10,
@@ -406,6 +435,7 @@
     "wink",
     "excited",
     "curious",
+    "worried",
     "sleepy"
   ],
   "animations": {
@@ -596,6 +626,198 @@
         "group": "Manhar Bot"
       }
     },
+    "watch": {
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "expression": "look-left",
+          "holdMs": 2600,
+          "transitionMs": 450,
+          "transition": "smooth"
+        },
+        {
+          "expression": "neutral",
+          "holdMs": 1400,
+          "transitionMs": 450,
+          "transition": "smooth"
+        },
+        {
+          "expression": "look-left",
+          "holdMs": 2200,
+          "transitionMs": 450,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1500,
+        "minIntervalMs": 2000,
+        "maxIntervalMs": 3400,
+        "durationMs": 200
+      },
+      "metadata": {
+        "label": "watch",
+        "description": "Follows along while the visitor types.",
+        "group": "Manhar Bot"
+      }
+    },
+    "think": {
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "expression": "thinking",
+          "holdMs": 2400,
+          "transitionMs": 450,
+          "transition": "smooth"
+        },
+        {
+          "expression": "look-left",
+          "holdMs": 1400,
+          "transitionMs": 450,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1500,
+        "minIntervalMs": 2400,
+        "maxIntervalMs": 3800,
+        "durationMs": 200
+      },
+      "metadata": {
+        "label": "think",
+        "description": "Reads the question.",
+        "group": "Manhar Bot"
+      }
+    },
+    "cheer": {
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "expression": "happy-left",
+          "holdMs": 1200,
+          "transitionMs": 450,
+          "transition": "spring"
+        },
+        {
+          "expression": "wink",
+          "holdMs": 650,
+          "transitionMs": 450,
+          "transition": "snappy"
+        },
+        {
+          "expression": "happy-left",
+          "holdMs": 1200,
+          "transitionMs": 450,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1500,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 4200,
+        "durationMs": 200
+      },
+      "metadata": {
+        "label": "cheer",
+        "description": "Happy that a field is right.",
+        "group": "Manhar Bot"
+      }
+    },
+    "worry": {
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "expression": "worried",
+          "holdMs": 1800,
+          "transitionMs": 450,
+          "transition": "smooth"
+        },
+        {
+          "expression": "look-left",
+          "holdMs": 1200,
+          "transitionMs": 450,
+          "transition": "smooth"
+        },
+        {
+          "expression": "worried",
+          "holdMs": 1800,
+          "transitionMs": 450,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1500,
+        "minIntervalMs": 1800,
+        "maxIntervalMs": 2800,
+        "durationMs": 200
+      },
+      "metadata": {
+        "label": "worry",
+        "description": "Gently concerned about a mistake.",
+        "group": "Manhar Bot"
+      }
+    },
+    "nudge": {
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "expression": "curious",
+          "holdMs": 1500,
+          "transitionMs": 450,
+          "transition": "smooth"
+        },
+        {
+          "expression": "wink",
+          "holdMs": 700,
+          "transitionMs": 450,
+          "transition": "snappy"
+        },
+        {
+          "expression": "look-left",
+          "holdMs": 1500,
+          "transitionMs": 450,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1500,
+        "minIntervalMs": 2400,
+        "maxIntervalMs": 4200,
+        "durationMs": 200
+      },
+      "metadata": {
+        "label": "nudge",
+        "description": "Offers help after a quiet moment.",
+        "group": "Manhar Bot"
+      }
+    },
+    "sleep": {
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "expression": "sleepy",
+          "holdMs": 4000,
+          "transitionMs": 450,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1500,
+        "minIntervalMs": 3000,
+        "maxIntervalMs": 5000,
+        "durationMs": 200
+      },
+      "metadata": {
+        "label": "sleep",
+        "description": "Dozes when nobody is around.",
+        "group": "Manhar Bot"
+      }
+    },
     "done": {
       "playbackMode": "loop",
       "steps": [
@@ -638,6 +860,12 @@
     "hello",
     "explain",
     "fly",
+    "watch",
+    "think",
+    "cheer",
+    "worry",
+    "nudge",
+    "sleep",
     "done"
   ]
 }
