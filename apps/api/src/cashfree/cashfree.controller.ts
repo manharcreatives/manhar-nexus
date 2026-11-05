@@ -23,6 +23,14 @@ export class RegistrationPaymentController {
     return this.payments.list(id);
   }
 
+  /** Ask Cashfree for the link's current state (for when a webhook is late or never arrived). */
+  @Post(':paymentId/refresh')
+  @HttpCode(200)
+  @RequirePermission('platform.registration.manage')
+  refresh(@Param('id', ParseUUIDPipe) id: string, @Param('paymentId', ParseUUIDPipe) paymentId: string) {
+    return this.payments.refresh(id, paymentId);
+  }
+
   @Post()
   @RequirePermission('platform.registration.manage')
   create(

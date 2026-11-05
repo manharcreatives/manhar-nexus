@@ -29,11 +29,13 @@ const row: RegistrationRequest = {
 const listRegistrations = vi.fn();
 const updateRegistration = vi.fn();
 const createPaymentLink = vi.fn();
+const refreshPaymentLink = vi.fn();
 vi.mock('./api', async (orig) => ({
   ...(await orig<typeof import('./api')>()),
   listRegistrations: (...a: unknown[]) => listRegistrations(...a),
   updateRegistration: (...a: unknown[]) => updateRegistration(...a),
   createPaymentLink: (...a: unknown[]) => createPaymentLink(...a),
+  refreshPaymentLink: (...a: unknown[]) => refreshPaymentLink(...a),
 }));
 
 import { RegistrationsPage } from './RegistrationsPage';
@@ -85,6 +87,7 @@ beforeEach(() => {
   listRegistrations.mockReset();
   updateRegistration.mockReset();
   createPaymentLink.mockReset();
+  refreshPaymentLink.mockReset();
   withRows(row);
 });
 
@@ -186,6 +189,40 @@ describe('RegistrationsPage: owner payment (Cashfree link)', () => {
     expect(await screen.findByText('Paid. Create the restaurant account now.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /payment link/i })).toBeNull();
     expect(screen.getByRole('button', { name: 'Create restaurant account' })).toBeTruthy();
+  });
+
+  it('"Check payment" asks Cashfree directly and tells staff the result', async () => {
+    withRows({ ...row, payments: [link()] });
+    refreshPaymentLink.mockResolvedValue({ outcome: 'ignored', payment: link() });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Check payment' }));
+    await waitFor(() => expect(refreshPaymentLink).toHaveBeenCalledWith(row.id, 'p-1'));
+    expect((await screen.findAllByText('Not paid yet.')).length).toBeGreaterThan(0);
+  });
+
+  it('"Check payment" announces a payment that came in', async () => {
+    withRows({ ...row, payments: [link()] });
+    refreshPaymentLink.mockResolvedValue({ outcome: 'updated', payment: link({ status: 'PAID' }) });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Check payment' }));
+    expect((await screen.findAllByText('Payment received. Create the restaurant account now.')).length).toBeGreaterThan(0);
+  });
+
+  it('"Check payment" shows the server message when Cashfree is unreachable (502)', async () => {
+    withRows({ ...row, payments: [link()] });
+    refreshPaymentLink.mockRejectedValue(Object.assign(new Error('Could not reach Cashfree. Please try again in a moment.'), { status: 502 }));
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Check payment' }));
+    expect((await screen.findAllByText('Could not reach Cashfree. Please try again in a moment.')).length).toBeGreaterThan(0);
+  });
+
+  it('a paid link has no "Check payment" button', async () => {
+    listRegistrations.mockImplementation(({ status }: { status: string }) =>
+      Promise.resolve({ items: status === 'QUALIFIED' ? [{ ...row, status: 'QUALIFIED', payments: [link({ status: 'PAID' })] }] : [], total: 1, skip: 0, take: 100 }),
+    );
+    renderPage();
+    await screen.findByText('Paid. Create the restaurant account now.');
+    expect(screen.queryByRole('button', { name: 'Check payment' })).toBeNull();
   });
 
   it('flags a payment whose amount did not match, and does not hide it', async () => {

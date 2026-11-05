@@ -88,6 +88,24 @@ export class RegistrationPaymentService {
   }
 
   /**
+   * Asks Cashfree directly how a link is doing and applies the answer exactly like a webhook would. Staff press
+   * "Check payment" when a webhook is late or could not reach us; confirmed against the sandbox, where a paid link
+   * reports link_status PAID and link_amount_paid.
+   */
+  async refresh(registrationId: string, paymentId: string, now = new Date()): Promise<{ outcome: LinkEventOutcome; payment: PaymentLinkView }> {
+    const payment = await this.prisma.registrationPayment.findUnique({ where: { id: paymentId } });
+    if (!payment || payment.registrationId !== registrationId) throw new NotFoundError('Payment link not found');
+    const link = await this.cashfree.getLink(payment.linkId);
+    const orderId = link.status === 'PAID' ? await this.cashfree.getPaidOrderId(payment.linkId) : null;
+    const outcome = await this.applyLinkEvent(
+      { linkId: payment.linkId, linkStatus: link.status.toUpperCase(), amountPaidRupees: link.amountPaidRupees, orderId },
+      now,
+    );
+    const fresh = await this.prisma.registrationPayment.findUnique({ where: { id: paymentId } });
+    return { outcome, payment: toPaymentView(fresh ?? payment) };
+  }
+
+  /**
    * Applies a verified webhook event. Idempotent: Cashfree retries, and events can arrive out of order.
    *  - PAID is terminal and wins over anything else (money moved); repeats are "duplicate".
    *  - The amount actually paid must equal the link's amount, otherwise the link is flagged AMOUNT_MISMATCH for a

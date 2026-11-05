@@ -75,6 +75,18 @@ export class CashfreeClient {
     return { ...this.toLink(json, linkId), amountPaidRupees: typeof paid === 'number' ? paid : null };
   }
 
+  /**
+   * The order id of the successful payment for a link (GET /links/{id}/orders), or null. Cashfree returns an array
+   * of orders; a link that was paid has one whose order_status is PAID.
+   */
+  async getPaidOrderId(linkId: string): Promise<string | null> {
+    const config = this.config();
+    const json = (await this.call(config, 'GET', `/links/${encodeURIComponent(linkId)}/orders`)) as unknown;
+    if (!Array.isArray(json)) return null;
+    const paid = json.find((o): o is { order_id: string } => typeof o === 'object' && o !== null && (o as { order_status?: unknown }).order_status === 'PAID' && typeof (o as { order_id?: unknown }).order_id === 'string');
+    return paid?.order_id ?? null;
+  }
+
   private toLink(json: Record<string, unknown>, fallbackId: string): CashfreeLink {
     const linkUrl = typeof json.link_url === 'string' ? json.link_url : '';
     if (!linkUrl) throw new PaymentProviderError('Cashfree did not return a payment link URL.');

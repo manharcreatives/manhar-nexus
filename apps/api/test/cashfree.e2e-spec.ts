@@ -337,6 +337,48 @@ describe('Cashfree payment links (e2e)', () => {
     });
   });
 
+  // ─── "Check payment": ask Cashfree directly (webhook late or unreachable) ─────
+
+  describe('POST /internal/registrations/:id/payment-links/:paymentId/refresh', () => {
+    const cashfreeJson = (body: unknown) => ({ ok: true, status: 200, text: async () => JSON.stringify(body) });
+
+    it('marks the link PAID from what Cashfree reports, with the paid order id, and qualifies the request', async () => {
+      const { lead, payment } = await leadWithLink(1500);
+      cashfreeFetch.mockResolvedValueOnce(cashfreeJson({ link_id: payment.linkId, link_status: 'PAID', link_amount_paid: 1500, link_url: 'https://pay.test/x' }));
+      cashfreeFetch.mockResolvedValueOnce(cashfreeJson([{ order_id: 'CFPay_checked_1', order_status: 'PAID' }]));
+      const res = await pPost(`/internal/registrations/${lead.id}/payment-links/${payment.id}/refresh`, {});
+      expect(res.status).toBe(200);
+      expect(res.body.outcome).toBe('updated');
+      expect(res.body.payment).toMatchObject({ status: 'PAID', paidAmountPaise: 150_000 });
+      const row = await prisma.registrationPayment.findUniqueOrThrow({ where: { id: payment.id } });
+      expect(row.providerOrderId).toBe('CFPay_checked_1');
+      expect((await prisma.registrationRequest.findUniqueOrThrow({ where: { id: lead.id } })).status).toBe('QUALIFIED');
+      const urls = cashfreeFetch.mock.calls.map((c) => c[0] as string);
+      expect(urls.slice(-2)).toEqual([
+        `https://sandbox.cashfree.com/pg/links/${payment.linkId}`,
+        `https://sandbox.cashfree.com/pg/links/${payment.linkId}/orders`,
+      ]);
+    });
+
+    it('changes nothing while the owner has not paid', async () => {
+      const { lead, payment } = await leadWithLink();
+      cashfreeFetch.mockResolvedValueOnce(cashfreeJson({ link_id: payment.linkId, link_status: 'ACTIVE', link_amount_paid: 0, link_url: 'https://pay.test/x' }));
+      const res = await pPost(`/internal/registrations/${lead.id}/payment-links/${payment.id}/refresh`, {});
+      expect(res.status).toBe(200);
+      expect(res.body.outcome).toBe('ignored');
+      expect((await prisma.registrationPayment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('CREATED');
+    });
+
+    it('404 for a payment of another request; 401/403 without the right login', async () => {
+      const { payment } = await leadWithLink();
+      const other = await createLead();
+      expect((await pPost(`/internal/registrations/${other.id}/payment-links/${payment.id}/refresh`, {})).status).toBe(404);
+      const url = `/internal/registrations/${payment.registrationId}/payment-links/${payment.id}/refresh`;
+      expect((await request(http()).post(url).send({})).status).toBe(401);
+      expect((await request(http()).post(url).set('authorization', `Bearer ${businessToken}`).send({})).status).toBe(403);
+    });
+  });
+
   it('the client the app uses is the one under test', () => {
     expect(client).toBeInstanceOf(CashfreeClient);
   });

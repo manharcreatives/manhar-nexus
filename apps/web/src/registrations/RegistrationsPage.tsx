@@ -16,6 +16,7 @@ import {
   isOpenLink,
   isPaid,
   paymentMessage,
+  refreshPaymentLink,
   listRegistrations,
   updateRegistration,
   whatsappUrl,
@@ -85,6 +86,22 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
       await load();
     } catch (err) {
       toast.show(errorMessage(err, t('registrations.errors.update')));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  /** "Check payment": ask Cashfree directly, for when the webhook is late or could not reach us. */
+  async function checkPayment(r: RegistrationRequest, paymentId: string) {
+    setBusyId(r.id);
+    try {
+      const { outcome, payment } = await refreshPaymentLink(r.id, paymentId);
+      const key = outcome === 'updated' && payment.status === 'PAID' ? 'paid' : outcome;
+      toast.show(t(`registrations.payment.checked.${key}`));
+      await load();
+    } catch (err) {
+      const e = err as { status?: number; message?: string } | null;
+      toast.show(e && (e.status === 502 || e.status === 503) && e.message ? e.message : t('registrations.payment.checkFailed'));
     } finally {
       setBusyId(null);
     }
@@ -187,6 +204,11 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           <StatusPill tone={PAYMENT_TONE[p.status]}>{t(`registrations.payment.status.${p.status}`)}</StatusPill>
+                          {p.status !== 'PAID' ? (
+                            <button type="button" className="underline disabled:opacity-50" disabled={busyId === r.id} onClick={() => void checkPayment(r, p.id)}>
+                              {t('registrations.payment.check')}
+                            </button>
+                          ) : null}
                           {isOpenLink(p) ? (
                             <>
                               <a className="underline" href={p.linkUrl} target="_blank" rel="noopener noreferrer">

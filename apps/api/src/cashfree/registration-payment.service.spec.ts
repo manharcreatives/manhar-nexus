@@ -107,6 +107,46 @@ describe('RegistrationPaymentService.createLink', () => {
   });
 });
 
+describe('RegistrationPaymentService.refresh ("Check payment": ask Cashfree directly)', () => {
+  function withCashfree(link: { status: string; amountPaidRupees: number | null }, orderId: string | null = 'CFPay_9', f: Fakes = {}) {
+    const s = setup(f);
+    const getLink = jest.fn().mockResolvedValue({ cfLinkId: '1', linkId: PAYMENT.linkId, linkUrl: 'u', ...link });
+    const getPaidOrderId = jest.fn().mockResolvedValue(orderId);
+    Object.assign(s.client, { getLink, getPaidOrderId });
+    return { ...s, getLink, getPaidOrderId };
+  }
+
+  it('turns a paid link into PAID exactly like a webhook would, recording the paid order id', async () => {
+    const { service, updateMany, getPaidOrderId } = withCashfree({ status: 'PAID', amountPaidRupees: 1500 });
+    const out = await service.refresh('reg-1', 'pay-1');
+    expect(out.outcome).toBe('updated');
+    expect(getPaidOrderId).toHaveBeenCalledWith(PAYMENT.linkId);
+    expect(updateMany.mock.calls[0]?.[0]).toMatchObject({ data: { status: 'PAID', paidAmountPaise: 150_000, providerOrderId: 'CFPay_9' } });
+  });
+
+  it('changes nothing for a link that is still waiting for payment, and does not ask for orders', async () => {
+    const { service, updateMany, getPaidOrderId } = withCashfree({ status: 'ACTIVE', amountPaidRupees: 0 });
+    expect((await service.refresh('reg-1', 'pay-1')).outcome).toBe('ignored');
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(getPaidOrderId).not.toHaveBeenCalled();
+  });
+
+  it('still refuses a wrong amount (AMOUNT_MISMATCH), never marks it paid', async () => {
+    const { service, updateMany } = withCashfree({ status: 'PAID', amountPaidRupees: 1 });
+    expect((await service.refresh('reg-1', 'pay-1')).outcome).toBe('amount-mismatch');
+    expect(updateMany.mock.calls[0]?.[0].data.status).toBe('AMOUNT_MISMATCH');
+  });
+
+  it('is a 404 for a payment that belongs to another request, or does not exist, and asks Cashfree nothing', async () => {
+    const other = withCashfree({ status: 'PAID', amountPaidRupees: 1500 }, 'x', { payment: { ...PAYMENT, registrationId: 'someone-else' } });
+    await expect(other.service.refresh('reg-1', 'pay-1')).rejects.toBeInstanceOf(NotFoundError);
+    const missing = withCashfree({ status: 'PAID', amountPaidRupees: 1500 }, 'x', { payment: null });
+    await expect(missing.service.refresh('reg-1', 'nope')).rejects.toBeInstanceOf(NotFoundError);
+    expect(other.getLink).not.toHaveBeenCalled();
+    expect(missing.getLink).not.toHaveBeenCalled();
+  });
+});
+
 describe('RegistrationPaymentService.applyLinkEvent', () => {
   const paid = (over: Record<string, unknown> = {}) => ({
     linkId: PAYMENT.linkId,

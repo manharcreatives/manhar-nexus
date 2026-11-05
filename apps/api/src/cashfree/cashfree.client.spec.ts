@@ -110,6 +110,19 @@ describe('CashfreeClient', () => {
     await expect(clientWith(jest.fn().mockResolvedValue(respond(200, { link_status: 'ACTIVE' }))).createLink(input)).rejects.toThrow(/did not return a payment link/);
   });
 
+  it('finds the paid order of a link (shape confirmed against the sandbox) and ignores unpaid ones', async () => {
+    const orders = [
+      { order_id: 'CFPay_unpaid', order_status: 'ACTIVE' },
+      { order_id: 'CFPay_paid_1', order_status: 'PAID', link_id: 'L9' },
+    ];
+    const fetchImpl = jest.fn().mockResolvedValue(respond(200, orders));
+    expect(await clientWith(fetchImpl).getPaidOrderId('L9')).toBe('CFPay_paid_1');
+    expect((fetchImpl.mock.calls[0] as [string])[0]).toBe('https://sandbox.cashfree.com/pg/links/L9/orders');
+    expect(await clientWith(jest.fn().mockResolvedValue(respond(200, [{ order_id: 'x', order_status: 'ACTIVE' }]))).getPaidOrderId('L9')).toBeNull();
+    expect(await clientWith(jest.fn().mockResolvedValue(respond(200, []))).getPaidOrderId('L9')).toBeNull();
+    expect(await clientWith(jest.fn().mockResolvedValue(respond(200, { not: 'an array' }))).getPaidOrderId('L9')).toBeNull();
+  });
+
   it('fetches a link and reports the amount paid', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(respond(200, { link_id: 'L9', link_status: 'PAID', link_url: 'https://pay.test/l9', link_amount_paid: 1500 }));
     const link = await clientWith(fetchImpl).getLink('L9');

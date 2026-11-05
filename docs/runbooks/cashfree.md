@@ -57,11 +57,18 @@ Migration `20261105170000_registration_payment` adds one table (`registration_pa
 4. For the webhook to reach a local machine you need a public tunnel; otherwise test on the deployed preview.
    Without one, the signed-webhook path is covered by `apps/api/test/cashfree.e2e-spec.ts`.
 
-## Things still to confirm against the real sandbox (docs are not fully consistent)
+## Verified against the real Cashfree sandbox (5 Nov 2026)
 
-- That `x-api-version: 2025-01-01` is accepted (override with `CASHFREE_API_VERSION` if not).
-- Whether link webhooks arrive as JSON or form-encoded (both are parsed) and the exact field names.
-- That `link_status` / `link_amount_paid` in the webhook are filled for a paid link.
+Done with a test key pair, a Rs 1 link and the sandbox net-banking simulator:
+
+- `POST /pg/links` accepts `x-api-version: 2025-01-01` and returns `cf_link_id`, `link_url` (payments-test.cashfree.com) and `link_status: ACTIVE`.
+- After the simulated payment, `GET /pg/links/{id}` returns `link_status: PAID` and `link_amount_paid` (the FAQ's warning that the status may not update did not apply), and `GET /pg/links/{id}/orders` lists the order (`order_status: PAID`, `order_id` like `CFPay_...`).
+- Our **Check payment** path ran against those real responses and marked the payment PAID with the real order id.
+- The link page shows "Business Name" until the business name/logo is set in the Cashfree dashboard. **Set it before real owners see it.**
+
+## Still unverified: the webhook itself
+
+Cashfree could not reach a local machine, so the real webhook (JSON or form body, exact field names, signature with or without a dot) has not been seen. The code accepts both bodies and both signature forms, and is covered by tests, but check it once on a deployed URL with the sandbox keys: set the webhook URL in Developers > Webhooks (test mode) or rely on `link_meta.notify_url`, pay a Rs 1 link and confirm the request shows **Paid** without pressing Check payment. Until then, **Check payment** is the dependable path.
 
 ## Go-live checklist
 

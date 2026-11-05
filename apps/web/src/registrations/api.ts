@@ -88,6 +88,13 @@ export function createPaymentLink(registrationId: string, body: { amountRupees: 
   return api<PaymentLink>(`/internal/registrations/${registrationId}/payment-links`, { method: 'POST', body: JSON.stringify(body) });
 }
 
+export type RefreshOutcome = 'updated' | 'ignored' | 'duplicate' | 'amount-mismatch';
+
+/** Asks Cashfree directly how a link is doing (for when the webhook is late or never arrived). */
+export function refreshPaymentLink(registrationId: string, paymentId: string): Promise<{ outcome: RefreshOutcome; payment: PaymentLink }> {
+  return api(`/internal/registrations/${registrationId}/payment-links/${paymentId}/refresh`, { method: 'POST', body: JSON.stringify({}) });
+}
+
 /** True when the request already has a PAID link: time to create the restaurant account. */
 export const isPaid = (r: Pick<RegistrationRequest, 'payments'>): boolean => r.payments.some((p) => p.status === 'PAID');
 

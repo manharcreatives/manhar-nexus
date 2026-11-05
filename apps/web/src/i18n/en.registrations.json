@@ -80,6 +80,15 @@
         "EXPIRED": "Expired",
         "CANCELLED": "Cancelled",
         "AMOUNT_MISMATCH": "Check amount"
+      },
+      "check": "Check payment",
+      "checkFailed": "Could not check with Cashfree. Please try again.",
+      "checked": {
+        "paid": "Payment received. Create the restaurant account now.",
+        "ignored": "Not paid yet.",
+        "duplicate": "Already up to date.",
+        "amount-mismatch": "A payment came in, but the amount does not match. Check it in Cashfree.",
+        "updated": "Updated."
       }
     }
   }
