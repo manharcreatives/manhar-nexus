@@ -82,6 +82,11 @@ describe('Concurrency & Race Conditions — Phase 14 (e2e)', () => {
     app = module.createNestApplication();
     applyHttpDefaults(app);
     await app.init();
+    // Listen once, ourselves. Left to supertest, each request on a server that is not listening makes it listen and
+    // closes it when that request ends; with 20 requests in flight the first to finish closes the server under the
+    // others (ECONNRESET on newer Node, which also closes idle keep-alive sockets on close()). This spec fires many
+    // concurrent requests, so the server must outlive them: afterAll closes it.
+    await app.listen(0, '127.0.0.1');
 
     // Platform login
     const platformLogin = await request(http()).post('/auth/login').send({
