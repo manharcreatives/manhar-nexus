@@ -25,49 +25,78 @@
 @keyframes nx-bot-fly { 0%, 100% { transform: rotate(-9deg) translateY(-2px); } 50% { transform: rotate(-5deg) translateY(2px); } }
 @keyframes nx-bot-jet { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.45); } }
 
-/* ───────── the card ─────────
-   Solid on purpose: the app's glass surfaces are only ~4% white, which let the page show through the text. */
-.nx-tour-pos {
+/* ───────── the bot and its thought bubble (same look as the helper on the public website; no box) ─────────
+   The wrapper is the bot's size and glides between menu items; the bubble hangs off it. */
+.nx-tbot {
   position: fixed;
   left: 0;
   top: 0;
   z-index: 60;
-  width: min(26rem, calc(100vw - 24px));
-  /* The card glides between menu items. */
-  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
   will-change: transform;
 }
+.nx-tbot[data-ready='true'] { transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+.nx-tbot > * { pointer-events: auto; }
+.nx-tbot__face { width: 100%; height: 100%; filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.5)); }
+.nx-tbot__face .nx-bot-face { margin: 0 !important; width: 100% !important; height: 100% !important; }
+.nx-tbot__face svg { width: 100%; height: 100%; }
 
-.nx-tour-panel {
-  position: relative;
-  display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-radius: var(--radius-panel);
-  background: #0f1814;
-  background-image: linear-gradient(180deg, #14211b 0%, #0f1814 60%);
-  border: 1px solid rgb(var(--accent-rgb) / 0.55);
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.6),
-    0 24px 70px rgb(0 0 0 / 0.75),
-    0 0 40px rgb(var(--accent-rgb) / 0.18);
-  color: var(--color-ink);
-}
-.nx-tour-card { animation: nx-tour-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-@keyframes nx-tour-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
-
-/* Pointer toward the menu item on the card's left edge. */
-.nx-tour-tail {
+.nx-tb {
   position: absolute;
-  left: -8px;
-  width: 16px;
-  height: 16px;
-  background: #14211b;
-  border-left: 1px solid rgb(var(--accent-rgb) / 0.55);
-  border-bottom: 1px solid rgb(var(--accent-rgb) / 0.55);
-  transform: rotate(45deg);
-  transition: top 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  box-sizing: border-box;
+  padding: 0.85rem 1rem 0.7rem;
+  border-radius: 1.4rem;
+  background: #f4f8f6;
+  color: #0b1210;
+  box-shadow: 0 14px 40px rgb(0 0 0 / 0.55);
+  animation: nx-tb-in 320ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
+/* Two small circles trail from the bubble toward the bot, on whichever side it is, level with the bot. */
+.nx-tb::before,
+.nx-tb::after {
+  content: '';
+  position: absolute;
+  background: #f4f8f6;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 0.35);
+}
+.nx-tb::before { width: 14px; height: 14px; }
+.nx-tb::after { width: 8px; height: 8px; }
+.nx-tb[data-pos='out-right']::before { left: -9px; top: calc(var(--tail-y, 40px) - 7px); }
+.nx-tb[data-pos='out-right']::after { left: -20px; top: calc(var(--tail-y, 40px) + 6px); }
+.nx-tb[data-pos='out-left']::before { right: -9px; top: calc(var(--tail-y, 40px) - 7px); }
+.nx-tb[data-pos='out-left']::after { right: -20px; top: calc(var(--tail-y, 40px) + 6px); }
+.nx-tb[data-pos='above']::before { left: 50%; bottom: -10px; margin-left: -7px; }
+.nx-tb[data-pos='above']::after { left: 50%; bottom: -20px; margin-left: -3px; }
+.nx-tb[data-pos='below']::before { left: 50%; top: -10px; margin-left: -7px; }
+.nx-tb[data-pos='below']::after { left: 50%; top: -20px; margin-left: -3px; }
+
+.nx-tb__title { margin: 0; font-size: 0.98rem; line-height: 1.3; font-weight: 700; color: #0b1210; }
+.nx-tb__lines { margin: 0.35rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.3rem; font-size: 0.88rem; line-height: 1.4; color: #1b2a24; }
+.nx-tb__body { display: grid; margin: 0.3rem 0 0; font-size: 0.9rem; line-height: 1.5; color: #1b2a24; }
+.nx-tb__step { margin: 0.5rem 0 0; font-size: 0.75rem; color: #5a6a63; }
+.nx-tb__actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
+.nx-tb__btn {
+  min-height: 2.25rem;
+  padding: 0 0.95rem;
+  border: 1px solid rgb(11 18 16 / 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: #0b1210;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nx-tb__btn:hover { background: rgb(11 18 16 / 0.06); }
+.nx-tb__btn--primary { background: #15803d; border-color: #15803d; color: #fff; }
+.nx-tb__btn--primary:hover { background: #166534; }
+.nx-tb__btn--ghost { border-color: transparent; color: #3a4a43; }
+.nx-tb__link { margin-top: 0.45rem; padding: 0; border: 0; background: none; color: #4a5a53; font: inherit; font-size: 0.74rem; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.nx-tb__link:hover { color: #0b1210; }
+.nx-tb__btn:focus-visible, .nx-tb__link:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
+
+@keyframes nx-tb-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
 
 /* ───────── dim + spotlight ───────── */
 .nx-tour-catcher {
@@ -104,7 +133,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nx-bot__body, .nx-bot__eye, .nx-bot__antenna, .nx-bot--wave .nx-bot__arm, .nx-bot--talk .nx-bot__mouth,
-  .nx-bot--fly .nx-bot__body, .nx-bot--fly .nx-bot__jet, .nx-tour-card, .nx-tour-ring[data-active='true'] { animation: none; }
-  .nx-tour-pos, .nx-tour-tail, .nx-tour-ring { transition: none; }
+  .nx-bot--fly .nx-bot__body, .nx-bot--fly .nx-bot__jet, .nx-tb, .nx-tour-ring[data-active='true'] { animation: none; }
+  .nx-tbot[data-ready='true'], .nx-tour-ring { transition: none; }
   .nx-tour-ring[data-active='true'] { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 7px rgb(var(--accent-rgb) / 0.25), 0 0 0 9999px rgb(3 7 5 / 0.72); }
 }

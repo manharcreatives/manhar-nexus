@@ -23,6 +23,8 @@ export interface TourStrings {
     changeLanguage: string;
     close: string;
   };
+  /** The question asked once the language is known: does the visitor want a tour? */
+  ask: { line: string; yes: string; no: string; later: string };
   welcome: { title: (name: string) => string; body: string };
   finish: { title: string; body: string };
 }
@@ -37,6 +39,12 @@ export const STRINGS: Record<TourLang, TourStrings> = {
       stepOf: (n, total) => `Step ${n} of ${total}`,
       changeLanguage: 'Change language',
       close: 'Close tour',
+    },
+    ask: {
+      line: 'Would you like a quick tour of your dashboard?',
+      yes: 'Yes, show me',
+      no: 'No thanks',
+      later: 'Ask me later',
     },
     welcome: {
       title: (name) => (name ? `Hi ${name}, I’m Manhar Bot!` : 'Hi, I’m Manhar Bot!'),
@@ -57,6 +65,12 @@ export const STRINGS: Record<TourLang, TourStrings> = {
       changeLanguage: 'भाषा बदलें',
       close: 'टूर बंद करें',
     },
+    ask: {
+      line: 'क्या आप अपने डैशबोर्ड का छोटा-सा टूर देखना चाहेंगे?',
+      yes: 'हाँ, दिखाइए',
+      no: 'नहीं, धन्यवाद',
+      later: 'बाद में पूछें',
+    },
     welcome: {
       title: (name) => (name ? `नमस्ते ${name}, मैं मनहर बॉट हूँ!` : 'नमस्ते, मैं मनहर बॉट हूँ!'),
       body: 'मैं आपको करीब एक मिनट में पूरा घुमा दूँगा। बाईं ओर का मेन्यू देखिए, मैं हर हिस्से को चमकाकर बताऊँगा।',
@@ -75,6 +89,12 @@ export const STRINGS: Record<TourLang, TourStrings> = {
       stepOf: (n, total) => `પગલું ${n} / ${total}`,
       changeLanguage: 'ભાષા બદલો',
       close: 'ટૂર બંધ કરો',
+    },
+    ask: {
+      line: 'શું તમે તમારા ડેશબોર્ડનો નાનકડો ટૂર જોવા માંગો છો?',
+      yes: 'હા, બતાવો',
+      no: 'ના, આભાર',
+      later: 'પછી પૂછો',
     },
     welcome: {
       title: (name) => (name ? `નમસ્તે ${name}, હું મનહર બોટ છું!` : 'નમસ્તે, હું મનહર બોટ છું!'),
@@ -267,3 +287,17 @@ export function stepsFor(visiblePaths: readonly string[]): PageStep[] {
   const set = new Set(visiblePaths);
   return PAGE_STEPS.filter((s) => set.has(s.path));
 }
+
+/** What the bot says as it leaves when the visitor declines the tour (all three languages: none was chosen). */
+export const BYE = {
+  no: {
+    en: 'No problem! Find me any time under “Take the tour” in the menu.',
+    hi: 'कोई बात नहीं! मुझे कभी भी मेन्यू में “टूर देखें” से बुला लीजिए।',
+    gu: 'કોઈ વાંધો નહીં! મને ગમે ત્યારે મેનુમાં “ટૂર જુઓ” થી બોલાવી લો.',
+  },
+  later: {
+    en: 'Okay, I’ll ask again next time.',
+    hi: 'ठीक है, मैं अगली बार फिर पूछूँगा।',
+    gu: 'ઠીક છે, હું આવતી વખતે ફરી પૂછીશ.',
+  },
+} as const satisfies Record<'no' | 'later', Record<TourLang, string>>;
