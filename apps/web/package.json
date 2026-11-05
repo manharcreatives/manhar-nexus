@@ -11,7 +11,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bible-strong/avatar-web": "0.1.0",
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/inter-tight": "^5.3.0",
     "@nexus/shared": "*",
