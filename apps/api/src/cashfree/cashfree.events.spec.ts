@@ -1,4 +1,4 @@
-import { parseLinkEvent } from './cashfree.events';
+import { parseLinkEvent, webhookEventType } from './cashfree.events';
 
 const JSON_TYPE = 'application/json';
 const FORM_TYPE = 'application/x-www-form-urlencoded';
@@ -52,6 +52,17 @@ describe('parseLinkEvent: JSON body (as in the docs)', () => {
     expect(parseLinkEvent('{}', JSON_TYPE)).toBeNull();
     expect(parseLinkEvent(JSON.stringify({ type: 'PAYMENT_LINK_EVENT', data: { link_id: 'L1' } }), JSON_TYPE)).toBeNull();
     expect(parseLinkEvent(JSON.stringify({ type: 'PAYMENT_LINK_EVENT', data: { link_status: 'PAID' } }), JSON_TYPE)).toBeNull();
+  });
+});
+
+describe('webhookEventType', () => {
+  it('reads the top-level type from JSON and from a form body, and never throws', () => {
+    expect(webhookEventType(JSON.stringify(paid), JSON_TYPE)).toBe('PAYMENT_LINK_EVENT');
+    expect(webhookEventType(JSON.stringify({ type: 'PAYMENT_SUCCESS_WEBHOOK', data: {} }), JSON_TYPE)).toBe('PAYMENT_SUCCESS_WEBHOOK');
+    expect(webhookEventType(new URLSearchParams({ type: 'X_EVENT' }).toString(), FORM_TYPE)).toBe('X_EVENT');
+    expect(webhookEventType('not json', JSON_TYPE)).toBeNull();
+    expect(webhookEventType('{}', JSON_TYPE)).toBeNull();
+    expect(webhookEventType(JSON.stringify({ type: 'A'.repeat(500) }), JSON_TYPE)?.length).toBe(64);
   });
 });
 

@@ -66,9 +66,11 @@ Done with a test key pair, a Rs 1 link and the sandbox net-banking simulator:
 - Our **Check payment** path ran against those real responses and marked the payment PAID with the real order id.
 - The link page shows "Business Name" until the business name/logo is set in the Cashfree dashboard. **Set it before real owners see it.**
 
-## Still unverified: the webhook itself
+## Webhook on production (5 Nov 2026, sandbox keys)
 
-Cashfree could not reach a local machine, so the real webhook (JSON or form body, exact field names, signature with or without a dot) has not been seen. The code accepts both bodies and both signature forms, and is covered by tests, but check it once on a deployed URL with the sandbox keys: set the webhook URL in Developers > Webhooks (test mode) or rely on `link_meta.notify_url`, pay a Rs 1 link and confirm the request shows **Paid** without pressing Check payment. Until then, **Check payment** is the dependable path.
+Production redeployed with the sandbox keys; a Rs 1 sandbox link whose `notify_url` was the production webhook was paid in the simulator. Vercel runtime logs show Cashfree calling `POST /api/public/cashfree/webhook` three times, all answered **200** with no "bad signature" warning, so **Cashfree's real signatures verify** with our check. The link had no row in the production database (writing test rows to production was deliberately not done), so those calls were acknowledged as ignored.
+
+Not yet seen: which of those three events was the link event and its exact body. Since this version every webhook logs its event type and outcome ("cashfree webhook handled": `event`, `linkEvent`, `outcome`) without any payload. Pay one more sandbox link that exists in the database (created from Registrations) and check the log shows `linkEvent: true, outcome: updated`. **Check payment** remains the dependable fallback.
 
 ## Go-live checklist
 

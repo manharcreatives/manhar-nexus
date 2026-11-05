@@ -63,3 +63,18 @@ export function parseLinkEvent(rawBody: string, contentType: string | undefined)
     orderId: str(order?.order_id) ?? str(data.order_id),
   };
 }
+
+/**
+ * The event type Cashfree put on a webhook (top-level `type`, e.g. PAYMENT_LINK_EVENT or PAYMENT_SUCCESS_WEBHOOK), or null.
+ * Logged with each outcome so an unexpected body shape is visible in production without logging any payload.
+ */
+export function webhookEventType(rawBody: string, contentType: string | undefined): string | null {
+  let top: Bag | null = null;
+  if (contentType?.toLowerCase().includes('application/x-www-form-urlencoded')) {
+    top = Object.fromEntries(new URLSearchParams(rawBody));
+  } else {
+    top = asBag(rawBody);
+  }
+  const type = top ? str(top.type) : null;
+  return type ? type.slice(0, 64) : null;
+}

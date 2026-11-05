@@ -8,7 +8,7 @@ import { Public, RequirePermission } from '../iam/principal';
 import { logger } from '../logging/logger';
 import { CashfreeClient } from './cashfree.client';
 import { createPaymentLinkSchema, type CreatePaymentLinkDto } from './cashfree.dto';
-import { parseLinkEvent } from './cashfree.events';
+import { parseLinkEvent, webhookEventType } from './cashfree.events';
 import { verifyWebhookSignature } from './cashfree.signature';
 import { RegistrationPaymentService } from './registration-payment.service';
 
@@ -69,9 +69,12 @@ export class CashfreeWebhookController {
     }
     if (rawBody === undefined) throw new ValidationError('Empty body');
 
-    const event = parseLinkEvent(rawBody, req.headers['content-type']);
-    if (!event) return { ok: true, outcome: 'ignored' }; // another event type: acknowledged, nothing to do
-    const outcome = await this.payments.applyLinkEvent(event);
+    const contentType = req.headers['content-type'];
+    const type = webhookEventType(rawBody, contentType);
+    const event = parseLinkEvent(rawBody, contentType);
+    // Not a link event (e.g. a payment webhook): acknowledged, nothing to do. Only the event type is logged, never the payload.
+    const outcome = event ? await this.payments.applyLinkEvent(event) : 'ignored';
+    logger.child({ cashfree: { event: type, linkEvent: event !== null, outcome } }).info('cashfree webhook handled');
     return { ok: true, outcome };
   }
 }
