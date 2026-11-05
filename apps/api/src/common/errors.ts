@@ -40,6 +40,22 @@ export class VersionConflictError extends DomainError {
   readonly httpStatus = 409;
 }
 
+/**
+ * Abuse limits (rate, caps). `retryAfterSeconds` is also sent as the Retry-After header (see DomainExceptionFilter).
+ * 429 with code RATE_LIMITED; `details.kind` may say which limit was hit.
+ */
+export class RateLimitedError extends DomainError {
+  readonly code = 'RATE_LIMITED';
+  readonly httpStatus = 429;
+  constructor(
+    message: string,
+    readonly retryAfterSeconds: number,
+    details?: Record<string, unknown>,
+  ) {
+    super(message, { ...details, retryAfterSeconds });
+  }
+}
+
 export class UnauthorizedError extends DomainError {
   readonly code = 'UNAUTHORIZED';
   readonly httpStatus = 401;

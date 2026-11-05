@@ -483,7 +483,7 @@ export interface RegistrationPayload {
 
 export type RegistrationErrors = Partial<Readonly<Record<RegistrationFieldName, string>>>;
 
-export type RegistrationFailureKind = 'rate-limit' | 'network' | 'server' | 'interim';
+export type RegistrationFailureKind = 'rate-limit' | 'already-received' | 'network' | 'server' | 'interim';
 
 export interface ConsentSegment {
   readonly text: string;

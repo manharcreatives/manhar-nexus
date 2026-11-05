@@ -6,7 +6,7 @@ export const REGISTRATION_PATH = '/public/registrations';
 /** Same ceiling the form promises: give up after 15 seconds and offer the WhatsApp / email fallback. */
 export const REQUEST_TIMEOUT_MS = 15_000;
 
-export type SubmitFailureKind = 'rate-limit' | 'network' | 'server' | 'validation';
+export type SubmitFailureKind = 'rate-limit' | 'already-received' | 'network' | 'server' | 'validation';
 
 export type SubmitResult =
   | { readonly ok: true; readonly referenceCode: string }
@@ -104,7 +104,12 @@ export async function submitRegistration(payload: RegistrationPayload, options: 
       signal: controller.signal,
     });
 
-    if (res.status === 429) return { ok: false, kind: 'rate-limit', status: 429 };
+    if (res.status === 429) {
+      // Two different 429s: this network sent too many requests, or this email already has requests on file.
+      const body = await readJson(res);
+      const details = isRecord(body) && isRecord(body.error) && isRecord(body.error.details) ? body.error.details : undefined;
+      return { ok: false, kind: details?.kind === 'email' ? 'already-received' : 'rate-limit', status: 429 };
+    }
 
     if (res.status === 400) {
       const fieldErrors = fieldErrorsFromBody(await readJson(res));

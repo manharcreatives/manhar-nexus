@@ -32,6 +32,7 @@ const EVENTS: BuddyEvent[] = [
   { type: 'submit' },
   { type: 'success', referenceCode: 'NX-7K2Q9M' },
   { type: 'failure', kind: 'rate-limit' },
+  { type: 'failure', kind: 'already-received' },
   { type: 'failure', kind: 'network' },
   { type: 'failure', kind: 'server' },
   { type: 'failure', kind: 'validation' },

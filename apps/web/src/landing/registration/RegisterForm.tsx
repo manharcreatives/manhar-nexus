@@ -53,6 +53,7 @@ type Failure = { kind: SubmitFailureKind } | null;
 
 const FAILURE_TEXT: Readonly<Record<SubmitFailureKind, string>> = {
   'rate-limit': FAILURE_MESSAGES['rate-limit'],
+  'already-received': FAILURE_MESSAGES['already-received'],
   network: FAILURE_MESSAGES.network,
   server: FAILURE_MESSAGES.server,
   validation: 'Some details did not pass our checks. Please review the highlighted fields and send again.',

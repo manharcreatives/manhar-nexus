@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, RegistrationStatus, type RegistrationRequest } from '@prisma/client';
-import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
+import { ConflictError, NotFoundError, RateLimitedError, ValidationError } from '../common/errors';
 import { DEV_REGISTRATION_IP_SALT } from '../config/configuration';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
@@ -48,23 +48,32 @@ export class RegistrationService {
   /**
    * Accepts a lead from the unauthenticated landing form.
    *
-   * Every non-validation outcome (stored, spam, capped, duplicate) returns the SAME
-   * acknowledgement shape so the endpoint teaches bots and enumerators nothing. The
-   * response never echoes input. Nothing here creates a tenant, a user or a charge.
-   * Logs carry the reference code and an outcome label only, never PII.
+   * Stored, spam (honeypot / time-trap) and duplicate outcomes all return the SAME acknowledgement shape so the
+   * endpoint teaches bots nothing. A request over the abuse caps is NOT acknowledged: it gets an honest 429, because
+   * a real owner on a shared network (a restaurant or cyber-cafe Wi-Fi) would otherwise be told "received", with a
+   * reference code, for a request that was never stored. The response never echoes input. Nothing here creates a
+   * tenant, a user or a charge. Logs carry the reference code and an outcome label only, never PII.
    */
   async submit(dto: CreateRegistrationDto, meta: SubmitMeta, now = new Date()): Promise<RegistrationAck> {
     const ipHash = hashIp(meta.ip, this.ipSalt());
     const userAgent = truncateUserAgent(meta.userAgent);
     const email = dto.email; // already trimmed + lower-cased by the schema
 
-    // Abuse caps first: a capped request is dropped (not stored) so one source cannot
-    // grow the table without bound, spam rows included.
+    // Abuse caps first: a capped request is not stored, so one source cannot grow the table without bound (spam
+    // rows included), and the visitor is told the truth.
     const capReason = await this.capReason(ipHash, email, now);
+    if (capReason === 'email-cap') {
+      // Not a failure for a real person: this email already has requests on file today.
+      logger.child({ outcome: 'email-cap' }).warn('registration refused');
+      throw new RateLimitedError('We already have your request from this email. We will contact you soon.', DAY_MS / 1000, {
+        kind: 'email',
+      });
+    }
     if (capReason) {
-      const referenceCode = generateReferenceCode();
-      logger.child({ reference: referenceCode }).warn(`registration dropped: ${capReason}`);
-      return { ok: true, referenceCode };
+      logger.child({ outcome: capReason }).warn('registration refused');
+      throw new RateLimitedError('Too many requests from your network. Please wait a little and try again.', HOUR_MS / 1000, {
+        kind: 'ip',
+      });
     }
 
     const spamReason = this.spamReason(dto, now);

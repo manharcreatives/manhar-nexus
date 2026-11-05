@@ -97,6 +97,16 @@ describe('submitRegistration', () => {
     expect(JSON.parse(init.body as string)).toEqual(payload);
   });
 
+  it('maps a 429 about the email (details.kind email) to already-received, not to a network problem', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(reply(429, { statusCode: 429, error: { code: 'RATE_LIMITED', details: { kind: 'email', retryAfterSeconds: 86400 } } }));
+    expect(await submitRegistration(payload, { fetchImpl, baseUrl: '/api' })).toEqual({ ok: false, kind: 'already-received', status: 429 });
+  });
+
+  it('maps a 429 about the network (details.kind ip) to rate-limit', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(reply(429, { statusCode: 429, error: { code: 'RATE_LIMITED', details: { kind: 'ip', retryAfterSeconds: 3600 } } }));
+    expect(await submitRegistration(payload, { fetchImpl, baseUrl: '/api' })).toEqual({ ok: false, kind: 'rate-limit', status: 429 });
+  });
+
   it('maps 429 to rate-limit', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(reply(429, { statusCode: 429 }));
     expect(await submitRegistration(payload, { fetchImpl, baseUrl: '/api' })).toEqual({ ok: false, kind: 'rate-limit', status: 429 });

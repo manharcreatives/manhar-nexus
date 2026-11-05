@@ -264,6 +264,7 @@ describe('RegisterForm: submitting', () => {
 describe('RegisterForm: failures and the Tier-0 fallback', () => {
   const cases: [string, () => Response | Promise<Response>, string][] = [
     ['429 rate limit', () => reply(429, {}), FAILURE_MESSAGES['rate-limit']],
+    ['429 for an email that is already on file', () => reply(429, { error: { details: { kind: 'email' } } }), FAILURE_MESSAGES['already-received']],
     ['500 server error', () => reply(500), FAILURE_MESSAGES.server],
   ];
 

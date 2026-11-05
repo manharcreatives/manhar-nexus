@@ -237,6 +237,8 @@ export const VALIDATION_MESSAGES = {
 export const FAILURE_MESSAGES: Readonly<Record<RegistrationFailureKind, string>> = {
   'rate-limit':
     'We’ve received several requests from your network. Please wait a little and try again, or WhatsApp us.',
+  'already-received':
+    'We already have your request from this email. Someone from Manhar Creatives will be in touch soon, so there is no need to send it again.',
   network:
     'We couldn’t reach the server. Check your connection and try again — or WhatsApp us your details.',
   server:

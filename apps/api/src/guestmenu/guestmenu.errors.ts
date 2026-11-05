@@ -51,18 +51,8 @@ export class UpiUnavailableError extends DomainError {
   readonly httpStatus = 409;
 }
 
-/** Abuse limits (rate, pending orders, guests per visit). `retryAfterSeconds` is also sent as the Retry-After header. */
-export class RateLimitedError extends DomainError {
-  readonly code = 'RATE_LIMITED';
-  readonly httpStatus = 429;
-  constructor(
-    message: string,
-    readonly retryAfterSeconds: number,
-    details?: Record<string, unknown>,
-  ) {
-    super(message, { ...details, retryAfterSeconds });
-  }
-}
+/** Abuse limits (rate, pending orders, guests per visit): the shared 429 error, re-exported for this module. */
+export { RateLimitedError } from '../common/errors';
 
 export class UnsupportedMediaError extends DomainError {
   readonly code: string = 'UNSUPPORTED_MEDIA';

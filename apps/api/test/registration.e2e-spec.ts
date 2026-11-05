@@ -316,20 +316,25 @@ describe('Public registrations (e2e)', () => {
 
   // ─── DB-backed caps ───────────────────────────────────────────────────────────
 
-  describe('DB-backed abuse caps (202, nothing stored)', () => {
-    it('allows 3 per email per day, then answers 202 but stores nothing (case-insensitive)', async () => {
+  describe('DB-backed abuse caps (honest 429, nothing stored, never a reference code)', () => {
+    it('allows 3 per email per day, then answers 429 "already have your request" and stores nothing (case-insensitive)', async () => {
       const email = `Capped${++seq}${EMAIL_TAG}`;
       const refs: string[] = [];
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         const res = await submit(body({ email: i % 2 ? email.toUpperCase().replace('EXAMPLE.TEST', 'example.test') : email }));
         expect(res.status).toBe(202);
         expect(Object.keys(res.body).sort()).toEqual(['ok', 'referenceCode']);
         refs.push(res.body.referenceCode as string);
       }
+      const over = await submit(body({ email: email.toUpperCase().replace('EXAMPLE.TEST', 'example.test') }));
+      expect(over.status).toBe(429);
+      expect(over.body.error.code).toBe('RATE_LIMITED');
+      expect(over.body.error.details.kind).toBe('email');
+      expect(over.body).not.toHaveProperty('referenceCode');
+      expect(over.headers['retry-after']).toBeDefined();
       const stored = await prisma.registrationRequest.findMany({ where: { email: email.toLowerCase() } });
       expect(stored).toHaveLength(3);
-      expect(stored.map((r) => r.referenceCode).sort()).toEqual(refs.slice(0, 3).sort());
-      expect(await prisma.registrationRequest.count({ where: { referenceCode: refs[3] } })).toBe(0);
+      expect(stored.map((r) => r.referenceCode).sort()).toEqual(refs.sort());
     });
 
     it('SPAM rows do not lock a real person out of their own address', async () => {
@@ -342,17 +347,20 @@ describe('Public registrations (e2e)', () => {
       expect((await rowByRef(real.body.referenceCode as string)).status).toBe('NEW');
     });
 
-    it('allows 5 per IP per hour (all statuses), then answers 202 but stores nothing', async () => {
+    it('allows 5 per IP per hour (all statuses), then answers 429 with Retry-After and stores nothing', async () => {
       const ip = freshIp();
-      const refs: string[] = [];
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 5; i++) {
         const res = await submit(i === 2 ? body({ website: 'bot' }) : body(), ip);
         expect(res.status).toBe(202);
-        refs.push(res.body.referenceCode as string);
       }
+      const over = await submit(body(), ip);
+      expect(over.status).toBe(429);
+      expect(over.body.error.code).toBe('RATE_LIMITED');
+      expect(over.body.error.details.kind).toBe('ip');
+      expect(over.body).not.toHaveProperty('referenceCode');
+      expect(over.headers['retry-after']).toBe('3600');
       const hash = hashIp(ip, DEV_REGISTRATION_IP_SALT)!;
       expect(await prisma.registrationRequest.count({ where: { ipHash: hash } })).toBe(5);
-      expect(await prisma.registrationRequest.count({ where: { referenceCode: refs[5] } })).toBe(0);
       // A different visitor is unaffected.
       expect((await rowByRef((await submit(body())).body.referenceCode as string)).status).toBe('NEW');
     });

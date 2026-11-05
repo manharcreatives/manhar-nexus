@@ -14,7 +14,7 @@ export type BuddyEvent =
   | { type: 'consent'; checked: boolean }
   | { type: 'submit' }
   | { type: 'success'; referenceCode: string }
-  | { type: 'failure'; kind: 'rate-limit' | 'network' | 'server' | 'validation' }
+  | { type: 'failure'; kind: 'rate-limit' | 'already-received' | 'network' | 'server' | 'validation' }
   /** The bot leads: it names the next field to fill. `first` is the opening ask, `again` a patient reminder. */
   | { type: 'ask'; field: RegistrationFieldName; first?: boolean; again?: boolean }
   /** Everything required is filled in: press Send. */

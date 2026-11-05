@@ -179,7 +179,12 @@ const SUCCESS = (ref: string): L<string> => ({
   gu: `થઈ ગયું! તમારો રેફરન્સ ${ref} છે. તેને સાચવી રાખો. અમે એક કામકાજી દિવસમાં મેસેજ કરીશું.`,
 });
 
-const FAILURE: Record<'rate-limit' | 'network' | 'server' | 'validation', L<string>> = {
+const FAILURE: Record<'rate-limit' | 'already-received' | 'network' | 'server' | 'validation', L<string>> = {
+  'already-received': {
+    en: 'Good news: we already have your request from this email. We’ll be in touch soon, no need to send it again.',
+    hi: 'अच्छी खबर: इस ईमेल से आपका अनुरोध हमारे पास पहले से है। हम जल्द संपर्क करेंगे, दोबारा भेजने की ज़रूरत नहीं।',
+    gu: 'સારા સમાચાર: આ ઈમેલથી તમારી વિનંતી અમારી પાસે પહેલેથી છે. અમે જલ્દી સંપર્ક કરીશું, ફરી મોકલવાની જરૂર નથી.',
+  },
   'rate-limit': {
     en: 'Lots of requests from your network. Please wait a little and try again.',
     hi: 'आपके नेटवर्क से कई अनुरोध आ गए। थोड़ा रुकिए और फिर कोशिश कीजिए।',
@@ -257,7 +262,7 @@ export function reactTo(event: BuddyEvent, lang: TourLang, seq = 0): Reaction {
     case 'success':
       return { mood: 'done', text: SUCCESS(event.referenceCode)[lang] };
     case 'failure':
-      return { mood: 'worry', text: FAILURE[event.kind][lang] };
+      return { mood: event.kind === 'already-received' ? 'cheer' : 'worry', text: FAILURE[event.kind][lang] };
   }
 }
 
