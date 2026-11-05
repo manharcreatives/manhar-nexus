@@ -41,6 +41,15 @@ const CHECK_KEYS: (keyof Omit<ValidationResult, 'issues'>)[] = [
   'hasBranding',
 ];
 
+/**
+ * A step or notes update replaces the record; if the response lacks the business (older API), keep the one already
+ * on screen instead of crashing the page on `progress.business.name`.
+ */
+export function keepBusiness(updated: OnboardingProgress, prev: OnboardingProgress | null): OnboardingProgress {
+  const business = (updated as Partial<OnboardingProgress>).business ?? prev?.business;
+  return business ? { ...updated, business } : updated;
+}
+
 export function OnboardingWizard({ businessId, onBack }: Props) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -92,7 +101,7 @@ export function OnboardingWizard({ businessId, onBack }: Props) {
     setStepError(null);
     try {
       const updated = await completeStep(businessId, step, note);
-      setProgress(updated);
+      setProgress((prev) => keepBusiness(updated, prev));
       setValidation(await validateOnboarding(businessId));
       return true;
     } catch (err) {
@@ -120,7 +129,7 @@ export function OnboardingWizard({ businessId, onBack }: Props) {
     setNotesError(null);
     try {
       const updated = await updateOnboardingNotes(businessId, notes.trim() || null);
-      setProgress(updated);
+      setProgress((prev) => keepBusiness(updated, prev));
       setNotes(updated.notes ?? '');
       toast.show(t('onboarding.wizard.notesSaved'));
     } catch (err) {

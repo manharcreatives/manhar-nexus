@@ -21,6 +21,23 @@ export interface OnboardingValidation {
   issues: string[];
 }
 
+/**
+ * Every endpoint that returns an onboarding record returns it with its business, so the web page can replace its
+ * copy with any response (a record without `business` crashed the wizard after marking a step done).
+ */
+const PROGRESS_INCLUDE = {
+  business: {
+    select: {
+      id: true,
+      name: true,
+      commercialStatus: true,
+      slug: true,
+      logoUrl: true,
+      accentColor: true,
+    },
+  },
+} as const;
+
 @Injectable()
 export class OnboardingService {
   constructor(
@@ -69,18 +86,7 @@ export class OnboardingService {
   async get(businessId: string) {
     const record = await this.prisma.onboardingProgress.findUnique({
       where: { businessId },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            commercialStatus: true,
-            slug: true,
-            logoUrl: true,
-            accentColor: true,
-          },
-        },
-      },
+      include: PROGRESS_INCLUDE,
     });
     if (!record) {
       throw new NotFoundError('Onboarding not started for this business', { businessId });
@@ -132,6 +138,7 @@ export class OnboardingService {
 
       const r = await tx.onboardingProgress.update({
         where: { businessId },
+        include: PROGRESS_INCLUDE,
         data: {
           completedSteps: newCompletedSteps,
           currentStep: nextStep,
@@ -166,6 +173,7 @@ export class OnboardingService {
     const updated = await this.prisma.$transaction(async (tx) => {
       const r = await tx.onboardingProgress.update({
         where: { businessId },
+        include: PROGRESS_INCLUDE,
         data: { notes: dto.notes },
       });
       await this.audit.append(tx, { businessId, actor }, {

@@ -194,6 +194,8 @@ describe('Onboarding — Phase 13 (e2e)', () => {
       expect(res.status).toBe(201);
       expect(res.body.completedSteps).toContain('LOCATION_ADDED');
       expect(res.body.currentStep).toBe('MODULES_SELECTED');
+      // The web wizard replaces its copy with this response, so it must carry the business like GET does.
+      expect(res.body.business.name).toMatch(/OnboardTestBiz1/);
     });
 
     it('should be idempotent — re-completing LOCATION_ADDED keeps the same step array', async () => {
