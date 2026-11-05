@@ -17,6 +17,13 @@ const WELCOME: L<string> = {
   gu: 'નમસ્તે! હું મનહર બોટ છું. આ ફોર્મ ભરવામાં હું તમને મદદ કરીશ. બસ બે મિનિટ!',
 };
 
+/** Said the first time the bot flies in, in front of the hint for the field the visitor is on. */
+export const GREET: L<string> = {
+  en: 'Hi, I’m Manhar Bot!',
+  hi: 'नमस्ते, मैं मनहर बॉट हूँ!',
+  gu: 'નમસ્તે, હું મનહર બોટ છું!',
+};
+
 const NUDGE: L<string> = {
   en: 'Stuck? Tap WhatsApp on the side and a real person will help you.',
   hi: 'अटक गए? बगल में WhatsApp दबाइए, एक असली इंसान आपकी मदद करेगा।',
@@ -114,16 +121,13 @@ const CONSENT_ON: L<string> = {
   gu: 'આભાર! હવે “Send my request” દબાવો.',
 };
 
-/** The opening line: greets and names the first field. */
-const ASK_FIRST: L<string> = {
-  en: 'Hi, I’m Manhar Bot! I’ll guide you. Let’s start: what’s your restaurant called?',
-  hi: 'नमस्ते, मैं मनहर बॉट हूँ! मैं आपको रास्ता दिखाऊँगा। शुरू करते हैं: आपके रेस्टोरेंट का नाम क्या है?',
-  gu: 'નમસ્તે, હું મનહર બોટ છું! હું તમને માર્ગ બતાવીશ. ચાલો શરૂ કરીએ: તમારી રેસ્ટોરન્ટનું નામ શું છે?',
-};
-
 /** "Now fill this": the bot leads to the next empty field. */
 const ASK_NEXT: Partial<Record<RegistrationFieldName, L<string>>> = {
-  restaurantName: ASK_FIRST,
+  restaurantName: {
+    en: 'What’s your restaurant called?',
+    hi: 'आपके रेस्टोरेंट का नाम क्या है?',
+    gu: 'તમારી રેસ્ટોરન્ટનું નામ શું છે?',
+  },
   contactName: {
     en: 'Now your name, please.',
     hi: 'अब आपका नाम, कृपया।',

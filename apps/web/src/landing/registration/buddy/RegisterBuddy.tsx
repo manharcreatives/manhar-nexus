@@ -4,9 +4,9 @@ import { readLang, writeLang } from '../../../tour/storage';
 import { TourBotFace, type BotMood } from '../../../tour/TourBotFace';
 import type { RegistrationFieldName } from '../../content';
 import { fieldId } from '../validation';
-import { BUDDY_UI, reactTo } from './content';
+import { BUDDY_UI, GREET, reactTo } from './content';
 import { BOT, placeBuddy, type Placement } from './placement';
-import { emitBuddy, expectGuidedFocus, getBuddyProgress, nextField, useBuddyState, type BuddyEvent } from './store';
+import { GUIDE_ORDER, emitBuddy, expectGuidedFocus, getBuddyProgress, nextField, useBuddyState, type BuddyEvent } from './store';
 import './buddy.css';
 
 /** Short labels for the language chips (the full name is the accessible name). */
@@ -122,6 +122,11 @@ export default function RegisterBuddy() {
   const [target, setTarget] = useState<Target>('restaurantName');
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [ready, setReady] = useState(false);
+  /** The bot stays out of sight until the visitor actually starts on the form (clicks into it or types). */
+  const [engaged, setEngaged] = useState(false);
+  /** Flips on the frame after the bot is placed, so it glides in from the edge of the screen instead of popping up. */
+  const [entered, setEntered] = useState(false);
+  const introSeq = useRef<number | null>(null);
   const [moving, setMoving] = useState(false);
   const lastSeq = useRef(seq);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
@@ -146,6 +151,12 @@ export default function RegisterBuddy() {
     setBubbleOpen(true);
     const next = targetOf(raw.event);
     if (next) setTarget(next);
+    if (USER_EVENTS.has(raw.event.type)) {
+      setEngaged((was) => {
+        if (!was) introSeq.current = raw.seq;
+        return true;
+      });
+    }
   }, [raw.seq, raw.event]);
 
   /** Work out where the bot goes for the current target. */
@@ -184,12 +195,28 @@ export default function RegisterBuddy() {
     };
   }, [follow, measure]);
 
-  // Gliding only starts after the first placement, so the bot does not fly in from the corner of the screen.
+  // The first time the visitor works on the form the bot appears: it waits, off-screen, at the edge on its field's side,
+  // then flies in. Two frames: first allow gliding, then move it to its place.
   useEffect(() => {
-    if (!placement || ready) return;
-    const id = requestAnimationFrame(() => setReady(true));
-    return () => cancelAnimationFrame(id);
-  }, [placement, ready]);
+    if (!engaged || !placement || entered) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      setReady(true);
+      second = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      if (second) cancelAnimationFrame(second);
+    };
+  }, [engaged, placement, entered]);
+
+  // The flight in from the edge: jets on until it lands.
+  useEffect(() => {
+    if (!entered) return;
+    setMoving(true);
+    const id = window.setTimeout(() => setMoving(false), 900);
+    return () => window.clearTimeout(id);
+  }, [entered]);
 
   // A long hop makes the bot "fly" (jets on) until it lands.
   useEffect(() => {
@@ -205,7 +232,13 @@ export default function RegisterBuddy() {
 
   /** Lead the visitor on: name the next empty field (and move the cursor there), or say the form is ready. */
   const leadOn = useCallback((opts: { focus: boolean; first?: boolean; again?: boolean }): void => {
-    const next = nextField(getBuddyProgress());
+    const done = getBuddyProgress();
+    let next = nextField(done);
+    // A patient reminder stays with the field the visitor is on, if it is still empty, instead of jumping elsewhere.
+    if (opts.again) {
+      const active = GUIDE_ORDER.find((f) => document.getElementById(fieldId(f)) === document.activeElement);
+      if (active && !done.has(active)) next = active;
+    }
     if (next === null) {
       emitBuddy({ type: 'ready' });
       return;
@@ -216,17 +249,6 @@ export default function RegisterBuddy() {
       document.getElementById(fieldId(next))?.focus();
     }
   }, []);
-
-  // The bot speaks first: when the visitor arrives at the form it greets and names the first field, without being clicked.
-  const greeted = useRef(false);
-  useEffect(() => {
-    if (!inView || closed || greeted.current || raw.seq !== 0) return;
-    const id = window.setTimeout(() => {
-      greeted.current = true;
-      leadOn({ focus: false, first: nextField(getBuddyProgress()) === 'restaurantName' });
-    }, 600);
-    return () => window.clearTimeout(id);
-  }, [inView, closed, raw.seq, leadOn]);
 
   // When a field is accepted, lead on to the next empty one, unless the visitor has already gone to another control.
   useEffect(() => {
@@ -247,7 +269,7 @@ export default function RegisterBuddy() {
   // Patience: if the visitor goes quiet, ask once more for the same field, then offer a human. Never after sending.
   const stage = useRef(0);
   useEffect(() => {
-    if (!inView || closed || raw.event.type === 'success' || raw.event.type === 'submit') return;
+    if (!engaged || !inView || closed || raw.event.type === 'success' || raw.event.type === 'submit') return;
     if (USER_EVENTS.has(raw.event.type)) stage.current = 0;
     if (stage.current >= 2) return;
     const id = window.setTimeout(() => {
@@ -260,7 +282,7 @@ export default function RegisterBuddy() {
       }
     }, stage.current === 0 ? REMIND_AFTER_MS : HUMAN_AFTER_MS);
     return () => window.clearTimeout(id);
-  }, [raw.seq, raw.event, inView, closed, leadOn]);
+  }, [raw.seq, raw.event, engaged, inView, closed, leadOn]);
 
   // Highlight the field the bot is asking for (a pulsing ring) until the visitor takes over.
   const [hint, setHint] = useState<Target | null>(null);
@@ -276,9 +298,15 @@ export default function RegisterBuddy() {
   }, [hint]);
 
   const reaction = useMemo(() => reactTo(event, lang, seq), [event, lang, seq]);
-  const mood: BotMood = moving ? 'fly' : reaction.mood;
+  // The very first reaction after flying in introduces the bot, in front of the hint for the field the visitor is on.
+  const intro = introSeq.current !== null && seq === introSeq.current;
+  const text = intro ? `${GREET[lang]} ${reaction.text}` : reaction.text;
+  const mood: BotMood = moving ? 'fly' : intro ? 'hello' : reaction.mood;
   const ui = BUDDY_UI[lang];
-  const shown = inView && !closed && (!follow || placement !== null);
+  const shown = engaged && inView && !closed && (!follow || placement !== null);
+  // Until it has flown in, the bot waits just outside the screen on the side of its field.
+  const startX = placement ? (placement.side === 'left' ? -BOT - 30 : window.innerWidth + 30) : 0;
+  const x = placement ? (entered ? placement.x : startX) : 0;
   const pos = follow && placement ? (placement.bubble.mode === 'out' ? `out-${placement.side}` : placement.bubble.mode) : 'dock';
 
   const pick = (l: TourLang): void => {
@@ -296,7 +324,7 @@ export default function RegisterBuddy() {
       aria-label={ui.label}
       aria-hidden={shown ? undefined : true}
       lang={lang}
-      style={follow && placement ? { transform: `translate3d(${placement.x}px, ${placement.y}px, 0)`, width: BOT, height: BOT } : undefined}
+      style={follow && placement ? { transform: `translate3d(${x}px, ${placement.y}px, 0)`, width: BOT, height: BOT } : undefined}
     >
       <button
         type="button"
@@ -312,7 +340,7 @@ export default function RegisterBuddy() {
       {bubbleOpen ? (
         <div className="lp-buddy__bubble" data-pos={pos} style={follow && placement ? placement.bubble.style : undefined}>
           <p key={seq} role="status" aria-live="polite" className="lp-buddy__text">
-            {reaction.text}
+            {text}
           </p>
           <div className="lp-buddy__foot">
             <div className="lp-buddy__langs" role="group" aria-label="Language">
