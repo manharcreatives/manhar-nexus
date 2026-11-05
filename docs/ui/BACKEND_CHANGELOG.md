@@ -1,4 +1,5 @@
 # Backend Changelog (this branch)
+
 All changes are additive; no existing API contract changed.
 
 | Change | Files | Tests |

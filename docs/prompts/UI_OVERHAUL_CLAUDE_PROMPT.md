@@ -603,4 +603,3 @@ Then start Phase 0 and proceed autonomously. Only pause for genuine product deci
 ---
 
 **Final bar:** we should be able to put our logo on it, demo it to a real restaurant, survive a full service day, and close the deal — with zero "but this part isn't ready" — and hand over a **working deployed URL**, not a local dev server. It must not merely work and look clean: it must **feel** premium, custom, calm, fast, and unmistakably ours. Award-worthy aesthetics are a requirement, not a bonus. Finish everything in scope. Make it beautiful. Deploy it. Own it.
-  claude agents             list sessions
