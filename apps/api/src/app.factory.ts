@@ -39,7 +39,12 @@ export function applyHttpDefaults(app: INestApplication): void {
 export async function createApp(): Promise<INestApplication> {
   // abortOnError:false — init errors (e.g. invalid env) propagate to main.ts,
   // which prints them; otherwise Nest exits(1) silently because its logger is off.
-  const app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
+  const app = await NestFactory.create(AppModule, {
+    logger: false,
+    abortOnError: false,
+    // Webhook signatures (Cashfree) are computed over the exact bytes received, so the raw body must be kept.
+    rawBody: true,
+  });
   applyHttpDefaults(app);
   return app;
 }

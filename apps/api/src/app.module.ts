@@ -15,6 +15,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { CostsModule } from './costs/costs.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RegistrationModule } from './registration/registration.module';
+import { CashfreeModule } from './cashfree/cashfree.module';
 import { GuestMenuModule } from './guestmenu/guestmenu.module';
 
 @Module({
@@ -49,6 +50,7 @@ import { GuestMenuModule } from './guestmenu/guestmenu.module';
     RealtimeModule,
     // Public landing-page registration requests + platform triage, ADR-033.
     RegistrationModule,
+    CashfreeModule,
     // QR digital menu / guest self-ordering, ADR-035.
     GuestMenuModule,
   ],

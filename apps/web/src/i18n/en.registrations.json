@@ -53,6 +53,34 @@
       "load": "Check your connection and try again.",
       "update": "Could not update this request.",
       "linkFailed": "The restaurant was created, but this request could not be marked done. Open it again and mark it manually."
+    },
+    "payment": {
+      "send": "Send payment link",
+      "sendAnother": "New payment link",
+      "title": "Payment link for {{name}}",
+      "intro": "Cashfree emails the owner a secure link to pay. You also get the link to share on WhatsApp. When it is paid, this request shows Paid and you can create the account.",
+      "amountLabel": "Amount (₹)",
+      "amountHint": "What the owner pays, in rupees, for example 1500 or 1499.50.",
+      "amountInvalid": "Enter an amount above ₹0 with at most two decimals.",
+      "create": "Create link",
+      "createFailed": "Could not create the payment link. Please try again.",
+      "ready": "The link for ₹{{amount}} is ready. It stays valid for 7 days.",
+      "emailed": "Cashfree also emails it to {{email}}.",
+      "copy": "Copy link",
+      "copied": "Copied",
+      "whatsapp": "WhatsApp the owner",
+      "open": "Open",
+      "done": "Done",
+      "created": "Payment link created for {{name}}.",
+      "listLabel": "Payment links",
+      "paidHint": "Paid. Create the restaurant account now.",
+      "status": {
+        "CREATED": "Awaiting payment",
+        "PAID": "Paid",
+        "EXPIRED": "Expired",
+        "CANCELLED": "Cancelled",
+        "AMOUNT_MISMATCH": "Check amount"
+      }
     }
   }
 }

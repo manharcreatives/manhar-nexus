@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { errorMessage } from '../commercial/helpers';
 import { ListSkeleton } from '../commercial/Shared';
 import { NewRestaurantDialog } from '../onboarding/NewRestaurantDialog';
+import { PaymentLinkDialog } from './PaymentLinkDialog';
 import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
 import { StatusPill } from '../ui/StatusPill';
@@ -11,9 +12,14 @@ import { EmptyState, ErrorState } from '../ui/states';
 import { useToast } from '../ui/Toast';
 import {
   NEXT_STATUSES,
+  formatRupees,
+  isOpenLink,
+  isPaid,
+  paymentMessage,
   listRegistrations,
   updateRegistration,
   whatsappUrl,
+  type PaymentStatus,
   type RegistrationRequest,
   type RegistrationStatus,
 } from './api';
@@ -31,6 +37,14 @@ const TONE: Record<RegistrationStatus, 'info' | 'warn' | 'accent' | 'ok' | 'bad'
   SPAM: 'neutral',
 };
 
+const PAYMENT_TONE: Record<PaymentStatus, 'info' | 'ok' | 'neutral' | 'bad' | 'warn'> = {
+  CREATED: 'info',
+  PAID: 'ok',
+  EXPIRED: 'neutral',
+  CANCELLED: 'neutral',
+  AMOUNT_MISMATCH: 'bad',
+};
+
 /** Landing-page requests: the platform admin reads the details and creates the restaurant account in one click. */
 export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (businessId: string) => void }) {
   const { t } = useTranslation();
@@ -40,6 +54,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   const [loadFailed, setLoadFailed] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState<RegistrationRequest | null>(null);
+  const [charging, setCharging] = useState<RegistrationRequest | null>(null);
 
   const load = useCallback(async () => {
     setLoadFailed(false);
@@ -88,6 +103,8 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   }
 
   const canCreate = (r: RegistrationRequest) => r.status !== 'CONVERTED' && r.status !== 'SPAM';
+  /** A payment link makes sense for a live lead that has not paid yet. */
+  const canCharge = (r: RegistrationRequest) => ['NEW', 'CONTACTED', 'QUALIFIED'].includes(r.status) && !isPaid(r);
 
   return (
     <div>
@@ -161,9 +178,47 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                   <p className="mt-3 whitespace-pre-wrap rounded-control bg-white/[0.04] px-3 py-2 text-sm">{r.message}</p>
                 ) : null}
 
+                {r.payments.length > 0 ? (
+                  <ul className="mt-3 space-y-2" aria-label={t('registrations.payment.listLabel')}>
+                    {r.payments.map((p) => (
+                      <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-white/[0.04] px-3 py-2 text-sm">
+                        <span>
+                          ₹{formatRupees(p.amountPaise)} · {new Date(p.createdAt).toLocaleDateString()}
+                        </span>
+                        <span className="flex flex-wrap items-center gap-2">
+                          <StatusPill tone={PAYMENT_TONE[p.status]}>{t(`registrations.payment.status.${p.status}`)}</StatusPill>
+                          {isOpenLink(p) ? (
+                            <>
+                              <a className="underline" href={p.linkUrl} target="_blank" rel="noopener noreferrer">
+                                {t('registrations.payment.open')}
+                              </a>
+                              <a
+                                className="underline"
+                                href={whatsappUrl(r.phone, paymentMessage(r, p))}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {t('registrations.payment.whatsapp')}
+                              </a>
+                            </>
+                          ) : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {isPaid(r) && r.status !== 'CONVERTED' ? (
+                  <p className="mt-2 text-sm text-ok">{t('registrations.payment.paidHint')}</p>
+                ) : null}
+
                 <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {canCharge(r) ? (
+                    <Button variant={r.payments.length > 0 ? 'secondary' : 'primary'} onClick={() => setCharging(r)} disabled={busyId === r.id}>
+                      {t(r.payments.length > 0 ? 'registrations.payment.sendAnother' : 'registrations.payment.send')}
+                    </Button>
+                  ) : null}
                   {canCreate(r) ? (
-                    <Button onClick={() => setCreating(r)} disabled={busyId === r.id}>
+                    <Button variant={canCharge(r) ? 'secondary' : 'primary'} onClick={() => setCreating(r)} disabled={busyId === r.id}>
                       {t('registrations.createAccount')}
                     </Button>
                   ) : null}
@@ -206,6 +261,17 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
           </ul>
         )}
       </div>
+
+      {charging ? (
+        <PaymentLinkDialog
+          request={charging}
+          onClose={() => setCharging(null)}
+          onCreated={() => {
+            toast.show(t('registrations.payment.created', { name: charging.restaurantName }));
+            void load();
+          }}
+        />
+      ) : null}
 
       {creating ? (
         <NewRestaurantDialog

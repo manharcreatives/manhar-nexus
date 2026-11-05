@@ -1965,7 +1965,38 @@ model RegistrationRequest {
   @@index([status, createdAt])
   @@index([email, createdAt])
   @@index([ipHash, createdAt])
+  payments       RegistrationPayment[]
   @@map("registration_request")
+}
+
+/// A Cashfree payment link Manhar staff created for a registration request (owner's subscription payment).
+/// Webhooks are matched on `linkId`; money is integer paise; `status` only moves forward (PAID is terminal).
+model RegistrationPayment {
+  id              String              @id @default(uuid()) @db.Uuid
+  registrationId  String              @db.Uuid
+  registration    RegistrationRequest @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  /// Our id for the link (<= 50 chars, [A-Za-z0-9_-]); what Cashfree echoes back in webhooks.
+  linkId          String              @unique
+  /// Cashfree's own id for the link.
+  cfLinkId        String?
+  linkUrl         String
+  amountPaise     Int
+  currency        String              @default("INR")
+  purpose         String
+  /// CREATED | PAID | EXPIRED | CANCELLED | AMOUNT_MISMATCH (validated in code, not a DB enum).
+  status          String              @default("CREATED")
+  paidAmountPaise Int?
+  /// Cashfree's order id for the successful payment (order.order_id in the webhook).
+  providerOrderId String?
+  expiresAt       DateTime?           @db.Timestamptz(6)
+  paidAt          DateTime?           @db.Timestamptz(6)
+  /// Platform user id of the staff member who created the link.
+  createdBy       String
+  createdAt       DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(6)
+
+  @@index([registrationId, createdAt])
+  @@map("registration_payment")
 }
 
 // ═════════════════════════════════════════════════════════════

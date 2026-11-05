@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, RegistrationStatus, type RegistrationRequest } from '@prisma/client';
+import { Prisma, RegistrationStatus, type RegistrationPayment, type RegistrationRequest } from '@prisma/client';
 import { ConflictError, NotFoundError, RateLimitedError, ValidationError } from '../common/errors';
 import { DEV_REGISTRATION_IP_SALT } from '../config/configuration';
 import { logger } from '../logging/logger';
+import { toPaymentView } from '../cashfree/registration-payment.service';
+import type { PaymentLinkView } from '../cashfree/cashfree.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   MIN_FILL_MS,
@@ -29,11 +31,14 @@ export interface SubmitMeta {
 }
 
 /** Staff-facing projection: everything except the (pseudonymous) ipHash. */
-export type RegistrationView = Omit<RegistrationRequest, 'ipHash'>;
+export type RegistrationView = Omit<RegistrationRequest, 'ipHash'> & { payments: PaymentLinkView[] };
 
-function toView(row: RegistrationRequest): RegistrationView {
-  const { ipHash: _ipHash, ...view } = row;
-  return view;
+/** The newest few payment links ride along with every request staff look at. */
+const WITH_PAYMENTS = { payments: { orderBy: { createdAt: 'desc' as const }, take: 5 } };
+
+function toView(row: RegistrationRequest & { payments?: RegistrationPayment[] }): RegistrationView {
+  const { ipHash: _ipHash, payments, ...view } = row;
+  return { ...view, payments: (payments ?? []).map(toPaymentView) };
 }
 
 @Injectable()
@@ -162,6 +167,7 @@ export class RegistrationService {
         skip: query.skip,
         take: query.take,
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        include: WITH_PAYMENTS,
       }),
       this.prisma.registrationRequest.count({ where }),
     ]);
@@ -169,7 +175,9 @@ export class RegistrationService {
   }
 
   async get(id: string): Promise<RegistrationView> {
-    return toView(await this.findOrThrow(id));
+    const row = await this.prisma.registrationRequest.findUnique({ where: { id }, include: WITH_PAYMENTS });
+    if (!row) throw new NotFoundError('Registration request not found');
+    return toView(row);
   }
 
   async update(id: string, dto: UpdateRegistrationDto): Promise<RegistrationView> {
