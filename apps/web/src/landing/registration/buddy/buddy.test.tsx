@@ -4,7 +4,7 @@ import { TOUR_LANGS } from '../../../tour/content';
 import { REGISTRATION_FIELD_ORDER } from '../../content';
 import { reactTo } from './content';
 import RegisterBuddy from './RegisterBuddy';
-import { emitBuddy, resetBuddy, type BuddyEvent } from './store';
+import { GUIDE_ORDER, emitBuddy, resetBuddy, setBuddyProgress, type BuddyEvent } from './store';
 
 // The real avatar paints on every animation frame, which fake timers would run thousands of times.
 vi.mock('../../../tour/TourBotFace', () => ({
@@ -22,6 +22,12 @@ const EVENTS: BuddyEvent[] = [
   { type: 'typing', field: 'phone', digits: 4, valid: false },
   { type: 'typing', field: 'phone', digits: 10, valid: true },
   { type: 'typing', field: 'phone', digits: 12, valid: false },
+  ...GUIDE_ORDER.flatMap((field): BuddyEvent[] => [
+    { type: 'ask', field },
+    { type: 'ask', field, first: true },
+    { type: 'ask', field, again: true },
+  ]),
+  { type: 'ready' },
   { type: 'consent', checked: true },
   { type: 'consent', checked: false },
   { type: 'submit' },
@@ -71,6 +77,23 @@ describe('reactTo', () => {
     expect(texts.size).toBe(4);
   });
 });
+
+const REMIND = 10_000;
+const HUMAN = 15_000;
+
+/** A stand-in for the real form: the controls the bot looks for, inside the card it measures. */
+function mountForm(): void {
+  document.body.innerHTML =
+    '<div class="lp-reg-card">' +
+    GUIDE_ORDER.map((f) => `<input id="reg-${f}" />`).join('') +
+    '<button class="lp-reg-submit">Send</button></div>';
+}
+const el = (id: string): HTMLElement => document.getElementById(id) as HTMLElement;
+const tick = (ms: number): void => {
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+};
 
 describe('RegisterBuddy', () => {
   beforeEach(() => {
@@ -136,22 +159,106 @@ describe('RegisterBuddy', () => {
     expect(screen.getByRole('status').textContent).toContain('internet');
   });
 
-  it('offers a human after a quiet moment', () => {
+  it('reminds once about the field it asked for, then offers a human', () => {
     vi.useFakeTimers();
     render(<RegisterBuddy />);
-    act(() => {
-      vi.advanceTimersByTime(31_000);
-    });
-    // The nudge is an event like any other; let the display catch up with it.
-    act(() => {
-      vi.advanceTimersByTime(50);
-    });
+    tick(700); // greets and asks for the restaurant name
+    tick(50);
+    tick(REMIND + 100);
+    tick(50);
+    expect(screen.getByRole('status').textContent).toContain('Still here');
+    tick(HUMAN + 100);
+    tick(50);
     expect(screen.getByRole('status').textContent).toContain('WhatsApp');
+    // ...and then it stops: no more messages however long the visitor stays quiet.
+    const last = screen.getByRole('status').textContent;
+    act(() => {
+      vi.advanceTimersByTime(120_000);
+    });
+    expect(screen.getByRole('status').textContent).toBe(last);
   });
 
   it('can be hidden for good by the visitor', () => {
     render(<RegisterBuddy />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Hide Manhar Bot' }).slice(-1)[0] as HTMLElement);
     expect(screen.getByRole('complementary', { hidden: true }).getAttribute('data-visible')).toBe('false');
+  });
+});
+
+describe('RegisterBuddy leads the way', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    resetBuddy();
+    setBuddyProgress(new Set());
+    mountForm();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('speaks first: greets and names the first field without being clicked', () => {
+    render(<RegisterBuddy />);
+    tick(700);
+    tick(50);
+    expect(screen.getByRole('status').textContent).toContain('what’s your restaurant called');
+    expect(el('reg-restaurantName').classList.contains('lp-buddy-hint')).toBe(true);
+    // Arriving at the form must not steal the cursor.
+    expect(document.activeElement).not.toBe(el('reg-restaurantName'));
+  });
+
+  it('after a field is accepted it names the next empty one, moves the cursor there and keeps its ask on screen', () => {
+    setBuddyProgress(new Set(['restaurantName']));
+    render(<RegisterBuddy />);
+    act(() => emitBuddy({ type: 'valid', field: 'restaurantName' }));
+    tick(1100);
+    tick(50);
+    expect(screen.getByRole('status').textContent).toContain('Now your name');
+    expect(document.activeElement).toBe(el('reg-contactName'));
+    // The focus the bot caused is not mistaken for the visitor choosing that field.
+    tick(500);
+    expect(screen.getByRole('status').textContent).toContain('Now your name');
+    expect(el('reg-contactName').classList.contains('lp-buddy-hint')).toBe(true);
+  });
+
+  it('follows the visitor instead when they have already gone to another control', () => {
+    setBuddyProgress(new Set(['restaurantName']));
+    render(<RegisterBuddy />);
+    el('reg-city').focus();
+    act(() => emitBuddy({ type: 'valid', field: 'restaurantName' }));
+    tick(1200);
+    expect(document.activeElement).toBe(el('reg-city'));
+    expect(screen.getByRole('status').textContent).not.toContain('Now your name');
+  });
+
+  it('skips fields that are already complete', () => {
+    setBuddyProgress(new Set(['restaurantName', 'contactName', 'phone']));
+    render(<RegisterBuddy />);
+    act(() => emitBuddy({ type: 'valid', field: 'phone' }));
+    tick(1200);
+    tick(50);
+    expect(screen.getByRole('status').textContent).toContain('your email');
+    expect(document.activeElement).toBe(el('reg-email'));
+  });
+
+  it('says the form is ready, and points at the send button, once nothing is missing', () => {
+    setBuddyProgress(new Set(GUIDE_ORDER));
+    render(<RegisterBuddy />);
+    act(() => emitBuddy({ type: 'consent', checked: true }));
+    tick(1200);
+    tick(50);
+    expect(screen.getByRole('status').textContent).toContain('Send my request');
+    expect(document.querySelector('.lp-reg-submit')?.classList.contains('lp-buddy-hint')).toBe(true);
+  });
+
+  it('takes the ring off the field once the visitor starts typing in it', () => {
+    render(<RegisterBuddy />);
+    tick(700);
+    expect(el('reg-restaurantName').classList.contains('lp-buddy-hint')).toBe(true);
+    act(() => emitBuddy({ type: 'focus', field: 'restaurantName' }));
+    tick(50);
+    expect(el('reg-restaurantName').classList.contains('lp-buddy-hint')).toBe(false);
   });
 });

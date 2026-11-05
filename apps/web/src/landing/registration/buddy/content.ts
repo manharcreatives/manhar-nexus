@@ -114,6 +114,61 @@ const CONSENT_ON: L<string> = {
   gu: 'આભાર! હવે “Send my request” દબાવો.',
 };
 
+/** The opening line: greets and names the first field. */
+const ASK_FIRST: L<string> = {
+  en: 'Hi, I’m Manhar Bot! I’ll guide you. Let’s start: what’s your restaurant called?',
+  hi: 'नमस्ते, मैं मनहर बॉट हूँ! मैं आपको रास्ता दिखाऊँगा। शुरू करते हैं: आपके रेस्टोरेंट का नाम क्या है?',
+  gu: 'નમસ્તે, હું મનહર બોટ છું! હું તમને માર્ગ બતાવીશ. ચાલો શરૂ કરીએ: તમારી રેસ્ટોરન્ટનું નામ શું છે?',
+};
+
+/** "Now fill this": the bot leads to the next empty field. */
+const ASK_NEXT: Partial<Record<RegistrationFieldName, L<string>>> = {
+  restaurantName: ASK_FIRST,
+  contactName: {
+    en: 'Now your name, please.',
+    hi: 'अब आपका नाम, कृपया।',
+    gu: 'હવે તમારું નામ, કૃપા કરીને.',
+  },
+  phone: {
+    en: 'Next: your 10-digit mobile number.',
+    hi: 'अगला: आपका 10 अंकों का मोबाइल नंबर।',
+    gu: 'આગળ: તમારો 10 આંકડાનો મોબાઇલ નંબર.',
+  },
+  email: {
+    en: 'Now your email, for the payment link.',
+    hi: 'अब आपका ईमेल, पेमेंट लिंक के लिए।',
+    gu: 'હવે તમારો ઈમેલ, પેમેન્ટ લિંક માટે.',
+  },
+  city: {
+    en: 'Which city is the restaurant in?',
+    hi: 'रेस्टोरेंट किस शहर में है?',
+    gu: 'રેસ્ટોરન્ટ કયા શહેરમાં છે?',
+  },
+  outlets: {
+    en: 'How many outlets do you have? A number is enough.',
+    hi: 'आपके कितने आउटलेट हैं? बस एक संख्या।',
+    gu: 'તમારા કેટલા આઉટલેટ છે? બસ એક આંકડો.',
+  },
+  consent: {
+    en: 'Almost done! Tick the box to agree, then we can send it.',
+    hi: 'लगभग हो गया! सहमति के लिए बॉक्स टिक कीजिए, फिर हम भेज देंगे।',
+    gu: 'લગભગ થઈ ગયું! સંમતિ માટે બૉક્સ ટિક કરો, પછી અમે મોકલી દઈશું.',
+  },
+};
+
+/** A patient reminder when the visitor has gone quiet on the field the bot asked for. */
+const ASK_AGAIN: L<(what: string) => string> = {
+  en: (what) => `Still here! ${what}`,
+  hi: (what) => `मैं यहीं हूँ! ${what}`,
+  gu: (what) => `હું અહીં જ છું! ${what}`,
+};
+
+const READY: L<string> = {
+  en: 'All set! Press “Send my request” and you’ll get your reference.',
+  hi: 'सब तैयार! “Send my request” दबाइए, आपको रेफ़रेंस मिल जाएगा।',
+  gu: 'બધું તૈયાર! “Send my request” દબાવો, તમને રેફરન્સ મળશે.',
+};
+
 const SUBMIT: L<string> = {
   en: 'Sending it now… fingers crossed!',
   hi: 'अभी भेज रहा हूँ… उँगलियाँ क्रॉस!',
@@ -175,6 +230,13 @@ export function reactTo(event: BuddyEvent, lang: TourLang, seq = 0): Reaction {
       return { mood: 'hello', text: WELCOME[lang] };
     case 'nudge':
       return { mood: 'nudge', text: NUDGE[lang] };
+    case 'ask': {
+      const text = (ASK_NEXT[event.field] ?? ASK_NEXT.restaurantName)?.[lang] ?? WELCOME[lang];
+      if (event.first) return { mood: 'hello', text };
+      return event.again ? { mood: 'nudge', text: ASK_AGAIN[lang](text) } : { mood: 'explain', text };
+    }
+    case 'ready':
+      return { mood: 'cheer', text: READY[lang] };
     case 'focus': {
       const text = FOCUS[event.field]?.[lang];
       return { mood: event.field === 'message' ? 'think' : 'watch', text: text ?? WELCOME[lang] };

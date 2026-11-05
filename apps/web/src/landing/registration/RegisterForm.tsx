@@ -23,7 +23,7 @@ import {
 } from '../content';
 import { useRegistrationIntent } from '../hooks/useRegistrationIntent';
 import { foundingState } from '../pricing/pricingMath';
-import { emitBuddy } from './buddy/store';
+import { emitBuddy, setBuddyProgress } from './buddy/store';
 import { Field } from './Field';
 import { FallbackActions } from './FallbackActions';
 import { submitRegistration, type SubmitFailureKind, type SubmitOptions } from './submit';
@@ -125,6 +125,17 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
     () => ({ ...state, planKey: intent.plan, billingCycle: intent.cycle }),
     [state, intent.plan, intent.cycle],
   );
+
+  // Manhar Bot walks the visitor through the form, so it needs to know which fields are already complete.
+  useEffect(() => {
+    const problems = validateRegistration(values);
+    const done = new Set<string>();
+    for (const name of ['restaurantName', 'contactName', 'phone', 'email', 'city', 'outlets'] as const) {
+      if (String(values[name]).trim() !== '' && !problems[name]) done.add(name);
+    }
+    if (values.consent) done.add('consent');
+    setBuddyProgress(done);
+  }, [values]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setState((s) => ({ ...s, [key]: value }));

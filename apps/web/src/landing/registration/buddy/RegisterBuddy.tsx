@@ -6,12 +6,18 @@ import type { RegistrationFieldName } from '../../content';
 import { fieldId } from '../validation';
 import { BUDDY_UI, reactTo } from './content';
 import { BOT, placeBuddy, type Placement } from './placement';
-import { emitBuddy, useBuddyState, type BuddyEvent } from './store';
+import { emitBuddy, expectGuidedFocus, getBuddyProgress, nextField, useBuddyState, type BuddyEvent } from './store';
 import './buddy.css';
 
 /** Short labels for the language chips (the full name is the accessible name). */
 const CHIP: Record<TourLang, string> = { en: 'EN', hi: 'हि', gu: 'ગુ' };
-const NUDGE_AFTER_MS = 30_000;
+/** How long the bot waits on a field before gently asking again, and then before offering a human. */
+const REMIND_AFTER_MS = 10_000;
+const HUMAN_AFTER_MS = 15_000;
+/** After a field is accepted, the pause (cheer first) before the bot leads on to the next one. */
+const LEAD_ON_AFTER_MS = 1_000;
+/** Events that mean the visitor is actively working, so the patience timers start over. */
+const USER_EVENTS: ReadonlySet<BuddyEvent['type']> = new Set(['focus', 'typing', 'valid', 'invalid', 'consent']);
 /** Below this width there is no room beside a field, so the bot stays docked in the corner. */
 const FOLLOW_MIN_WIDTH = '(min-width: 900px)';
 
@@ -74,7 +80,10 @@ function targetOf(event: BuddyEvent): Target | null {
       return event.field;
     case 'consent':
       return 'consent';
+    case 'ask':
+      return event.field;
     case 'submit':
+    case 'ready':
       return 'submit';
     case 'success':
       return 'ticket';
@@ -194,12 +203,77 @@ export default function RegisterBuddy() {
     return () => window.clearTimeout(id);
   }, [placement, ready]);
 
-  // After a quiet moment, offer a human. Never after success, and not while the form is submitting.
+  /** Lead the visitor on: name the next empty field (and move the cursor there), or say the form is ready. */
+  const leadOn = useCallback((opts: { focus: boolean; first?: boolean; again?: boolean }): void => {
+    const next = nextField(getBuddyProgress());
+    if (next === null) {
+      emitBuddy({ type: 'ready' });
+      return;
+    }
+    emitBuddy({ type: 'ask', field: next, ...(opts.first ? { first: true } : {}), ...(opts.again ? { again: true } : {}) });
+    if (opts.focus) {
+      expectGuidedFocus(next);
+      document.getElementById(fieldId(next))?.focus();
+    }
+  }, []);
+
+  // The bot speaks first: when the visitor arrives at the form it greets and names the first field, without being clicked.
+  const greeted = useRef(false);
   useEffect(() => {
-    if (!inView || closed || event.type === 'success' || event.type === 'submit') return;
-    const id = window.setTimeout(() => emitBuddy({ type: 'nudge' }), NUDGE_AFTER_MS);
+    if (!inView || closed || greeted.current || raw.seq !== 0) return;
+    const id = window.setTimeout(() => {
+      greeted.current = true;
+      leadOn({ focus: false, first: nextField(getBuddyProgress()) === 'restaurantName' });
+    }, 600);
     return () => window.clearTimeout(id);
-  }, [seq, inView, closed, event.type]);
+  }, [inView, closed, raw.seq, leadOn]);
+
+  // When a field is accepted, lead on to the next empty one, unless the visitor has already gone to another control.
+  useEffect(() => {
+    if (!inView || closed) return;
+    const e = raw.event;
+    const accepted = (e.type === 'valid' && e.field !== 'businessKind') || (e.type === 'consent' && e.checked);
+    if (!accepted) return;
+    const id = window.setTimeout(() => {
+      const active = document.activeElement;
+      const typing = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement;
+      const justTicked = e.type === 'consent';
+      if (typing && !justTicked && document.querySelector('.lp-reg-card')?.contains(active)) return;
+      leadOn({ focus: !justTicked });
+    }, LEAD_ON_AFTER_MS);
+    return () => window.clearTimeout(id);
+  }, [raw.seq, raw.event, inView, closed, leadOn]);
+
+  // Patience: if the visitor goes quiet, ask once more for the same field, then offer a human. Never after sending.
+  const stage = useRef(0);
+  useEffect(() => {
+    if (!inView || closed || raw.event.type === 'success' || raw.event.type === 'submit') return;
+    if (USER_EVENTS.has(raw.event.type)) stage.current = 0;
+    if (stage.current >= 2) return;
+    const id = window.setTimeout(() => {
+      if (stage.current === 0) {
+        stage.current = 1;
+        leadOn({ focus: false, again: true });
+      } else {
+        stage.current = 2;
+        emitBuddy({ type: 'nudge' });
+      }
+    }, stage.current === 0 ? REMIND_AFTER_MS : HUMAN_AFTER_MS);
+    return () => window.clearTimeout(id);
+  }, [raw.seq, raw.event, inView, closed, leadOn]);
+
+  // Highlight the field the bot is asking for (a pulsing ring) until the visitor takes over.
+  const [hint, setHint] = useState<Target | null>(null);
+  useEffect(() => {
+    if (raw.event.type === 'ask' || raw.event.type === 'ready') setHint(targetOf(raw.event));
+    else if (USER_EVENTS.has(raw.event.type) || raw.event.type === 'submit') setHint(null);
+  }, [raw.seq, raw.event]);
+  useEffect(() => {
+    if (!hint) return;
+    const el = elementFor(hint);
+    el?.classList.add('lp-buddy-hint');
+    return () => el?.classList.remove('lp-buddy-hint');
+  }, [hint]);
 
   const reaction = useMemo(() => reactTo(event, lang, seq), [event, lang, seq]);
   const mood: BotMood = moving ? 'fly' : reaction.mood;
