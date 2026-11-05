@@ -48,8 +48,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Resolves the "engines.node" range from package.json.
-          node-version-file: package.json
+          # Pinned to the production images' Node (Dockerfile.api / Dockerfile.web: NODE_VERSION=22). Resolving the
+          # "engines.node" range (>=20) picked whatever Node was newest that day (24.22.1 on 5 Nov), so CI could go red
+          # from a runtime change nobody made. Bump this together with NODE_VERSION in the Dockerfiles.
+          node-version: 22
           cache: npm
 
       # postinstall builds @nexus/shared and generates the Prisma client.
