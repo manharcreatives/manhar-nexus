@@ -123,11 +123,13 @@ describe('TourGuide', () => {
     expect(readOutcome('u-1')).toBe('skipped');
   });
 
-  it('highlights the sidebar item being explained and clears it afterwards', () => {
+  it('spotlights the sidebar item being explained and flies the card to sit beside it', () => {
     const nav = document.createElement('aside');
     nav.innerHTML = '<nav><a href="/tables">Tables</a></nav>';
     document.body.appendChild(nav);
     const link = nav.querySelector('a') as HTMLElement;
+    link.getBoundingClientRect = () =>
+      ({ left: 16, right: 240, top: 200, bottom: 244, width: 224, height: 44, x: 16, y: 200, toJSON: () => ({}) }) as DOMRect;
 
     setup();
     fireEvent.click(screen.getByRole('button', { name: /^Yes/ }));
@@ -135,13 +137,27 @@ describe('TourGuide', () => {
     const next = (): void => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     };
-    next(); // Home
-    expect(link.classList.contains('nx-tour-spot')).toBe(false);
-    next(); // Tables
-    expect(link.classList.contains('nx-tour-spot')).toBe(true);
-    next(); // Menu
-    expect(link.classList.contains('nx-tour-spot')).toBe(false);
+    const spot = (): HTMLElement => document.querySelector('[data-tour-spot]') as HTMLElement;
+    const card = (): HTMLElement => screen.getByRole('dialog');
+
+    next(); // Home: nothing to point at
+    expect(spot().getAttribute('data-active')).toBe('false');
+    next(); // Tables: ring around the item, card to its right (item's right edge 240 + 24 gap)
+    expect(spot().getAttribute('data-active')).toBe('true');
+    expect(spot().style.transform).toContain('12px'); // item left 16 minus 4px padding
+    expect(card().style.transform).toContain('264px');
+    expect(document.querySelector('.nx-tour-tail')).not.toBeNull();
+    next(); // Menu is not in this sidebar
+    expect(spot().getAttribute('data-active')).toBe('false');
+    expect(document.querySelector('.nx-tour-tail')).toBeNull();
     nav.remove();
+  });
+
+  it('uses a solid card, not the translucent glass surface', () => {
+    setup();
+    const panel = document.querySelector('.nx-tour-panel') as HTMLElement;
+    expect(panel).not.toBeNull();
+    expect(panel.className).not.toContain('nx-glass');
   });
 
   it('replays straight into the steps in the remembered language', () => {

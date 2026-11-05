@@ -1,5 +1,6 @@
-/* Manhar Bot: all motion is decorative and switched off for people who ask for reduced motion. */
+/* Manhar Bot tour. All motion is decorative and switched off for people who ask for reduced motion. */
 
+/* ───────── the bot ───────── */
 .nx-bot { width: 5.5rem; height: 5.5rem; flex-shrink: 0; overflow: visible; }
 .nx-bot--sm { width: 3.5rem; height: 3.5rem; }
 
@@ -11,29 +12,99 @@
 .nx-bot--talk .nx-bot__mouth { animation: nx-bot-talk 0.28s ease-in-out infinite; }
 .nx-bot__antenna { animation: nx-bot-ping 1.8s ease-out infinite; transform-origin: center; transform-box: fill-box; }
 
+/* While gliding to the next item: lean forward and light the jets. */
+.nx-bot__jet { opacity: 0; transform-origin: 50% 0; transform-box: fill-box; transition: opacity 160ms; }
+.nx-bot--fly .nx-bot__body { animation: nx-bot-fly 0.35s ease-in-out infinite; }
+.nx-bot--fly .nx-bot__jet { opacity: 1; animation: nx-bot-jet 0.18s ease-in-out infinite; }
+
 @keyframes nx-bot-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes nx-bot-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
 @keyframes nx-bot-wave { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-28deg); } 75% { transform: rotate(14deg); } }
 @keyframes nx-bot-talk { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1.25); } }
 @keyframes nx-bot-ping { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2.4); } }
+@keyframes nx-bot-fly { 0%, 100% { transform: rotate(-9deg) translateY(-2px); } 50% { transform: rotate(-5deg) translateY(2px); } }
+@keyframes nx-bot-jet { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.45); } }
 
-/* The tour card slides up; the highlighted sidebar item pulses. */
-.nx-tour-card { animation: nx-tour-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-@keyframes nx-tour-in { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
-
-.nx-tour-spot {
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 8px rgb(var(--accent-rgb) / 0.22);
-  animation: nx-tour-pulse 1.6s ease-in-out infinite;
+/* ───────── the card ─────────
+   Solid on purpose: the app's glass surfaces are only ~4% white, which let the page show through the text. */
+.nx-tour-pos {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  width: min(26rem, calc(100vw - 24px));
+  /* The card glides between menu items. */
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
+
+.nx-tour-panel {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--radius-panel);
+  background: #0f1814;
+  background-image: linear-gradient(180deg, #14211b 0%, #0f1814 60%);
+  border: 1px solid rgb(var(--accent-rgb) / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.6),
+    0 24px 70px rgb(0 0 0 / 0.75),
+    0 0 40px rgb(var(--accent-rgb) / 0.18);
+  color: var(--color-ink);
+}
+.nx-tour-card { animation: nx-tour-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes nx-tour-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* Pointer toward the menu item on the card's left edge. */
+.nx-tour-tail {
+  position: absolute;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background: #14211b;
+  border-left: 1px solid rgb(var(--accent-rgb) / 0.55);
+  border-bottom: 1px solid rgb(var(--accent-rgb) / 0.55);
+  transform: rotate(45deg);
+  transition: top 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ───────── dim + spotlight ───────── */
+.nx-tour-catcher {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: transparent;
+  cursor: default;
+}
+
+/* A hole in the dimming: the huge outer shadow darkens everything except the element being explained. */
+.nx-tour-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 56;
+  pointer-events: none;
+  border-radius: var(--radius-control);
+  opacity: 0;
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 0 9999px rgb(3 7 5 / 0.72);
+  transition:
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 250ms;
+}
+.nx-tour-ring[data-active='true'] { opacity: 1; animation: nx-tour-pulse 1.6s ease-in-out infinite; }
 @keyframes nx-tour-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 5px rgb(var(--accent-rgb) / 0.25); }
-  50% { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 11px rgb(var(--accent-rgb) / 0.08); }
+  0%, 100% { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 6px rgb(var(--accent-rgb) / 0.3), 0 0 0 9999px rgb(3 7 5 / 0.72); }
+  50% { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 12px rgb(var(--accent-rgb) / 0.08), 0 0 0 9999px rgb(3 7 5 / 0.72); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .nx-bot__body, .nx-bot__eye, .nx-bot__antenna, .nx-bot--wave .nx-bot__arm, .nx-bot--talk .nx-bot__mouth,
-  .nx-tour-card, .nx-tour-spot { animation: none; }
-  .nx-tour-spot { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 7px rgb(var(--accent-rgb) / 0.22); }
+  .nx-bot--fly .nx-bot__body, .nx-bot--fly .nx-bot__jet, .nx-tour-card, .nx-tour-ring[data-active='true'] { animation: none; }
+  .nx-tour-pos, .nx-tour-tail, .nx-tour-ring { transition: none; }
+  .nx-tour-ring[data-active='true'] { box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 7px rgb(var(--accent-rgb) / 0.25), 0 0 0 9999px rgb(3 7 5 / 0.72); }
 }

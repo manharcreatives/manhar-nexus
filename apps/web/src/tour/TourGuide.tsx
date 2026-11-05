@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../ui/Button';
 import {
   ASK,
@@ -18,6 +18,11 @@ type Phase = 'closed' | 'ask' | 'lang' | 'steps';
 const prefersReducedMotion = (): boolean =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 const isDesktop = (): boolean => typeof window === 'undefined' || window.matchMedia?.('(min-width: 1024px)').matches !== false;
+
+const clamp = (n: number, lo: number, hi: number): number => Math.min(Math.max(n, lo), Math.max(lo, hi));
+const MARGIN = 12;
+/** Gap between the highlighted menu item and the bot's card. */
+const GAP = 24;
 
 /** Reveals `text` letter by letter (instantly for reduced motion). `typing` is true while it runs. */
 function useTypewriter(text: string): { shown: string; typing: boolean } {
@@ -43,6 +48,15 @@ function useTypewriter(text: string): { shown: string; typing: boolean } {
   return { shown: chars.slice(0, count).join(''), typing: count < chars.length };
 }
 
+interface Layout {
+  x: number;
+  y: number;
+  /** Where the card's pointer sits, measured down from the card's top edge. Null: no pointer. */
+  tailY: number | null;
+  /** The highlighted element's box, viewport coordinates. Null when nothing is being pointed at. */
+  spot: { x: number; y: number; w: number; h: number } | null;
+}
+
 export interface TourGuideProps {
   userId: string;
   displayName?: string;
@@ -58,15 +72,19 @@ export interface TourGuideProps {
 
 /**
  * First-run tour led by Manhar Bot. Asks whether a tour is wanted, then for the language
- * (English / Hindi / Gujarati), then lights up each sidebar page the user can see and explains it.
- * "Skip" and "Done" are remembered per user; "Ask me later" is not, so the question returns next time.
+ * (English / Hindi / Gujarati), then flies from menu item to menu item: the page dims around the item being
+ * explained and the bot lands beside it with a solid card. "Skip" and "Done" are remembered per user;
+ * "Ask me later" is not, so the question returns next time.
  */
 export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replayToken = 0, enabled = true }: TourGuideProps) {
   const [phase, setPhase] = useState<Phase>('closed');
   const [lang, setLang] = useState<TourLang>(() => readLang() ?? 'en');
   /** 0 = welcome, 1..n = pages, n+1 = finish. */
   const [index, setIndex] = useState(0);
+  const [layout, setLayout] = useState<Layout | null>(null);
+  const [flying, setFlying] = useState(false);
   const lastReplay = useRef(replayToken);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const pageSteps = useMemo(() => stepsFor(visiblePaths), [visiblePaths]);
   const total = pageSteps.length;
@@ -91,6 +109,7 @@ export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replay
     (outcome: 'done' | 'skipped' | 'later') => {
       if (outcome !== 'later') writeOutcome(userId, outcome);
       setPhase('closed');
+      setLayout(null);
       if (!isDesktop()) onNavOpen(false);
     },
     [userId, onNavOpen],
@@ -103,7 +122,7 @@ export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replay
     setPhase('steps');
   };
 
-  // Escape = skip.
+  // Escape = skip (or "later" on the first question).
   useEffect(() => {
     if (phase === 'closed') return;
     const onKey = (e: KeyboardEvent): void => {
@@ -113,18 +132,84 @@ export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replay
     return () => document.removeEventListener('keydown', onKey);
   }, [phase, close]);
 
-  // Light up the sidebar item being explained (and open the mobile drawer so it can be seen).
   const current = phase === 'steps' && index >= 1 && index <= total ? pageSteps[index - 1] : null;
+
+  // On a phone the drawer must be open for the item to be visible.
   useEffect(() => {
     if (phase !== 'steps') return;
     if (!isDesktop()) onNavOpen(index >= 1 && index <= total);
-    if (!current) return;
-    const el = document.querySelector<HTMLElement>(`aside nav a[href="${current.path}"]`);
-    if (!el) return;
-    el.classList.add('nx-tour-spot');
-    el.scrollIntoView?.({ block: 'nearest' });
-    return () => el.classList.remove('nx-tour-spot');
-  }, [phase, index, current, total, onNavOpen]);
+  }, [phase, index, total, onNavOpen]);
+
+  /** Work out where the card and the spotlight go for the current step. */
+  const measure = useCallback(() => {
+    const card = cardRef.current;
+    if (!card || phase === 'closed') return;
+    const w = card.offsetWidth;
+    const h = card.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const target = current ? document.querySelector<HTMLElement>(`aside nav a[href="${current.path}"]`) : null;
+
+    if (target && isDesktop()) {
+      const r = target.getBoundingClientRect();
+      const x = clamp(r.right + GAP, MARGIN, vw - w - MARGIN);
+      const y = clamp(r.top + r.height / 2 - h / 2, MARGIN, vh - h - MARGIN);
+      setLayout({
+        x,
+        y,
+        tailY: clamp(r.top + r.height / 2 - y, 26, h - 26),
+        spot: { x: r.left - 4, y: r.top - 4, w: r.width + 8, h: r.height + 8 },
+      });
+      return;
+    }
+    // Phone, or a step with nothing to point at: sit in the corner. The spotlight still marks the item on a phone.
+    const spot =
+      target && !isDesktop()
+        ? (() => {
+            const r = target.getBoundingClientRect();
+            return { x: r.left - 4, y: r.top - 4, w: r.width + 8, h: r.height + 8 };
+          })()
+        : null;
+    setLayout({
+      x: isDesktop() ? vw - w - 24 : MARGIN,
+      y: vh - h - (isDesktop() ? 24 : MARGIN),
+      tailY: null,
+      spot,
+    });
+  }, [phase, current]);
+
+  // Scroll the item into view, then measure; measure again once the mobile drawer has finished sliding.
+  useLayoutEffect(() => {
+    if (phase === 'closed') return;
+    const target = current ? document.querySelector<HTMLElement>(`aside nav a[href="${current.path}"]`) : null;
+    target?.scrollIntoView?.({ block: 'nearest' });
+    measure();
+    const timers = [window.setTimeout(measure, 120), window.setTimeout(measure, 420)];
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [phase, index, lang, current, measure]);
+
+  // The card changes size when the text or language changes, and the window can be resized or scrolled.
+  useEffect(() => {
+    if (phase === 'closed') return;
+    window.addEventListener('resize', measure);
+    document.addEventListener('scroll', measure, true);
+    const card = cardRef.current;
+    const ro = typeof ResizeObserver !== 'undefined' && card ? new ResizeObserver(measure) : null;
+    if (ro && card) ro.observe(card);
+    return () => {
+      window.removeEventListener('resize', measure);
+      document.removeEventListener('scroll', measure, true);
+      ro?.disconnect();
+    };
+  }, [phase, measure]);
+
+  // The bot "flies" (tilts, shows its jets) for the time the card takes to glide to the next item.
+  useEffect(() => {
+    if (phase !== 'steps' || prefersReducedMotion()) return;
+    setFlying(true);
+    const id = window.setTimeout(() => setFlying(false), 750);
+    return () => window.clearTimeout(id);
+  }, [phase, index]);
 
   const S = STRINGS[lang];
   const firstName = (displayName ?? '').trim().split(/\s+/)[0] ?? '';
@@ -155,103 +240,128 @@ export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replay
 
   if (phase === 'closed') return null;
 
+  const pointed = layout?.tailY != null;
+
   return (
-    <div
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby="nx-tour-title"
-      className="nx-tour-card fixed inset-x-3 bottom-3 z-50 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[26rem] lg:left-[17rem] lg:right-auto"
-    >
-      <div className="nx-glass flex gap-3 rounded-panel border border-accent/30 bg-[#0b1210]/95 p-4 shadow-2xl backdrop-blur-xl">
-        <ManharBot talking={typing} wave={phase === 'ask' || (phase === 'steps' && index === 0)} />
+    <>
+      {/* While the steps run, the page is dimmed and inert so a stray click cannot navigate away mid-tour. */}
+      {phase === 'steps' ? <div aria-hidden className="nx-tour-catcher" /> : null}
+      <div
+        aria-hidden
+        data-tour-spot
+        data-active={phase === 'steps' && layout?.spot ? 'true' : 'false'}
+        className="nx-tour-ring"
+        style={
+          layout?.spot
+            ? { transform: `translate3d(${layout.spot.x}px, ${layout.spot.y}px, 0)`, width: layout.spot.w, height: layout.spot.h }
+            : undefined
+        }
+      />
 
-        <div className="min-w-0 flex-1">
-          <h2 id="nx-tour-title" lang={phase === 'steps' ? lang : undefined} className="text-base font-semibold">
-            {title}
-          </h2>
+      <div
+        ref={cardRef}
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="nx-tour-title"
+        className="nx-tour-pos"
+        style={{
+          transform: layout ? `translate3d(${layout.x}px, ${layout.y}px, 0)` : undefined,
+          visibility: layout ? 'visible' : 'hidden',
+        }}
+      >
+        <div className="nx-tour-card nx-tour-panel">
+          {pointed ? <span aria-hidden className="nx-tour-tail" style={{ top: (layout?.tailY ?? 0) - 8 }} /> : null}
 
-          {phase === 'ask' && (
-            <>
-              <ul className="mt-1 space-y-1 text-sm text-ink/90">
-                {TOUR_LANGS.map((l) => (
-                  <li key={l} lang={l}>
-                    {ASK.lines[l]}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button onClick={() => setPhase('lang')}>{ASK.yes}</Button>
-                <Button variant="secondary" onClick={() => close('skipped')}>
-                  {ASK.no}
-                </Button>
-                <Button variant="ghost" onClick={() => close('later')}>
-                  {ASK.later}
-                </Button>
-              </div>
-            </>
-          )}
+          <ManharBot talking={typing} flying={flying} wave={phase === 'ask' || (phase === 'steps' && index === 0)} />
 
-          {phase === 'lang' && (
-            <>
-              <ul className="mt-1 space-y-1 text-sm text-ink/90">
-                {TOUR_LANGS.map((l) => (
-                  <li key={l} lang={l}>
-                    {PICK_LANGUAGE.lines[l]}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {TOUR_LANGS.map((l) => (
-                  <Button key={l} variant={l === lang ? 'primary' : 'secondary'} lang={l} onClick={() => chooseLang(l)}>
-                    {LANG_LABEL[l]}
+          <div className="min-w-0 flex-1">
+            <h2 id="nx-tour-title" lang={phase === 'steps' ? lang : undefined} className="text-base font-semibold text-ink">
+              {title}
+            </h2>
+
+            {phase === 'ask' && (
+              <>
+                <ul className="mt-1 space-y-1 text-sm text-ink-2">
+                  {TOUR_LANGS.map((l) => (
+                    <li key={l} lang={l}>
+                      {ASK.lines[l]}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button onClick={() => setPhase('lang')}>{ASK.yes}</Button>
+                  <Button variant="secondary" onClick={() => close('skipped')}>
+                    {ASK.no}
                   </Button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {phase === 'steps' && (
-            <div lang={lang}>
-              {/* The animated copy is hidden from screen readers; this hidden line announces the whole sentence once. */}
-              <p className="sr-only" role="status" aria-live="polite">
-                {title}. {body}
-              </p>
-              <p aria-hidden className="mt-1 min-h-[3.5rem] text-sm leading-relaxed text-ink/90">
-                {shown}
-              </p>
-
-              {current ? (
-                <p className="mt-2 text-xs text-muted">{S.ui.stepOf(index, total)}</p>
-              ) : null}
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {index > 0 ? (
-                  <Button variant="secondary" onClick={() => setIndex((i) => Math.max(0, i - 1))}>
-                    {S.ui.back}
+                  <Button variant="ghost" onClick={() => close('later')}>
+                    {ASK.later}
                   </Button>
-                ) : null}
-                {index < finishIndex ? (
-                  <Button onClick={() => setIndex((i) => Math.min(finishIndex, i + 1))}>{S.ui.next}</Button>
-                ) : (
-                  <Button onClick={() => close('done')}>{S.ui.done}</Button>
-                )}
-                {index < finishIndex ? (
-                  <Button variant="ghost" onClick={() => close('skipped')}>
-                    {S.ui.skip}
-                  </Button>
-                ) : null}
+                </div>
+              </>
+            )}
+
+            {phase === 'lang' && (
+              <>
+                <ul className="mt-1 space-y-1 text-sm text-ink-2">
+                  {TOUR_LANGS.map((l) => (
+                    <li key={l} lang={l}>
+                      {PICK_LANGUAGE.lines[l]}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {TOUR_LANGS.map((l) => (
+                    <Button key={l} variant={l === lang ? 'primary' : 'secondary'} lang={l} onClick={() => chooseLang(l)}>
+                      {LANG_LABEL[l]}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {phase === 'steps' && (
+              <div lang={lang}>
+                {/* The animated copy is hidden from screen readers; this hidden line announces the whole sentence once. */}
+                <p className="sr-only" role="status" aria-live="polite">
+                  {title}. {body}
+                </p>
+                {/* The full text is laid out invisibly underneath so the card keeps one size while the letters appear. */}
+                <p aria-hidden className="mt-1 grid text-sm leading-relaxed text-ink-2">
+                  <span className="invisible col-start-1 row-start-1">{body}</span>
+                  <span className="col-start-1 row-start-1">{shown}</span>
+                </p>
+
+                {current ? <p className="mt-2 text-xs text-muted">{S.ui.stepOf(index, total)}</p> : null}
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {index > 0 ? (
+                    <Button variant="secondary" onClick={() => setIndex((i) => Math.max(0, i - 1))}>
+                      {S.ui.back}
+                    </Button>
+                  ) : null}
+                  {index < finishIndex ? (
+                    <Button onClick={() => setIndex((i) => Math.min(finishIndex, i + 1))}>{S.ui.next}</Button>
+                  ) : (
+                    <Button onClick={() => close('done')}>{S.ui.done}</Button>
+                  )}
+                  {index < finishIndex ? (
+                    <Button variant="ghost" onClick={() => close('skipped')}>
+                      {S.ui.skip}
+                    </Button>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPhase('lang')}
+                  className="mt-2 text-xs text-muted underline underline-offset-2 hover:text-ink"
+                >
+                  {S.ui.changeLanguage}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setPhase('lang')}
-                className="mt-2 text-xs text-muted underline underline-offset-2 hover:text-ink"
-              >
-                {S.ui.changeLanguage}
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
