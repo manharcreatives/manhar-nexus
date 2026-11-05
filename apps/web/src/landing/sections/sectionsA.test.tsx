@@ -144,7 +144,9 @@ describe('About', () => {
     for (const a of external) expect(a.getAttribute('rel')).toContain('noopener');
     expect(screen.getByRole('link', { name: /Visit manharcreatives\.com/ }).getAttribute('href')).toBe('https://www.manharcreatives.com');
     expect(screen.getByRole('link', { name: 'info@manharcreatives.com' }).getAttribute('href')).toBe('mailto:info@manharcreatives.com');
-    expect(screen.getByRole('link', { name: '+91 97145 71522' }).getAttribute('href')).toBe('tel:+919714571522');
+    // The company's phone number is not shown on the site.
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+    expect(container.textContent).not.toContain('97145');
     expect(container.querySelector('img[src="/landing/brand/manhar-creatives-on-ink.jpg"]')).toBeTruthy();
   });
 });

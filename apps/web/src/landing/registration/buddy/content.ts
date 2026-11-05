@@ -24,12 +24,6 @@ export const GREET: L<string> = {
   gu: 'નમસ્તે, હું મનહર બોટ છું!',
 };
 
-const NUDGE: L<string> = {
-  en: 'Stuck? Tap WhatsApp on the side and a real person will help you.',
-  hi: 'अटक गए? बगल में WhatsApp दबाइए, एक असली इंसान आपकी मदद करेगा।',
-  gu: 'અટકી ગયા? બાજુમાં WhatsApp દબાવો, એક સાચો માણસ તમને મદદ કરશે.',
-};
-
 /** What each field is for, said when the visitor clicks into it. */
 const FOCUS: Partial<Record<RegistrationFieldName, L<string>>> = {
   restaurantName: {
@@ -43,9 +37,9 @@ const FOCUS: Partial<Record<RegistrationFieldName, L<string>>> = {
     gu: 'અમે કોની સાથે વાત કરીએ? ફક્ત તમારું નામ પૂરતું છે.',
   },
   phone: {
-    en: 'Your 10-digit mobile number. We’ll message you on WhatsApp.',
-    hi: 'आपका 10 अंकों का मोबाइल नंबर। हम आपको WhatsApp पर मैसेज करेंगे।',
-    gu: 'તમારો 10 આંકડાનો મોબાઇલ નંબર. અમે તમને WhatsApp પર મેસેજ કરીશું.',
+    en: 'Your 10-digit mobile number. We’ll contact you on it.',
+    hi: 'आपका 10 अंकों का मोबाइल नंबर। हम इसी पर आपसे संपर्क करेंगे।',
+    gu: 'તમારો 10 આંકડાનો મોબાઇલ નંબર. અમે તેના પર તમારો સંપર્ક કરીશું.',
   },
   email: {
     en: 'Your email. Your payment link and invoice will come here.',
@@ -187,9 +181,9 @@ const SUCCESS = (ref: string): L<string> => ({
 
 const FAILURE: Record<'rate-limit' | 'network' | 'server' | 'validation', L<string>> = {
   'rate-limit': {
-    en: 'Lots of requests from your network. Wait a little, or WhatsApp us.',
-    hi: 'आपके नेटवर्क से कई अनुरोध आ गए। थोड़ा रुकिए, या हमें WhatsApp कीजिए।',
-    gu: 'તમારા નેટવર્કથી ઘણી વિનંતીઓ આવી. થોડું રાહ જુઓ, અથવા અમને WhatsApp કરો.',
+    en: 'Lots of requests from your network. Please wait a little and try again.',
+    hi: 'आपके नेटवर्क से कई अनुरोध आ गए। थोड़ा रुकिए और फिर कोशिश कीजिए।',
+    gu: 'તમારા નેટવર્કથી ઘણી વિનંતીઓ આવી. થોડું રાહ જુઓ અને ફરી પ્રયત્ન કરો.',
   },
   network: {
     en: 'I couldn’t reach the server. Check your internet and try again.',
@@ -197,9 +191,9 @@ const FAILURE: Record<'rate-limit' | 'network' | 'server' | 'validation', L<stri
     gu: 'હું સર્વર સુધી પહોંચી ન શક્યો. ઇન્ટરનેટ તપાસો અને ફરી પ્રયત્ન કરો.',
   },
   server: {
-    en: 'Oh no, something went wrong on our side. Try again, or WhatsApp us.',
-    hi: 'ओह, हमारी तरफ़ कुछ गड़बड़ हो गई। फिर कोशिश कीजिए, या WhatsApp कीजिए।',
-    gu: 'અરે, અમારી બાજુ કંઈક ગડબડ થઈ. ફરી પ્રયત્ન કરો, અથવા WhatsApp કરો.',
+    en: 'Oh no, something went wrong on our side. Please try again in a moment.',
+    hi: 'ओह, हमारी तरफ़ कुछ गड़बड़ हो गई। कृपया थोड़ी देर में फिर कोशिश कीजिए।',
+    gu: 'અરે, અમારી બાજુ કંઈક ગડબડ થઈ. કૃપા કરીને થોડીવારમાં ફરી પ્રયત્ન કરો.',
   },
   validation: {
     en: 'Some details need a second look. I’ve marked them for you.',
@@ -232,8 +226,6 @@ export function reactTo(event: BuddyEvent, lang: TourLang, seq = 0): Reaction {
   switch (event.type) {
     case 'welcome':
       return { mood: 'hello', text: WELCOME[lang] };
-    case 'nudge':
-      return { mood: 'nudge', text: NUDGE[lang] };
     case 'ask': {
       const text = (ASK_NEXT[event.field] ?? ASK_NEXT.restaurantName)?.[lang] ?? WELCOME[lang];
       if (event.first) return { mood: 'hello', text };

@@ -83,8 +83,6 @@ export interface FooterGroup {
 
 export interface ContactDetails {
   readonly email: string;
-  readonly phoneDisplay: string;
-  readonly phoneTel: string;
   readonly whatsappNumber: string;
   readonly whatsappUrl: string;
   readonly addressLines: readonly string[];

@@ -13,7 +13,6 @@ vi.mock('../../../tour/TourBotFace', () => ({
 
 const EVENTS: BuddyEvent[] = [
   { type: 'welcome' },
-  { type: 'nudge' },
   ...REGISTRATION_FIELD_ORDER.map((field) => ({ type: 'focus', field }) as BuddyEvent),
   { type: 'focus', field: 'consent' },
   ...REGISTRATION_FIELD_ORDER.map((field) => ({ type: 'valid', field }) as BuddyEvent),
@@ -48,6 +47,14 @@ describe('reactTo', () => {
     }
   });
 
+  it('never sends the visitor to WhatsApp or promises a person, in any message in any language', () => {
+    for (const event of EVENTS) {
+      for (const lang of TOUR_LANGS) {
+        expect(reactTo(event, lang, 1).text, `${JSON.stringify(event)} ${lang}`).not.toMatch(/WhatsApp|व्हाट्सएप|વોટ્સએપ/i);
+      }
+    }
+  });
+
   it('feels the right thing about each kind of event', () => {
     expect(reactTo({ type: 'welcome' }, 'en').mood).toBe('hello');
     expect(reactTo({ type: 'focus', field: 'phone' }, 'en').mood).toBe('watch');
@@ -57,7 +64,7 @@ describe('reactTo', () => {
     expect(reactTo({ type: 'submit' }, 'en').mood).toBe('fly');
     expect(reactTo({ type: 'success', referenceCode: 'NX-1' }, 'en').mood).toBe('done');
     expect(reactTo({ type: 'failure', kind: 'network' }, 'en').mood).toBe('worry');
-    expect(reactTo({ type: 'nudge' }, 'en').mood).toBe('nudge');
+    expect(reactTo({ type: 'ask', field: 'city', again: true }, 'en').mood).toBe('nudge');
   });
 
   it('counts phone digits, cheers a valid number and warns about too many digits', () => {
@@ -79,7 +86,6 @@ describe('reactTo', () => {
 });
 
 const REMIND = 10_000;
-const HUMAN = 15_000;
 
 /** A stand-in for the real form: the controls the bot looks for, inside the card it measures. */
 function mountForm(): void {
@@ -132,7 +138,7 @@ describe('RegisterBuddy', () => {
 
   it('does not appear for events the visitor did not cause (its own reminders)', () => {
     render(<RegisterBuddy />);
-    act(() => emitBuddy({ type: 'nudge' }));
+    act(() => emitBuddy({ type: 'ask', field: 'city', again: true }));
     expect(buddy().getAttribute('data-visible')).toBe('false');
   });
 
@@ -184,7 +190,7 @@ describe('RegisterBuddy', () => {
     expect(screen.getByRole('status').textContent).toContain('internet');
   });
 
-  it('reminds once about the field it asked for, then offers a human', () => {
+  it('reminds once about the field it asked for, then leaves the visitor alone (never sends them elsewhere)', () => {
     vi.useFakeTimers();
     render(<RegisterBuddy />);
     act(() => emitBuddy({ type: 'focus', field: 'restaurantName' })); // the visitor clicks in, then goes quiet
@@ -192,15 +198,10 @@ describe('RegisterBuddy', () => {
     tick(REMIND + 100);
     tick(50);
     expect(screen.getByRole('status').textContent).toContain('Still here');
-    tick(HUMAN + 100);
-    tick(50);
-    expect(screen.getByRole('status').textContent).toContain('WhatsApp');
-    // ...and then it stops: no more messages however long the visitor stays quiet.
     const last = screen.getByRole('status').textContent;
-    act(() => {
-      vi.advanceTimersByTime(120_000);
-    });
+    tick(120_000);
     expect(screen.getByRole('status').textContent).toBe(last);
+    expect(last).not.toMatch(/WhatsApp|real person|human/i);
   });
 
   it('can be hidden for good by the visitor', () => {

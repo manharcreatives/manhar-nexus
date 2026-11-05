@@ -11,9 +11,8 @@ import './buddy.css';
 
 /** Short labels for the language chips (the full name is the accessible name). */
 const CHIP: Record<TourLang, string> = { en: 'EN', hi: 'हि', gu: 'ગુ' };
-/** How long the bot waits on a field before gently asking again, and then before offering a human. */
+/** How long the bot waits on a field before gently reminding the visitor, once. */
 const REMIND_AFTER_MS = 10_000;
-const HUMAN_AFTER_MS = 15_000;
 /** After a field is accepted, the pause (cheer first) before the bot leads on to the next one. */
 const LEAD_ON_AFTER_MS = 1_000;
 /** Events that mean the visitor is actively working, so the patience timers start over. */
@@ -266,21 +265,17 @@ export default function RegisterBuddy() {
     return () => window.clearTimeout(id);
   }, [raw.seq, raw.event, inView, closed, leadOn]);
 
-  // Patience: if the visitor goes quiet, ask once more for the same field, then offer a human. Never after sending.
-  const stage = useRef(0);
+  // Patience: if the visitor goes quiet, remind them once about the field they are on, then leave them alone.
+  // (The bot never sends people elsewhere for help.) Starts over whenever the visitor does something.
+  const reminded = useRef(false);
   useEffect(() => {
     if (!engaged || !inView || closed || raw.event.type === 'success' || raw.event.type === 'submit') return;
-    if (USER_EVENTS.has(raw.event.type)) stage.current = 0;
-    if (stage.current >= 2) return;
+    if (USER_EVENTS.has(raw.event.type)) reminded.current = false;
+    if (reminded.current) return;
     const id = window.setTimeout(() => {
-      if (stage.current === 0) {
-        stage.current = 1;
-        leadOn({ focus: false, again: true });
-      } else {
-        stage.current = 2;
-        emitBuddy({ type: 'nudge' });
-      }
-    }, stage.current === 0 ? REMIND_AFTER_MS : HUMAN_AFTER_MS);
+      reminded.current = true;
+      leadOn({ focus: false, again: true });
+    }, REMIND_AFTER_MS);
     return () => window.clearTimeout(id);
   }, [raw.seq, raw.event, engaged, inView, closed, leadOn]);
 

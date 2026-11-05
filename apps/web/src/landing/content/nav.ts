@@ -31,8 +31,6 @@ export const MOBILE_MENU_NOTE = 'Questions? WhatsApp us — we reply the same wo
 
 export const CONTACT: ContactDetails = {
   email: 'info@manharcreatives.com',
-  phoneDisplay: '+91 97145 71522',
-  phoneTel: 'tel:+919714571522',
   whatsappNumber: '919714571522',
   whatsappUrl: 'https://wa.me/919714571522',
   addressLines: [

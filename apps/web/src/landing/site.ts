@@ -8,8 +8,6 @@ export const SITE = {
   origin: 'https://nexus.manharcreatives.com',
   tagline: 'We Design, We Build, You Grow.',
   email: 'info@manharcreatives.com',
-  phoneDisplay: '+91 97145 71522',
-  phoneTel: '+919714571522',
   whatsappBase: 'https://wa.me/919714571522',
   addressLines: [
     'Sona Complex, A-252, Kansa Cross Road,',

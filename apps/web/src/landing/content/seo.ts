@@ -104,7 +104,6 @@ export function organizationJsonLd(): JsonLdObject {
     url: CONTACT.studioUrl,
     slogan: STUDIO_TAGLINE,
     email: CONTACT.email,
-    telephone: '+91-97145-71522',
     address: {
       '@type': 'PostalAddress',
       streetAddress: 'Sona Complex, A-252, Kansa Cross Road, Opp. Khodiyar Hotel',
@@ -117,7 +116,6 @@ export function organizationJsonLd(): JsonLdObject {
       {
         '@type': 'ContactPoint',
         contactType: 'sales',
-        telephone: '+91-97145-71522',
         email: CONTACT.email,
         areaServed: 'IN',
         // Owner: extend with Hindi / Gujarati only once the support team can really offer them (OWNER_FILL_INS 'support-languages').

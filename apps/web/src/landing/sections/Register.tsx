@@ -10,7 +10,7 @@ import { RegisterForm } from '../registration/RegisterForm';
 // The helper bot pulls in the avatar renderer, so it loads after the form is already usable.
 const RegisterBuddy = lazy(() => import('../registration/buddy/RegisterBuddy'));
 import { renderHeadline } from '../sectionsC/headline';
-import { Mail, MapPin, MessageCircle, Phone, ShieldCheck } from '../sectionsC/icons';
+import { Mail, MapPin, MessageCircle, ShieldCheck } from '../sectionsC/icons';
 
 const TRUST_NOTES = [
   'No spam. We use your details only to reply and to set up your Workspace.',
@@ -75,14 +75,8 @@ export default function Register() {
               <li>
                 <Icon icon={MessageCircle} size={18} />
                 <a href={CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer" className="lp-link">
-                  WhatsApp {CONTACT.phoneDisplay}
+                  WhatsApp us
                   <span className="lp-visually-hidden"> (opens in a new tab)</span>
-                </a>
-              </li>
-              <li>
-                <Icon icon={Phone} size={18} />
-                <a href={CONTACT.phoneTel} className="lp-link">
-                  {CONTACT.phoneDisplay}
                 </a>
               </li>
               <li>

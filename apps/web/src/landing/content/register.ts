@@ -216,7 +216,7 @@ export const SUBMIT_LOADING_LABEL = 'Sending…';
 export const SUBMIT_MICROCOPY =
   'We’ll never sell or share your details. You can ask us to delete them any time.';
 export const FALLBACK_LINE = 'Prefer to talk?';
-export const FALLBACK_WHATSAPP_LABEL = 'WhatsApp +91 97145 71522';
+export const FALLBACK_WHATSAPP_LABEL = 'WhatsApp us';
 export const FALLBACK_EMAIL_LABEL = 'info@manharcreatives.com';
 export const FALLBACK_BUTTONS = {
   whatsapp: 'Send this on WhatsApp',

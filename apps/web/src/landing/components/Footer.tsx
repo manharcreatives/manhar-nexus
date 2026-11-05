@@ -104,9 +104,6 @@ export function Footer() {
                 <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
               </li>
               <li>
-                <a href={`tel:${SITE.phoneTel}`}>{SITE.phoneDisplay}</a>
-              </li>
-              <li>
                 <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer">
                   WhatsApp us
                 </a>

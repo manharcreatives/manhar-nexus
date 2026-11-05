@@ -1,4 +1,4 @@
-import { ExternalLink, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { ExternalLink, Mail, MapPin, MessageCircle } from 'lucide-react';
 import { Button, Icon, ImageSlot, Reveal, Section, SectionHead } from '../components';
 import { ABOUT, CONTACT } from '../content';
 import { mapWords } from './sectionsA.shared';
@@ -73,12 +73,6 @@ export default function About() {
                 <a href={`mailto:${CONTACT.email}`}>
                   <Icon icon={Mail} size={18} />
                   <span>{CONTACT.email}</span>
-                </a>
-              </li>
-              <li>
-                <a href={CONTACT.phoneTel}>
-                  <Icon icon={Phone} size={18} />
-                  <span>{CONTACT.phoneDisplay}</span>
                 </a>
               </li>
               <li>

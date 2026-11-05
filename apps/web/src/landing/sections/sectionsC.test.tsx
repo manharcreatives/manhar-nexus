@@ -314,7 +314,9 @@ describe('Register section', () => {
     expect(screen.getByText(/No spam/)).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /Privacy Policy/ }).length).toBeGreaterThanOrEqual(1);
     expect(container.querySelector('a[href="mailto:info@manharcreatives.com"]')).not.toBeNull();
-    expect(container.querySelector('a[href="tel:+919714571522"]')).not.toBeNull();
+    // The company's phone number is not shown on the site (the WhatsApp link stays, without printing the number).
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+    expect(container.textContent).not.toContain('97145');
     const wa = container.querySelector('a[href="https://wa.me/919714571522"]');
     expect(wa?.getAttribute('target')).toBe('_blank');
     expect(wa?.getAttribute('rel')).toContain('noopener');
