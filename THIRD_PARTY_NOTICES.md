@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Runtime dependencies of the web app that ship in the built bundle. Licenses verified from the npm registry metadata (2026-10-25). No GPL/AGPL dependency is used in distributed code.
+Runtime dependencies of the web app that ship in the built bundle. Licenses verified from the npm registry metadata (2026-10-25). One AGPL-3.0 dependency ships in the bundle, used under a separate written permission from its author (see below); no other GPL/AGPL dependency is used.
 
 | Package | Version | License | Use |
 |---|---|---|---|
@@ -11,6 +11,9 @@ Runtime dependencies of the web app that ship in the built bundle. Licenses veri
 | Clash Display, Satoshi (Fontshare) | n/a | ITF Free Font License | Display and UI typefaces, self-hosted woff2 in `apps/web/public/fonts` (free for commercial use; confirm terms before redistributing the files) |
 | @fontsource-variable/fraunces, inter-tight | 5.x | OFL-1.1 | No longer used by the app; only referenced by old tooling, safe to remove from `apps/web/package.json` |
 | tailwindcss, @tailwindcss/vite | 4.x | MIT | Styling (build-time) |
+| @bible-strong/avatar-web, @bible-strong/avatar-core | 0.1.0 | AGPL-3.0-only (used under the author's written permission) | Renders the Manhar Bot avatar in the first-run tour (`apps/web/src/tour`). Project: https://github.com/smontlouis/bible-strong-avatar-lab |
+
+**Bible Strong Avatar Lab (AGPL-3.0-only).** The renderer packages are AGPL; Manhar Creatives uses them in this closed-source product under a separate permission granted by the author (smontlouis). Keep that written permission on file. If it is ever withdrawn or does not cover a use, remove `@bible-strong/avatar-web` and `apps/web/src/tour/TourBotFace.tsx`; the tour falls back to the plain SVG bot (`ManharBot.tsx`) with no other change. The character file `manharbot.avatar.json` is our own design (it does not reuse the author's "Strobi" mascot). Credit: Bible Strong Avatar Lab by smontlouis.
 
 Font licenses: SIL Open Font License 1.1 permits embedding and redistribution, including commercially. The license text ships inside each `@fontsource-variable/*` package (`LICENSE`).
 

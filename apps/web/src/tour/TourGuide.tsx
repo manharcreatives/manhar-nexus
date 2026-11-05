@@ -9,7 +9,7 @@ import {
   stepsFor,
   type TourLang,
 } from './content';
-import { ManharBot } from './ManharBot';
+import { TourBotFace, type BotMood } from './TourBotFace';
 import { readLang, readOutcome, writeLang, writeOutcome } from './storage';
 import './tour.css';
 
@@ -236,11 +236,21 @@ export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replay
   }
 
   const spoken = phase === 'ask' || phase === 'lang' ? '' : body;
-  const { shown, typing } = useTypewriter(spoken);
+  const { shown } = useTypewriter(spoken);
 
   if (phase === 'closed') return null;
 
   const pointed = layout?.tailY != null;
+  const mood: BotMood =
+    phase === 'ask' || phase === 'lang'
+      ? 'ask'
+      : index === 0
+        ? 'hello'
+        : index === finishIndex
+          ? 'done'
+          : flying
+            ? 'fly'
+            : 'explain';
 
   return (
     <>
@@ -272,7 +282,7 @@ export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replay
         <div className="nx-tour-card nx-tour-panel">
           {pointed ? <span aria-hidden className="nx-tour-tail" style={{ top: (layout?.tailY ?? 0) - 8 }} /> : null}
 
-          <ManharBot talking={typing} flying={flying} wave={phase === 'ask' || (phase === 'steps' && index === 0)} />
+          <TourBotFace mood={mood} />
 
           <div className="min-w-0 flex-1">
             <h2 id="nx-tour-title" lang={phase === 'steps' ? lang : undefined} className="text-base font-semibold text-ink">
