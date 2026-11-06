@@ -1,7 +1,9 @@
+import { createHash } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { AutoProvisionService } from '../src/provisioning/auto-provision.service';
 import { applyHttpDefaults } from '../src/app.factory';
 import { CashfreeClient } from '../src/cashfree/cashfree.client';
 import type { CashfreeConfig } from '../src/cashfree/cashfree.config';
@@ -16,6 +18,7 @@ import { generateReferenceCode } from '../src/registration/registration.util';
 describe('Customer "Pay now" (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let autoProvision: jest.SpyInstance<Promise<unknown>, [string, Date?]>;
   const RUN = Date.now().toString(36);
   const http = () => app.getHttpServer();
   let seq = 0;
@@ -72,6 +75,8 @@ describe('Customer "Pay now" (e2e)', () => {
     applyHttpDefaults(app);
     await app.init();
     prisma = app.get(PrismaService);
+    // No real restaurant is created here (that has its own tests); we only record that it was asked for.
+    autoProvision = jest.spyOn(app.get(AutoProvisionService), 'autoProvision').mockResolvedValue('skipped');
     app.get(CashfreeClient).useForTests({ fetch: cashfreeFetch as unknown as typeof fetch, config: () => CONFIG });
   });
 
@@ -110,9 +115,17 @@ describe('Customer "Pay now" (e2e)', () => {
     expect(res.status).toBe(200);
     expect(res.body.outcome).toBe('link');
     expect(res.body.link).toMatchObject({ linkUrl: 'https://payments-test.cashfree.com/links/cust', amountPaise: 1_149_320 });
-    expect(Object.keys(res.body.link as object).sort()).toEqual(['amountPaise', 'breakdown', 'expiresAt', 'linkUrl', 'purpose']);
+    expect(Object.keys(res.body.link as object).sort()).toEqual(['amountPaise', 'breakdown', 'expiresAt', 'linkUrl', 'payerSecret', 'purpose']);
     const row = await prisma.registrationPayment.findFirstOrThrow({ where: { registrationId: lead.id } });
     expect(row).toMatchObject({ source: 'CUSTOMER', planKey: 'floor', amountPaise: 1_149_320, status: 'CREATED' });
+    // Only the hash of the payer secret is stored; asking again never returns the secret.
+    const secret = res.body.link.payerSecret as string;
+    expect(secret.length).toBeGreaterThanOrEqual(43);
+    expect(row.payerSecretHash).toBe(createHash('sha256').update(secret).digest('hex'));
+    expect(JSON.stringify(row)).not.toContain(secret);
+    const again = await payLink(who(lead));
+    expect(again.body.link.payerSecret).toBeUndefined();
+    expect((await status(who(lead))).body).toEqual({ paid: false });
     const sent = JSON.parse((cashfreeFetch.mock.calls[0] as [string, RequestInit])[1].body as string) as { link_amount: number };
     expect(sent.link_amount).toBe(11_493.2);
   });
@@ -206,6 +219,13 @@ describe('Customer "Pay now" (e2e)', () => {
     const res = await status(who(lead));
     expect(res.body).toEqual({ paid: true });
     expect((await prisma.registrationPayment.findUniqueOrThrow({ where: { id: row.id } })).status).toBe('PAID');
+    // Discovering the payment through the status check creates the account once, after the answer.
+    for (let i = 0; i < 4; i += 1) await new Promise((r) => setImmediate(r));
+    expect(autoProvision.mock.calls.filter((c) => c[0] === lead.id)).toHaveLength(1);
+    // Asking again does not start it again (the payment is already PAID).
+    await status(who(lead));
+    for (let i = 0; i < 4; i += 1) await new Promise((r) => setImmediate(r));
+    expect(autoProvision.mock.calls.filter((c) => c[0] === lead.id)).toHaveLength(1);
   });
 
   it('status never leaks anything but one boolean, and a wrong email is a 404', async () => {

@@ -3,6 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { AutoProvisionService } from '../src/provisioning/auto-provision.service';
+import { BillingRecordService } from '../src/provisioning/billing-record.service';
 import { applyHttpDefaults } from '../src/app.factory';
 import { CashfreeClient } from '../src/cashfree/cashfree.client';
 import type { CashfreeConfig } from '../src/cashfree/cashfree.config';
@@ -17,6 +19,11 @@ import { generateReferenceCode } from '../src/registration/registration.util';
 describe('Cashfree AutoPay subscriptions (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let autoProvision: jest.SpyInstance<Promise<unknown>, [string, Date?]>;
+  let extendPaidUntil: jest.SpyInstance<Promise<void>, [string, Date, string]>;
+  const settle = async () => {
+    for (let i = 0; i < 4; i += 1) await new Promise((r) => setImmediate(r));
+  };
   let platformToken: string;
   let businessToken: string;
 
@@ -116,6 +123,9 @@ describe('Cashfree AutoPay subscriptions (e2e)', () => {
     applyHttpDefaults(app);
     await app.init();
     prisma = app.get(PrismaService);
+    // No real restaurant is created here (it has its own tests); we only record what was asked for.
+    autoProvision = jest.spyOn(app.get(AutoProvisionService), 'autoProvision').mockResolvedValue('skipped');
+    extendPaidUntil = jest.spyOn(app.get(BillingRecordService), 'extendPaidUntil').mockResolvedValue(undefined);
     app.get(CashfreeClient).useForTests({ fetch: cashfreeFetch as unknown as typeof fetch, config: () => CONFIG });
 
     const login = await request(http()).post('/auth/login').send({ email: 'platform@manhar.local', password: 'ChangeMe!Dev12345' });
@@ -302,6 +312,11 @@ describe('Cashfree AutoPay subscriptions (e2e)', () => {
       expect(paid[0]).toMatchObject({ status: 'PAID', amountPaise: 70_682, paidAmountPaise: 70_682, billingCycle: 'monthly', source: 'AUTOPAY', planKey: 'counter' });
       expect((await prisma.registrationRequest.findUniqueOrThrow({ where: { id: lead.id } })).status).toBe('QUALIFIED');
       await webhook(paymentEvent(row.subscriptionId, { amount: 706.82, cfPaymentId: 'dbt-2' }));
+      await settle();
+      // The first debit creates the account (once, even with a retried webhook); the next month only extends paid-until.
+      expect(autoProvision.mock.calls.filter((c) => c[0] === lead.id)).toHaveLength(1);
+      expect(extendPaidUntil.mock.calls.filter((c) => c[0] === lead.id)).toHaveLength(1);
+      expect(extendPaidUntil.mock.calls.find((c) => c[0] === lead.id)?.[2]).toBe('monthly');
       expect(await prisma.registrationPayment.count({ where: { registrationId: lead.id } })).toBe(1);
       expect(await prisma.registrationSubscriptionCharge.count({ where: { subscriptionRowId: row.id } })).toBe(2);
     });
@@ -312,6 +327,8 @@ describe('Cashfree AutoPay subscriptions (e2e)', () => {
       const charge = await prisma.registrationSubscriptionCharge.findUniqueOrThrow({ where: { cfPaymentId: 'dbt-bad' } });
       expect(charge.status).toBe('AMOUNT_MISMATCH');
       expect(await prisma.registrationPayment.count({ where: { registrationId: lead.id } })).toBe(0);
+      await settle();
+      expect(autoProvision.mock.calls.filter((c) => c[0] === lead.id)).toHaveLength(0); // a mismatch is never auto-provisioned
     });
 
     it('unknown subscriptions and event types we only acknowledge are 200 and ignored; a bad signature is 401', async () => {

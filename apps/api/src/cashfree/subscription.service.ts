@@ -1,11 +1,14 @@
 import { randomBytes } from 'node:crypto';
 import { QuoteError, quotePlan, type Quote } from '@nexus/shared';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma, type RegistrationSubscription, type RegistrationSubscriptionCharge } from '@prisma/client';
 import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
 import type { ActorContext } from '../common/tenant-scope';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
+import { AutoProvisionService } from '../provisioning/auto-provision.service';
+import { BillingRecordService } from '../provisioning/billing-record.service';
+import { afterResponse } from './after-response';
 import { CashfreeClient } from './cashfree.client';
 import { PaymentsNotConfiguredError } from './cashfree.errors';
 import type { BreakdownLine } from './cashfree.dto';
@@ -88,6 +91,8 @@ export class SubscriptionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cashfree: CashfreeClient,
+    @Optional() private readonly autoProvision?: AutoProvisionService,
+    @Optional() private readonly billing?: BillingRecordService,
   ) {}
 
   async list(registrationId: string): Promise<SubscriptionView[]> {
@@ -258,14 +263,27 @@ export class SubscriptionService {
       log.warn(`autopay amount mismatch: expected ${sub.amountPaise}, event says ${paidPaise}`);
       return 'amount-mismatch';
     }
-    if (event.success && event.paymentType === 'CHARGE') await this.recordFirstPayment(sub, paidPaise ?? sub.amountPaise, event, now);
+    if (event.success && event.paymentType === 'CHARGE') {
+      const paidAt = event.occurredAt ?? now;
+      const first = await this.recordFirstPayment(sub, paidPaise ?? sub.amountPaise, event, now);
+      const registrationId = sub.registrationId;
+      if (first) {
+        // The first debit is the payment that unlocks the account: create it after the response.
+        const auto = this.autoProvision;
+        if (auto) afterResponse('auto-provision', () => auto.autoProvision(registrationId));
+      } else {
+        // A later monthly debit: the client is paid up for another month (a no-op until their business exists).
+        const billing = this.billing;
+        if (billing) afterResponse('extend-paid-until', () => billing.extendPaidUntil(registrationId, paidAt, 'monthly'));
+      }
+    }
     return 'updated';
   }
 
   /** The first successful monthly debit makes the request "paid" the same way a paid payment link does. */
-  private async recordFirstPayment(sub: RegistrationSubscription, paidPaise: number, event: Extract<SubscriptionEvent, { kind: 'payment' }>, now: Date): Promise<void> {
+  private async recordFirstPayment(sub: RegistrationSubscription, paidPaise: number, event: Extract<SubscriptionEvent, { kind: 'payment' }>, now: Date): Promise<boolean> {
     const already = await this.prisma.registrationPayment.count({ where: { registrationId: sub.registrationId, status: 'PAID' } });
-    if (already > 0) return;
+    if (already > 0) return false;
     const quote = sub.quote as { description?: string } | null;
     await this.prisma.registrationPayment.create({
       data: {
@@ -286,6 +304,7 @@ export class SubscriptionService {
       },
     });
     await this.prisma.registrationRequest.updateMany({ where: { id: sub.registrationId, status: { in: ['NEW', 'CONTACTED'] } }, data: { status: 'QUALIFIED' } });
+    return true;
   }
 
   private recentCharges(rowId: string) {

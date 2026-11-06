@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { isPricedPlan } from '@nexus/shared';
 import { Injectable } from '@nestjs/common';
 import type { RegistrationPayment, RegistrationRequest } from '@prisma/client';
@@ -61,10 +61,12 @@ export class CustomerPayService {
     if (open) return { outcome: 'link', link: this.linkView(open) };
 
     try {
-      const created = await this.payments.createLink(CUSTOMER_ACTOR, reg.id, {}, now, 'CUSTOMER');
+      // The secret leaves only in this one response; the database keeps its hash.
+      const payerSecret = randomBytes(32).toString('base64url');
+      const created = await this.payments.createLink(CUSTOMER_ACTOR, reg.id, {}, now, 'CUSTOMER', createHash('sha256').update(payerSecret).digest('hex'));
       logger.child({ registrationId: reg.id, source: 'CUSTOMER' }).info('customer started a payment');
       const row = await this.prisma.registrationPayment.findUniqueOrThrow({ where: { id: created.id } });
-      return { outcome: 'link', link: this.linkView(row) };
+      return { outcome: 'link', link: { ...this.linkView(row), payerSecret } };
     } catch (err) {
       // Belt and braces if the lock was ever bypassed: hand back the link that exists instead of failing.
       if (err instanceof ConflictError) {

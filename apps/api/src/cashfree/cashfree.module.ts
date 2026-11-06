@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ProvisioningModule } from '../provisioning/provisioning.module';
 import { CashfreeClient } from './cashfree.client';
 import { CashfreeWebhookController, RegistrationPaymentController } from './cashfree.controller';
 import { CustomerPayController } from './customer-pay.controller';
@@ -13,6 +14,7 @@ import { SubscriptionService } from './subscription.service';
  * answers 503 with a plain message.
  */
 @Module({
+  imports: [ProvisioningModule],
   controllers: [RegistrationPaymentController, CashfreeWebhookController, CustomerPayController, RegistrationSubscriptionController, PublicSubscriptionController],
   providers: [CashfreeClient, RegistrationPaymentService, CustomerPayService, SubscriptionService],
   exports: [CashfreeClient, RegistrationPaymentService],

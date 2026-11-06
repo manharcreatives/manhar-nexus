@@ -61,7 +61,8 @@ function setup(f: Fakes = {}) {
   const createLink = jest.fn().mockResolvedValue({ cfLinkId: '77', linkId: 'x', linkUrl: 'https://pay.test/new', status: 'ACTIVE' });
   const cancelLink = jest.fn().mockResolvedValue(undefined);
   const client = { config: jest.fn().mockReturnValue({}), createLink, cancelLink } as unknown as CashfreeClient;
-  return { service: new RegistrationPaymentService(prisma, client), createLink, cancelLink, create, updateMany, regUpdateMany, client };
+  const autoProvision = jest.fn().mockResolvedValue('created');
+  return { autoProvision, service: new RegistrationPaymentService(prisma, client, { autoProvision } as never), createLink, cancelLink, create, updateMany, regUpdateMany, client };
 }
 
 describe('RegistrationPaymentService.createLink: priced from the plan catalog', () => {
@@ -310,5 +311,81 @@ describe('RegistrationPaymentService.applyLinkEvent', () => {
       expect(await service.applyLinkEvent(paid({ linkStatus }))).toBe('ignored');
       expect(updateMany).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe('RegistrationPaymentService: account creation after a confirmed payment', () => {
+  const PRICED = { ...PAYMENT, planKey: 'floor', billingCycle: 'yearly' };
+  const paid = (over: Record<string, unknown> = {}) => ({ linkId: PAYMENT.linkId, linkStatus: 'PAID', amountPaidRupees: 1500, orderId: 'CFPay_1', ...over });
+  const flush = async () => {
+    for (let i = 0; i < 3; i += 1) await new Promise((r) => setImmediate(r));
+  };
+
+  it('starts account creation exactly once for a PAID plan payment, and only after the call has returned', async () => {
+    const { service, autoProvision } = setup({ payment: PRICED });
+    expect(await service.applyLinkEvent(paid())).toBe('updated');
+    expect(autoProvision).not.toHaveBeenCalled(); // deferred: the webhook answers first
+    await flush();
+    expect(autoProvision).toHaveBeenCalledTimes(1);
+    expect(autoProvision).toHaveBeenCalledWith('reg-1');
+  });
+
+  it('a duplicate or racing webhook does not start it again', async () => {
+    const dup = setup({ payment: { ...PRICED, status: 'PAID' } });
+    expect(await dup.service.applyLinkEvent(paid())).toBe('duplicate');
+    const race = setup({ payment: PRICED, updateCount: 0 });
+    expect(await race.service.applyLinkEvent(paid())).toBe('duplicate');
+    await flush();
+    expect(dup.autoProvision).not.toHaveBeenCalled();
+    expect(race.autoProvision).not.toHaveBeenCalled();
+  });
+
+  it('never starts for an amount mismatch, a typed (override) amount, or an unpaid state', async () => {
+    const mismatch = setup({ payment: PRICED });
+    await mismatch.service.applyLinkEvent(paid({ amountPaidRupees: 1 }));
+    const typed = setup({ payment: PAYMENT }); // planKey null = typed amount
+    await typed.service.applyLinkEvent(paid());
+    const expired = setup({ payment: PRICED });
+    await expired.service.applyLinkEvent(paid({ linkStatus: 'EXPIRED', amountPaidRupees: null }));
+    await flush();
+    expect(mismatch.autoProvision).not.toHaveBeenCalled();
+    expect(typed.autoProvision).not.toHaveBeenCalled();
+    expect(expired.autoProvision).not.toHaveBeenCalled();
+  });
+
+  it('a failing or crashing account creation never reaches the caller (the webhook still answers 200)', async () => {
+    const { service, autoProvision } = setup({ payment: PRICED });
+    autoProvision.mockRejectedValue(new Error('boom'));
+    await expect(service.applyLinkEvent(paid())).resolves.toBe('updated');
+    await flush(); // the rejection is swallowed and logged, not an unhandled rejection
+    expect(autoProvision).toHaveBeenCalledTimes(1);
+  });
+
+  it('works without the provisioning service wired (older tests, scripts)', async () => {
+    const s = setup({ payment: PRICED });
+    const bare = new RegistrationPaymentService({} as never, s.client);
+    expect(bare).toBeTruthy();
+  });
+
+  it('"Check payment" on a link a webhook already marked PAID nudges account creation again (it is idempotent)', async () => {
+    const s = setup({ payment: { ...PRICED, status: 'PAID' } });
+    Object.assign(s.client, {
+      getLink: jest.fn().mockResolvedValue({ cfLinkId: '1', linkId: PAYMENT.linkId, linkUrl: 'u', status: 'PAID', amountPaidRupees: 1500 }),
+      getPaidOrderId: jest.fn().mockResolvedValue('CFPay_1'),
+    });
+    expect((await s.service.refresh('reg-1', 'pay-1')).outcome).toBe('duplicate');
+    await flush();
+    expect(s.autoProvision).toHaveBeenCalledTimes(1);
+  });
+
+  it('"Check payment" that itself discovers the payment starts it once, not twice', async () => {
+    const s = setup({ payment: PRICED });
+    Object.assign(s.client, {
+      getLink: jest.fn().mockResolvedValue({ cfLinkId: '1', linkId: PAYMENT.linkId, linkUrl: 'u', status: 'PAID', amountPaidRupees: 1500 }),
+      getPaidOrderId: jest.fn().mockResolvedValue('CFPay_1'),
+    });
+    expect((await s.service.refresh('reg-1', 'pay-1')).outcome).toBe('updated');
+    await flush();
+    expect(s.autoProvision).toHaveBeenCalledTimes(1);
   });
 });

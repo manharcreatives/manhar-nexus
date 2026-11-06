@@ -1,11 +1,13 @@
 import { randomBytes } from 'node:crypto';
 import { QuoteError, quotePlan, type Quote } from '@nexus/shared';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import type { Prisma, RegistrationPayment } from '@prisma/client';
 import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
 import type { ActorContext } from '../common/tenant-scope';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
+import { AutoProvisionService } from '../provisioning/auto-provision.service';
+import { afterResponse } from './after-response';
 import { CashfreeClient } from './cashfree.client';
 import type { BreakdownLine, CreatePaymentLinkDto, PaymentLinkView } from './cashfree.dto';
 import type { LinkEvent } from './cashfree.events';
@@ -60,6 +62,7 @@ export class RegistrationPaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cashfree: CashfreeClient,
+    @Optional() private readonly autoProvision?: AutoProvisionService,
   ) {}
 
   async list(registrationId: string): Promise<PaymentLinkView[]> {
@@ -71,7 +74,7 @@ export class RegistrationPaymentService {
     return rows.map(toPaymentView);
   }
 
-  async createLink(actor: ActorContext, registrationId: string, dto: CreatePaymentLinkDto, now = new Date(), source: PaymentSource = 'STAFF'): Promise<PaymentLinkView> {
+  async createLink(actor: ActorContext, registrationId: string, dto: CreatePaymentLinkDto, now = new Date(), source: PaymentSource = 'STAFF', payerSecretHash?: string): Promise<PaymentLinkView> {
     const reg = await this.registrationOrThrow(registrationId);
     if (NOT_PAYABLE.has(reg.status)) {
       throw new ValidationError(`Cannot take payment for a ${reg.status.toLowerCase()} request`, { status: reg.status });
@@ -127,6 +130,7 @@ export class RegistrationPaymentService {
         billingCycle,
         quote,
         source,
+        ...(payerSecretHash ? { payerSecretHash } : {}),
       },
     });
     logger.child({ registrationId, linkId, amountPaise, planKey, billingCycle }).info('payment link created');
@@ -186,6 +190,9 @@ export class RegistrationPaymentService {
       now,
     );
     const fresh = await this.prisma.registrationPayment.findUnique({ where: { id: paymentId } });
+    // Already paid before this check (a webhook got there first): its account creation may have been lost, so staff's
+    // "Check payment" nudges it again. The job is idempotent and skips when the account already exists.
+    if (outcome === 'duplicate' && fresh?.status === 'PAID') this.provisionAfterResponse(payment.registrationId);
     return { outcome, payment: toPaymentView(fresh ?? payment) };
   }
 
@@ -224,6 +231,9 @@ export class RegistrationPaymentService {
         data: { status: 'QUALIFIED' },
       });
       log.info('payment received');
+      // Exactly once per payment (the compare-and-set above won): create the restaurant account after the response.
+      // A typed (override) amount has no plan, so a person decides what that payment buys.
+      if (payment.planKey !== null) this.provisionAfterResponse(payment.registrationId);
       return 'updated';
     }
 
@@ -236,6 +246,13 @@ export class RegistrationPaymentService {
     }
 
     return 'ignored'; // ACTIVE, PARTIALLY_PAID (links are created without partial payments), anything new
+  }
+
+  /** Never throws and never delays the caller (a webhook): a lost run is picked up by Check payment or the cron. */
+  private provisionAfterResponse(registrationId: string): void {
+    const auto = this.autoProvision;
+    if (!auto) return;
+    afterResponse('auto-provision', () => auto.autoProvision(registrationId));
   }
 
   private async registrationOrThrow(id: string) {

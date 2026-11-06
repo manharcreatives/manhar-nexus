@@ -24,6 +24,11 @@ export interface CustomerLinkView {
   purpose: string;
   breakdown: BreakdownLine[] | null;
   expiresAt: Date | null;
+  /**
+   * A random secret for the browser that just created this link, present ONLY on the response that created it (we keep
+   * its hash, never the secret). Holding it is what later lets that browser ask for the owner's set-password link.
+   */
+  payerSecret?: string;
 }
 
 export type CustomerPayAnswer =

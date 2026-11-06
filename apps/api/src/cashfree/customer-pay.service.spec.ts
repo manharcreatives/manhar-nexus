@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
 import type { PrismaService } from '../prisma/prisma.service';
 import { customerPayAvailable, customerPayFlag } from './customer-pay.config';
@@ -101,7 +102,12 @@ describe('CustomerPayService.pay', () => {
     const { service, createLink } = setup();
     const answer = await service.pay(ASK, NOW);
     expect(createLink).toHaveBeenCalledTimes(1);
-    expect(createLink.mock.calls[0]?.slice(1)).toEqual(['reg-1', {}, NOW, 'CUSTOMER']);
+    const call = createLink.mock.calls[0] as unknown[];
+    expect(call.slice(1, 5)).toEqual(['reg-1', {}, NOW, 'CUSTOMER']);
+    // Only the hash of the payer secret goes to the database; the secret itself is in the answer, once.
+    const secret = (answer as { link: { payerSecret: string } }).link.payerSecret;
+    expect(secret.length).toBeGreaterThanOrEqual(43);
+    expect(call[5]).toBe(createHash('sha256').update(secret).digest('hex'));
     expect(answer).toEqual({
       outcome: 'link',
       link: {
@@ -110,6 +116,7 @@ describe('CustomerPayService.pay', () => {
         purpose: 'Manhar Nexus Floor, yearly',
         breakdown: [{ label: 'Floor plan, yearly', amountPaise: 974_000 }],
         expiresAt: ROW.expiresAt,
+        payerSecret: secret,
       },
     });
     expect(JSON.stringify(answer)).not.toMatch(/reg-1|pay-1|NX-ABC123|asha@/);

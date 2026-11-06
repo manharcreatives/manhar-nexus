@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { AutoProvisionService } from '../src/provisioning/auto-provision.service';
 import { applyHttpDefaults } from '../src/app.factory';
 import { CashfreeClient } from '../src/cashfree/cashfree.client';
 import type { CashfreeConfig } from '../src/cashfree/cashfree.config';
@@ -375,6 +376,65 @@ describe('Cashfree payment links (e2e)', () => {
       const outcomes = results.map((r) => r.body.outcome as string);
       expect(outcomes.filter((o) => o === 'updated')).toHaveLength(1);
       expect(outcomes.filter((o) => o === 'duplicate')).toHaveLength(5);
+    });
+
+    describe('automatic account creation after a confirmed payment', () => {
+      const settle = async () => {
+        for (let i = 0; i < 4; i += 1) await new Promise((r) => setImmediate(r));
+      };
+      /** A fresh lead on a priced plan with a quoted link (Counter monthly = 599 + 18% GST = 706.82). */
+      async function pricedLead() {
+        const lead = await createLead({ planKey: 'counter', billingCycle: 'monthly' });
+        stubCashfreeLink();
+        const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, {});
+        expect(res.status).toBe(201);
+        return { lead, linkId: res.body.linkId as string };
+      }
+
+      it('starts exactly once for a paid, correctly priced plan, after the webhook has answered; retries do not start it again', async () => {
+        const auto = jest.spyOn(app.get(AutoProvisionService), 'autoProvision').mockResolvedValue('created');
+        try {
+          const { lead, linkId } = await pricedLead();
+          const first = await webhook(linkEvent(linkId, { paid: 706.82 }));
+          expect(first.status).toBe(200);
+          expect(first.body.outcome).toBe('updated');
+          const dup = await webhook(linkEvent(linkId, { paid: 706.82 }));
+          expect(dup.body.outcome).toBe('duplicate');
+          await settle();
+          expect(auto).toHaveBeenCalledTimes(1);
+          expect(auto).toHaveBeenCalledWith(lead.id);
+        } finally {
+          auto.mockRestore();
+        }
+      });
+
+      it('never starts for a typed (override) amount or a wrong amount', async () => {
+        const auto = jest.spyOn(app.get(AutoProvisionService), 'autoProvision').mockResolvedValue('created');
+        try {
+          const typed = await leadWithLink(1500);
+          expect((await webhook(linkEvent(typed.payment.linkId))).body.outcome).toBe('updated');
+          const { linkId } = await pricedLead();
+          expect((await webhook(linkEvent(linkId, { paid: 1 }))).body.outcome).toBe('amount-mismatch');
+          await settle();
+          expect(auto).not.toHaveBeenCalled();
+        } finally {
+          auto.mockRestore();
+        }
+      });
+
+      it('a crash inside account creation still gets the webhook a 200 and the payment stays PAID', async () => {
+        const auto = jest.spyOn(app.get(AutoProvisionService), 'autoProvision').mockRejectedValue(new Error('boom'));
+        try {
+          const { linkId } = await pricedLead();
+          const res = await webhook(linkEvent(linkId, { paid: 706.82 }));
+          expect(res.status).toBe(200);
+          await settle();
+          expect(auto).toHaveBeenCalledTimes(1);
+          expect((await prisma.registrationPayment.findUniqueOrThrow({ where: { linkId } })).status).toBe('PAID');
+        } finally {
+          auto.mockRestore();
+        }
+      });
     });
 
     it('does not treat a wrong amount as paid: AMOUNT_MISMATCH, request not qualified', async () => {
