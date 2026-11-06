@@ -4,7 +4,11 @@ import { PasswordService } from '../iam/password.service';
 import { ModulesModule } from '../modules/modules.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { AutoProvisionService } from './auto-provision.service';
+import { AttentionController } from './attention.controller';
 import { BillingRecordService } from './billing-record.service';
+import { ClaimPublicController, ClaimStaffController } from './claim.controller';
+import { ClaimService } from './claim.service';
+import { CronController } from './cron.controller';
 import { RegistrationProvisioningController } from './registration-provisioning.controller';
 import { RegistrationProvisioningService } from './registration-provisioning.service';
 
@@ -14,8 +18,8 @@ import { RegistrationProvisioningService } from './registration-provisioning.ser
  */
 @Module({
   imports: [CoreModule, ModulesModule, OnboardingModule],
-  controllers: [RegistrationProvisioningController],
-  providers: [RegistrationProvisioningService, AutoProvisionService, BillingRecordService, PasswordService],
-  exports: [AutoProvisionService, BillingRecordService],
+  controllers: [RegistrationProvisioningController, ClaimPublicController, ClaimStaffController, CronController, AttentionController],
+  providers: [RegistrationProvisioningService, AutoProvisionService, BillingRecordService, ClaimService, PasswordService],
+  exports: [AutoProvisionService, BillingRecordService, ClaimService],
 })
 export class ProvisioningModule {}
