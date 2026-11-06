@@ -131,4 +131,70 @@ describe('/pay/return', () => {
     expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
     expect(document.querySelector('a[href^="https://wa.me/"]')).not.toBeNull();
   });
+
+  it('shows "Payment received" as soon as the server says it is paid, even while the account is still being made', async () => {
+    rememberPayerSecret('NX-7K2Q9M', 'secret-1');
+    open('?code=NX-7K2Q9M');
+    fetchMock.mockResolvedValue(reply(200, { status: 'pending', paid: true }));
+    render(<PayReturnApp />);
+    await enter('1522');
+    expect(await screen.findByText('Payment received. Thank you!')).toBeTruthy();
+    expect(screen.getByText(/confirming your payment|setting up/i)).toBeTruthy();
+  });
+
+  it('does not say payment received while it is not paid yet', async () => {
+    rememberPayerSecret('NX-7K2Q9M', 'secret-1');
+    open('?code=NX-7K2Q9M');
+    fetchMock.mockResolvedValue(reply(200, { status: 'pending', paid: false }));
+    render(<PayReturnApp />);
+    await enter('1522');
+    await screen.findByText(/confirming your payment/);
+    expect(screen.queryByText('Payment received. Thank you!')).toBeNull();
+  });
+
+  it('keeps the digits editable while polling: a corrected number restarts the polling at once', async () => {
+    rememberPayerSecret('NX-7K2Q9M', 'secret-1');
+    open('?code=NX-7K2Q9M');
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchMock.mockResolvedValueOnce(reply(200, { status: 'pending' })).mockResolvedValue(reply(200, { status: 'ready', token: TOKEN, expiresAt: '2026-11-10T00:00:00Z' }));
+    render(<PayReturnApp />);
+    await enter('0000');
+    await screen.findByText(/confirming your payment/);
+    const input = screen.getByLabelText('Last 4 digits of your mobile number') as HTMLInputElement;
+    expect(input.disabled).toBe(false);
+    fireEvent.change(input, { target: { value: '1522' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Try these digits' }));
+    const link = await screen.findByRole('link', { name: 'Set your password' });
+    expect(link.getAttribute('href')).toBe('/set-password#t=' + TOKEN);
+    const bodies = issueCalls().map((c) => JSON.parse((c[1] as RequestInit).body as string).phoneLast4);
+    expect(bodies).toEqual(['0000', '1522']);
+  });
+
+  it('removes the payer secret from this browser once the link is ready', async () => {
+    rememberPayerSecret('NX-7K2Q9M', 'secret-1');
+    open('?code=NX-7K2Q9M');
+    fetchMock.mockResolvedValue(reply(200, { status: 'ready', token: TOKEN, expiresAt: '2026-11-10T00:00:00Z' }));
+    render(<PayReturnApp />);
+    await enter('1522');
+    await screen.findByRole('link', { name: 'Set your password' });
+    expect(window.localStorage.getItem('nx.payer.NX-7K2Q9M')).toBeNull();
+  });
+
+  it('a typo does not cost the secret, but five "not for you" answers in a row do', async () => {
+    rememberPayerSecret('NX-7K2Q9M', 'secret-1');
+    open('?code=NX-7K2Q9M');
+    fetchMock.mockResolvedValue(reply(404));
+    render(<PayReturnApp />);
+    await enter('0000');
+    await screen.findByText(/did not match/);
+    expect(window.localStorage.getItem('nx.payer.NX-7K2Q9M')).toBe('secret-1');
+    for (let i = 0; i < 4; i++) {
+      fireEvent.click(screen.getByRole('button', { name: /Continue|Try these digits/ }));
+      await waitFor(() => expect(issueCalls()).toHaveLength(i + 2));
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    await waitFor(() => expect(window.localStorage.getItem('nx.payer.NX-7K2Q9M')).toBeNull());
+  });
 });

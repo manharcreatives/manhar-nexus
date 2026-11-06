@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
 import type { PrismaService } from '../prisma/prisma.service';
 import { customerPayAvailable, customerPayFlag } from './customer-pay.config';
@@ -28,22 +27,27 @@ const ROW = {
 const ASK = { referenceCode: 'NX-ABC123', email: 'asha@example.com' };
 const NOW = new Date('2026-11-06T10:00:00Z');
 
-function setup(f: { reg?: unknown; paid?: unknown; open?: unknown[]; created?: unknown } = {}) {
+function setup(f: { reg?: unknown; paid?: unknown; open?: unknown[]; created?: unknown; claims?: number[] } = {}) {
+  const claimQueue = [...(f.claims ?? [])];
   const openQueue = [...(f.open ?? [])];
   const findFirst = jest.fn(async ({ where }: { where: { status: string } }) => {
     if (where.status === 'PAID') return f.paid ?? null;
     return openQueue.length > 0 ? openQueue.shift() : null;
   });
   const fake = {
-    registrationRequest: { findUnique: jest.fn().mockResolvedValue('reg' in f ? f.reg : REG) },
+    registrationRequest: {
+      findUnique: jest.fn().mockResolvedValue('reg' in f ? f.reg : REG),
+      // A claim attempt carries data.payLockedAt (a Date); a release carries null. Claims succeed unless told otherwise.
+      updateMany: jest.fn(async ({ data }: { data: { payLockedAt: Date | null } }) => ({ count: data.payLockedAt === null ? 1 : (claimQueue.length > 0 ? claimQueue.shift() : 1) })),
+    },
     registrationPayment: { findFirst, findUniqueOrThrow: jest.fn().mockResolvedValue(f.created ?? ROW) },
-    $executeRaw: jest.fn().mockResolvedValue(1),
+    // No $transaction and no $executeRaw on purpose: pay() must never need either (one pooled connection).
   };
-  const prisma = { ...fake, $transaction: async (fn: (tx: unknown) => unknown) => fn(fake) } as unknown as PrismaService;
+  const prisma = fake as unknown as PrismaService;
   const createLink = jest.fn().mockResolvedValue({ id: 'pay-1' });
   const refresh = jest.fn().mockResolvedValue({});
   const payments = { createLink, refresh } as unknown as RegistrationPaymentService;
-  return { service: new CustomerPayService(prisma, payments), createLink, refresh, findFirst };
+  return { service: new CustomerPayService(prisma, payments), createLink, refresh, findFirst, claim: fake.registrationRequest.updateMany };
 }
 
 const saved = { ...process.env };
@@ -98,16 +102,12 @@ describe('CustomerPayService.pay', () => {
     expect((unknown as Error).message).toBe((wrong as Error).message);
   });
 
-  it('creates the link from the server quote only (empty body to createLink, source CUSTOMER) and returns just the link fields', async () => {
-    const { service, createLink } = setup();
+  it('creates the link from the server quote only (empty body to createLink, source CUSTOMER) and returns just the link fields, never a secret', async () => {
+    const { service, createLink, claim } = setup();
     const answer = await service.pay(ASK, NOW);
     expect(createLink).toHaveBeenCalledTimes(1);
     const call = createLink.mock.calls[0] as unknown[];
-    expect(call.slice(1, 5)).toEqual(['reg-1', {}, NOW, 'CUSTOMER']);
-    // Only the hash of the payer secret goes to the database; the secret itself is in the answer, once.
-    const secret = (answer as { link: { payerSecret: string } }).link.payerSecret;
-    expect(secret.length).toBeGreaterThanOrEqual(43);
-    expect(call[5]).toBe(createHash('sha256').update(secret).digest('hex'));
+    expect(call.slice(1)).toEqual(['reg-1', {}, NOW, 'CUSTOMER']);
     expect(answer).toEqual({
       outcome: 'link',
       link: {
@@ -116,12 +116,18 @@ describe('CustomerPayService.pay', () => {
         purpose: 'Manhar Nexus Floor, yearly',
         breakdown: [{ label: 'Floor plan, yearly', amountPaise: 974_000 }],
         expiresAt: ROW.expiresAt,
-        payerSecret: secret,
       },
-      // Also at the top level: the web reads it there (a contract; both places stay).
-      payerSecret: secret,
     });
-    expect(JSON.stringify(answer)).not.toMatch(/reg-1|pay-1|NX-ABC123|asha@/);
+    expect(JSON.stringify(answer)).not.toMatch(/reg-1|pay-1|NX-ABC123|asha@|[Ss]ecret/);
+    // The claim was taken before Cashfree was called and released after, with no transaction involved.
+    expect(claim.mock.calls.map((c) => (c[0] as { data: { payLockedAt: Date | null } }).data.payLockedAt === null)).toEqual([false, true]);
+  });
+
+  it('releases the claim even when Cashfree fails', async () => {
+    const { service, createLink, claim } = setup();
+    createLink.mockRejectedValueOnce(new Error('cashfree down'));
+    await expect(service.pay(ASK, NOW)).rejects.toThrow('cashfree down');
+    expect((claim.mock.calls.at(-1)?.[0] as { data: { payLockedAt: Date | null } }).data.payLockedAt).toBeNull();
   });
 
   it('returns the existing open link instead of making a second one', async () => {
@@ -151,9 +157,23 @@ describe('CustomerPayService.pay', () => {
   it('two taps at once: the loser gets the winner\'s link, not an error and not a second link', async () => {
     const { service, createLink } = setup({ open: [] });
     createLink.mockRejectedValueOnce(new ConflictError('already open', { openLinkIds: ['pay-1'] }));
-    // first openLink() (before create) finds nothing; the re-check after the conflict finds the winner's link
+    // the two openLink() looks before create find nothing; the re-check after the conflict finds the winner's link
+    const queue: unknown[] = [null, null, ROW];
+    (service as unknown as { openLink: () => Promise<unknown> }).openLink = async () => queue.shift() ?? null;
+    expect((await service.pay(ASK, NOW)).outcome).toBe('link');
+    expect(createLink).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tap that cannot take the claim waits for the other tap and returns ITS link (one Cashfree call in total)', async () => {
+    const { service, createLink } = setup({ claims: [0] });
     const queue: unknown[] = [null, ROW];
     (service as unknown as { openLink: () => Promise<unknown> }).openLink = async () => queue.shift() ?? null;
+    expect((await service.pay(ASK, NOW)).outcome).toBe('link');
+    expect(createLink).not.toHaveBeenCalled();
+  });
+
+  it('a tap that waits while the other one crashed takes over after its claim frees up', async () => {
+    const { service, createLink } = setup({ claims: [0, 1] });
     expect((await service.pay(ASK, NOW)).outcome).toBe('link');
     expect(createLink).toHaveBeenCalledTimes(1);
   });

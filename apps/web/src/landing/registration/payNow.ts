@@ -44,8 +44,8 @@ export interface PayLink {
 }
 
 export type PayResult =
-  /** `payerSecret` is sent once, when the link is first created; keep it to claim the account after paying. */
-  | { readonly kind: 'link'; readonly link: PayLink; readonly payerSecret?: string }
+  /** No secret travels with the link: the payer secret was handed out at registration, not here. */
+  | { readonly kind: 'link'; readonly link: PayLink }
   | { readonly kind: 'paid' }
   | { readonly kind: 'contact-us' }
   | { readonly kind: 'failed' };
@@ -88,10 +88,7 @@ export async function requestPayLink(who: { referenceCode: string; email: string
   if (body.outcome === 'contact-us') return { kind: 'contact-us' };
   const link = isRecord(body.link) ? body.link : null;
   if (body.outcome === 'link' && link && typeof link.linkUrl === 'string' && typeof link.amountPaise === 'number' && /^https:\/\//.test(link.linkUrl)) {
-    // The API sends the secret (only when the link is first created) at the top level and inside `link`: read both.
-    const raw = typeof body.payerSecret === 'string' && body.payerSecret.length > 0 ? body.payerSecret : link.payerSecret;
-    const secret = typeof raw === 'string' && raw.length > 0 ? raw : undefined;
-    return { kind: 'link', link: { linkUrl: link.linkUrl, amountPaise: link.amountPaise }, ...(secret ? { payerSecret: secret } : {}) };
+    return { kind: 'link', link: { linkUrl: link.linkUrl, amountPaise: link.amountPaise } };
   }
   return { kind: 'failed' };
 }

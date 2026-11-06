@@ -66,7 +66,7 @@ describe('RegistrationService.submit: abuse caps tell the truth', () => {
   it('still answers bots (honeypot filled) with the same acknowledgement, storing the row as SPAM', async () => {
     const { service, create } = setup();
     const ack = await service.submit({ ...dto, website: 'http://spam.example' }, META);
-    expect(Object.keys(ack).sort()).toEqual(['ok', 'referenceCode']);
+    expect(Object.keys(ack).sort()).toEqual(['ok', 'payerSecret', 'referenceCode']);
     expect(create.mock.calls[0]?.[0].data.status).toBe('SPAM');
   });
 

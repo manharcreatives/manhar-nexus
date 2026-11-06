@@ -50,6 +50,8 @@ describe('Auto-provisioning after payment (e2e)', () => {
         billingCycle: over.cycle ?? 'yearly',
         consentVersion: CONSENT_VERSIONS[0],
         consentAt: new Date(),
+        // The payer secret belongs to the registration (minted at submit), not to a payment.
+        ...(over.payment && over.payment.payerSecret ? { payerSecretHash: sha(over.payment.payerSecret) } : {}),
       },
     });
     if (over.payment !== null) {
@@ -68,7 +70,6 @@ describe('Auto-provisioning after payment (e2e)', () => {
           planKey: p.planKey === undefined ? (over.planKey ?? 'floor') : p.planKey,
           billingCycle: over.cycle ?? 'yearly',
           source: p.source ?? 'CUSTOMER',
-          ...(p.payerSecret ? { payerSecretHash: sha(p.payerSecret) } : {}),
         },
       });
     }
@@ -193,12 +194,14 @@ describe('Auto-provisioning after payment (e2e)', () => {
       const previous = process.env.CRON_SECRET;
       delete process.env.CRON_SECRET;
       expect((await request(http()).get('/internal/cron/provision')).status).toBe(503);
-      process.env.CRON_SECRET = 'e2e-cron-secret-value';
+      process.env.CRON_SECRET = 'too-short';
+      expect((await request(http()).get('/internal/cron/provision').set('authorization', 'Bearer too-short')).status).toBe(503);
+      process.env.CRON_SECRET = 'e2e-cron-secret-value-0123456789-abcdef';
       try {
         expect((await request(http()).get('/internal/cron/provision')).status).toBe(401);
         expect((await request(http()).get('/internal/cron/provision').set('authorization', 'Bearer nope')).status).toBe(401);
         expect((await request(http()).get('/internal/cron/provision').set('authorization', `Bearer ${platformToken}`)).status).toBe(401);
-        const ok = await request(http()).get('/internal/cron/provision').set('authorization', 'Bearer e2e-cron-secret-value');
+        const ok = await request(http()).get('/internal/cron/provision').set('authorization', 'Bearer e2e-cron-secret-value-0123456789-abcdef');
         expect(ok.status).toBe(200);
         expect(ok.body).toHaveProperty('attempted');
       } finally {
@@ -253,7 +256,7 @@ describe('Auto-provisioning after payment (e2e)', () => {
       const unpaid = await createLead({ payment: { status: 'CREATED', paidAmountPaise: null, payerSecret: SECRET } });
       const pending = await issue(unpaid.referenceCode, PHONE4, SECRET);
       expect(pending.status).toBe(200);
-      expect(pending.body).toEqual({ status: 'pending' });
+      expect(pending.body).toEqual({ status: 'pending', paid: false });
       expect(await businessOf(unpaid.id)).toBeNull();
 
       const paid = await createLead({ payment: { payerSecret: SECRET } });
@@ -304,6 +307,32 @@ describe('Auto-provisioning after payment (e2e)', () => {
       await prisma.registrationRequest.update({ where: { id: taken.id }, data: { email: other.email } });
       const res = await issue(taken.referenceCode, PHONE4, SECRET);
       expect(res.body).toEqual({ status: 'manual' });
+    });
+
+    it('an AMOUNT_MISMATCH payment is "manual" at once (the payer is not left on "pending" forever)', async () => {
+      const lead = await createLead({ payment: { payerSecret: SECRET, status: 'AMOUNT_MISMATCH', paidAmountPaise: 100 } });
+      expect((await issue(lead.referenceCode, PHONE4, SECRET)).body).toEqual({ status: 'manual' });
+      expect(await businessOf(lead.id)).toBeNull();
+    });
+
+    it('after the owner used a link to set a password, the secret cannot mint another one before the first sign-in', async () => {
+      const lead = await createLead({ payment: { payerSecret: SECRET } });
+      const token = (await issue(lead.referenceCode, PHONE4, SECRET)).body.token as string;
+      expect((await redeem(token, 'First-Password-1!')).status).toBe(200);
+      const again = await issue(lead.referenceCode, PHONE4, SECRET);
+      expect(again.status).toBe(404);
+      expect(again.body.token).toBeUndefined();
+      // Staff can still re-issue deliberately.
+      expect((await pPost('/internal/registrations/' + lead.id + '/claim-link')).status).toBe(200);
+    });
+
+    it('the registration the staff see says whether the account was created automatically', async () => {
+      const lead = await createLead({ payment: { payerSecret: SECRET } });
+      expect((await pGet('/internal/registrations/' + lead.id)).body.autoProvisioned).toBe(false);
+      await auto.autoProvision(lead.id);
+      const view = await pGet('/internal/registrations/' + lead.id);
+      expect(view.body.autoProvisioned).toBe(true);
+      expect(JSON.stringify(view.body)).not.toMatch(/payerSecretHash|provisioning/);
     });
 
     it('wrong guesses are counted per code and caller, so one bad caller does not use up the code for everyone', async () => {

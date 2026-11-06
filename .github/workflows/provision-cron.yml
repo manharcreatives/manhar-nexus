@@ -34,6 +34,10 @@ jobs:
             echo "APP_URL or CRON_SECRET is not set; skipping."
             exit 0
           fi
+          case "$APP_URL" in
+            https://*) ;;
+            *) echo "::error::APP_URL must start with https:// (the secret is sent in a header)"; exit 1 ;;
+          esac
           status=$(curl --silent --show-error --max-time 90 --output /tmp/body.txt --write-out '%{http_code}' \
             --header "Authorization: Bearer ${CRON_SECRET}" \
             "${APP_URL%/}/api/internal/cron/provision")

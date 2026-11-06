@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, RegistrationStatus, type RegistrationPayment, type RegistrationRequest } from '@prisma/client';
@@ -31,14 +32,16 @@ export interface SubmitMeta {
 }
 
 /** Staff-facing projection: everything except the (pseudonymous) ipHash. */
-export type RegistrationView = Omit<RegistrationRequest, 'ipHash'> & { payments: PaymentLinkView[] };
+export type RegistrationView = Omit<RegistrationRequest, 'ipHash' | 'payerSecretHash' | 'payLockedAt'> & { payments: PaymentLinkView[]; autoProvisioned: boolean };
 
 /** The newest few payment links ride along with every request staff look at. */
-const WITH_PAYMENTS = { payments: { orderBy: { createdAt: 'desc' as const }, take: 5 } };
+const WITH_PAYMENTS = { payments: { orderBy: { createdAt: 'desc' as const }, take: 5 }, provisioning: { select: { input: true } } };
 
-function toView(row: RegistrationRequest & { payments?: RegistrationPayment[] }): RegistrationView {
-  const { ipHash: _ipHash, payments, ...view } = row;
-  return { ...view, payments: (payments ?? []).map(toPaymentView) };
+function toView(row: RegistrationRequest & { payments?: RegistrationPayment[]; provisioning?: { input: unknown } | null }): RegistrationView {
+  const { ipHash: _ipHash, payerSecretHash: _secretHash, payLockedAt: _payLockedAt, payments, provisioning, ...view } = row;
+  // True when the account was created by the payment itself (no staff click): the job input carries auto: true.
+  const autoProvisioned = (provisioning?.input as { auto?: unknown } | null | undefined)?.auto === true;
+  return { ...view, payments: (payments ?? []).map(toPaymentView), autoProvisioned };
 }
 
 @Injectable()
@@ -84,7 +87,10 @@ export class RegistrationService {
     const spamReason = this.spamReason(dto, now);
     const status: RegistrationStatus = spamReason ? RegistrationStatus.SPAM : RegistrationStatus.NEW;
 
+    // Minted here and nowhere else: it leaves in this one response; the database keeps only its hash.
+    const payerSecret = randomBytes(32).toString('base64url');
     const row = await this.createWithUniqueReference({
+      payerSecretHash: createHash('sha256').update(payerSecret).digest('hex'),
       status,
       restaurantName: dto.restaurantName,
       contactName: dto.contactName,
@@ -106,7 +112,7 @@ export class RegistrationService {
     logger
       .child({ reference: row.referenceCode, registrationId: row.id })
       .info(spamReason ? `registration stored as SPAM: ${spamReason}` : 'registration received');
-    return { ok: true, referenceCode: row.referenceCode };
+    return { ok: true, referenceCode: row.referenceCode, payerSecret };
   }
 
   /** Honeypot filled, or the form was "completed" faster than a human can. */

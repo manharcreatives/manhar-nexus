@@ -24,16 +24,11 @@ export interface CustomerLinkView {
   purpose: string;
   breakdown: BreakdownLine[] | null;
   expiresAt: Date | null;
-  /**
-   * A random secret for the browser that just created this link, present ONLY on the response that created it (we keep
-   * its hash, never the secret). Holding it is what later lets that browser ask for the owner's set-password link.
-   */
-  payerSecret?: string;
 }
 
 export type CustomerPayAnswer =
-  /** `payerSecret` (also inside `link`) is present only on the response that created the link. */
-  | { outcome: 'link'; link: CustomerLinkView; payerSecret?: string }
+  /** No secret is ever returned here: the payer secret is minted at registration, not at Pay now. */
+  | { outcome: 'link'; link: CustomerLinkView }
   /** Already paid: nothing more to pay. */
   | { outcome: 'paid' }
   /** Many Doors, "not sure", or a request staff are already handling: a person will quote and send the link. */

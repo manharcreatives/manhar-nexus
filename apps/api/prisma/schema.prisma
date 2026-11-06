@@ -1970,6 +1970,12 @@ model RegistrationRequest {
   internalNotes  String?
   /// Set when converted to a tenant (no FK on purpose: the lead outlives a deleted test business).
   businessId     String?            @db.Uuid
+  /// sha256 of a random secret handed ONLY to the browser that submitted the registration form (never again, never
+  /// via Pay now). Whoever holds it, with the reference code and the last four phone digits, may claim the owner login.
+  payerSecretHash String?
+  /// Short-lived claim taken while a customer "Pay now" creates the Cashfree link (compare-and-set, instance-safe).
+  /// No transaction or advisory lock is ever held across the network call.
+  payLockedAt    DateTime?          @db.Timestamptz(6)
   createdAt      DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime           @updatedAt @db.Timestamptz(6)
 

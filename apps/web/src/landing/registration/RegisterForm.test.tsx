@@ -220,6 +220,26 @@ describe('RegisterForm: submitting', () => {
     expect(body.message).toBeUndefined();
   });
 
+  it('stores the payer secret from the registration response (real shape) in this browser, under the reference code', async () => {
+    window.localStorage.clear();
+    const secret = 'Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5MGFiY2RlZmdoaWo';
+    const fetchImpl = vi.fn().mockResolvedValue(reply(202, { ok: true, referenceCode: 'NX-7K2Q9M', payerSecret: secret }));
+    setup(fetchImpl);
+    fillValid();
+    submit();
+    await screen.findByTestId('reference-code');
+    expect(window.localStorage.getItem('nx.payer.NX-7K2Q9M')).toBe(secret);
+  });
+
+  it('works when the response has no secret (and when storage is blocked)', async () => {
+    window.localStorage.clear();
+    setup(vi.fn().mockResolvedValue(ok()));
+    fillValid();
+    submit();
+    await screen.findByTestId('reference-code');
+    expect(window.localStorage.getItem('nx.payer.NX-7K2Q9M')).toBeNull();
+  });
+
   it('leaves the honeypot untouched when a human fills the form', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(ok());
     const { container } = setup(fetchImpl);

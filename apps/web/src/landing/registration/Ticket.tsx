@@ -4,7 +4,7 @@ import { buildWhatsAppUrl, registrationSuccess, type BeginMode } from '../conten
 import { copyText } from '../sectionsC/clipboard';
 import { Copy, MessageCircle } from '../sectionsC/icons';
 import { nextSteps } from './nextSteps';
-import { CLAIM_COPY, lastFourDigits, rememberPayerSecret, setPasswordHref, supportWhatsAppUrl } from './claim';
+import { CLAIM_COPY, lastFourDigits, setPasswordHref, supportWhatsAppUrl } from './claim';
 import { fetchPayAvailable, fetchPaid, PAY_COPY, PAYABLE_PLANS, priceLine, requestPayLink } from './payNow';
 import type { SubmitOptions } from './submit';
 import { useClaimFlow } from './useClaimFlow';
@@ -78,7 +78,6 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
     setPayState('busy');
     const result = await requestPayLink(who, payOptions);
     if (result.kind === 'link') {
-      if (result.payerSecret) rememberPayerSecret(referenceCode, result.payerSecret);
       window.location.assign(result.link.linkUrl);
       return;
     }

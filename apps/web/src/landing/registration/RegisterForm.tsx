@@ -27,6 +27,7 @@ import { emitBuddy, setBuddyProgress } from './buddy/store';
 import { Field } from './Field';
 import { FallbackActions } from './FallbackActions';
 import { submitRegistration, type SubmitFailureKind, type SubmitOptions } from './submit';
+import { rememberPayerSecret } from './claim';
 import { RegistrationTicket } from './Ticket';
 import { fieldId, formatMobileDisplay, orderedErrors, sanitizeOutlets, sanitizePhoneInput, validateField } from './validation';
 
@@ -193,6 +194,8 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
     const result = await submitRegistration(toRegistrationPayload(values, startedAt.current), submitOptions);
     if (!mounted.current) return;
     if (result.ok) {
+      // The payer secret is handed out once, here, to the browser that submitted the form (never by Pay now).
+      if (result.payerSecret) rememberPayerSecret(result.referenceCode, result.payerSecret);
       setReference(result.referenceCode);
       setPhase('success');
       emitBuddy({ type: 'success', referenceCode: result.referenceCode });

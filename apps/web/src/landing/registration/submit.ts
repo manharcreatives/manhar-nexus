@@ -9,7 +9,8 @@ export const REQUEST_TIMEOUT_MS = 15_000;
 export type SubmitFailureKind = 'rate-limit' | 'already-received' | 'network' | 'server' | 'validation';
 
 export type SubmitResult =
-  | { readonly ok: true; readonly referenceCode: string }
+  /** `payerSecret` is the one-time secret for THIS browser (sent once, at registration); keep it to claim the account. */
+  | { readonly ok: true; readonly referenceCode: string; readonly payerSecret?: string }
   | {
       readonly ok: false;
       readonly kind: SubmitFailureKind;
@@ -119,7 +120,8 @@ export async function submitRegistration(payload: RegistrationPayload, options: 
     if (res.ok) {
       const body = await readJson(res);
       const code = isRecord(body) && typeof body.referenceCode === 'string' ? body.referenceCode : '';
-      if (REFERENCE_RE.test(code)) return { ok: true, referenceCode: code };
+      const secret = isRecord(body) && typeof body.payerSecret === 'string' && body.payerSecret.length >= 16 ? body.payerSecret : undefined;
+      if (REFERENCE_RE.test(code)) return { ok: true, referenceCode: code, ...(secret ? { payerSecret: secret } : {}) };
       return { ok: false, kind: 'server', status: res.status };
     }
 

@@ -245,6 +245,8 @@
   },
   "payReturn": {
     "pageTitle": "Payment received",
+    "paymentReceived": "Payment received. Thank you!",
+    "tryAgainDigits": "Try these digits",
     "title": "Thank you for paying",
     "noCode": "We could not find your reference code in this link. Message us on WhatsApp and we will help you right away.",
     "otherDevice": "To sign in instantly, open this page on the same phone or computer where you paid. Or message us on WhatsApp with your reference {{code}} and we will send you the link.",

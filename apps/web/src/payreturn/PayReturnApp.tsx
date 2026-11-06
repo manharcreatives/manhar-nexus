@@ -42,7 +42,9 @@ export default function PayReturnApp() {
   }
 
   const waiting = flow.state === 'pending';
-  const showForm = hasSecret && (flow.state === 'idle' || flow.state === 'unknown');
+  const paidSeen = flow.state === 'ready' || (flow.state === 'pending' && flow.paid);
+  // The last-four field stays editable while we poll, so a typo is fixed at once (a new submit restarts the polling).
+  const showForm = hasSecret && flow.state !== 'ready';
 
   return (
     <main className="grid min-h-screen place-items-center bg-paper px-4 py-6 text-ink">
@@ -100,11 +102,12 @@ export default function PayReturnApp() {
                     {t('payReturn.noMatch')}
                   </p>
                 ) : null}
-                <Button type="submit">{t('payReturn.continue')}</Button>
+                <Button type="submit">{waiting ? t('payReturn.tryAgainDigits') : t('payReturn.continue')}</Button>
               </form>
             ) : null}
 
             <div role="status" aria-live="polite" className="space-y-3">
+              {paidSeen ? <p className="font-medium">{t('payReturn.paymentReceived')}</p> : null}
               {waiting ? (
                 <>
                   <p>{t('payReturn.pending')}</p>

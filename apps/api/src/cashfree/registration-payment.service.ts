@@ -74,7 +74,7 @@ export class RegistrationPaymentService {
     return rows.map(toPaymentView);
   }
 
-  async createLink(actor: ActorContext, registrationId: string, dto: CreatePaymentLinkDto, now = new Date(), source: PaymentSource = 'STAFF', payerSecretHash?: string): Promise<PaymentLinkView> {
+  async createLink(actor: ActorContext, registrationId: string, dto: CreatePaymentLinkDto, now = new Date(), source: PaymentSource = 'STAFF'): Promise<PaymentLinkView> {
     const reg = await this.registrationOrThrow(registrationId);
     if (NOT_PAYABLE.has(reg.status)) {
       throw new ValidationError(`Cannot take payment for a ${reg.status.toLowerCase()} request`, { status: reg.status });
@@ -115,8 +115,9 @@ export class RegistrationPaymentService {
       purpose,
       customer: { name: reg.contactName, email: reg.email, phone: reg.phone.replace(/\D/g, '').slice(-10) },
       expiresAt,
-      // After paying on Cashfree the owner is sent back to our page, which finds their account link. Staff-made links
-      // go out over WhatsApp, where nobody holds a payer secret, so only the owner's own link needs it.
+      // After paying on Cashfree the owner is sent back to our page, which finds their account link (it needs the secret
+      // kept in the browser that submitted the registration). Staff-made links go out over WhatsApp, so only the owner's
+      // own link needs the return page.
       ...(source === 'CUSTOMER' ? this.returnUrlFor(reg.referenceCode) : {}),
     });
     const row = await this.prisma.registrationPayment.create({
@@ -133,7 +134,6 @@ export class RegistrationPaymentService {
         billingCycle,
         quote,
         source,
-        ...(payerSecretHash ? { payerSecretHash } : {}),
       },
     });
     logger.child({ registrationId, linkId, amountPaise, planKey, billingCycle }).info('payment link created');

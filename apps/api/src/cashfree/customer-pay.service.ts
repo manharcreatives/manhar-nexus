@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { isPricedPlan } from '@nexus/shared';
 import { Injectable } from '@nestjs/common';
 import type { RegistrationPayment, RegistrationRequest } from '@prisma/client';
@@ -17,6 +17,13 @@ const CUSTOMER_ACTOR: ActorContext = { type: 'SYSTEM', label: 'customer-pay' };
 const NOT_FOUND_MESSAGE = 'We could not find a request with that reference code and email.';
 
 const digest = (value: string): Buffer => createHash('sha256').update(value).digest();
+
+/** A claim on one request while its Cashfree link is being created; stale after this long (a crashed instance). */
+const CREATE_LOCK_MS = 60_000;
+/** How long a second tap waits for the first one's link before saying we will send it. */
+const WAIT_FOR_OTHER_MS = 9_000;
+const POLL_MS = 400;
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * The owner pays for their own request. The caller proves they own it with the reference code AND the email they
@@ -44,32 +51,34 @@ export class CustomerPayService {
     // Staff are handling it, or there is no fixed price to charge: a person quotes and sends the link.
     if (NOT_PAYABLE.has(reg.status) || !isPricedPlan(reg.planKey)) return { outcome: 'contact-us' };
 
-    // Serialise per request across all API instances: a second tap waits here, then finds the first one's link.
-    // (The lock only guards the check-then-create; the link itself is written through the normal client.)
-    return this.prisma.$transaction(
-      async (tx) => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${reg.id}))`;
-        return this.openOrCreate(reg, now);
-      },
-      { timeout: 30_000, maxWait: 10_000 },
-    );
+    // Already has a live link: hand it back (also what a second tap gets once the first one has finished).
+    const existing = await this.openLink(reg.id, now);
+    if (existing) return { outcome: 'link', link: this.linkView(existing) };
+
+    // Only one tap at a time may create the link. The claim is a compare-and-set on the request row, so it works
+    // across API instances WITHOUT holding a transaction or an advisory lock while Cashfree is being called (with a
+    // single pooled connection that would starve every other query until the pool timed out).
+    if (!(await this.claimCreate(reg.id, now))) return this.waitForOther(reg, now);
+    try {
+      return await this.createFresh(reg, now);
+    } finally {
+      await this.releaseCreate(reg.id);
+    }
   }
 
-  private async openOrCreate(reg: RegistrationRequest, now: Date): Promise<CustomerPayAnswer> {
+  /** Under the claim: look again (the first tap may just have finished), then create exactly one link. */
+  private async createFresh(reg: RegistrationRequest, now: Date): Promise<CustomerPayAnswer> {
     if (await this.paidLink(reg.id)) return { outcome: 'paid' };
     const open = await this.openLink(reg.id, now);
     if (open) return { outcome: 'link', link: this.linkView(open) };
 
     try {
-      // The secret leaves only in this one response; the database keeps its hash.
-      const payerSecret = randomBytes(32).toString('base64url');
-      const created = await this.payments.createLink(CUSTOMER_ACTOR, reg.id, {}, now, 'CUSTOMER', createHash('sha256').update(payerSecret).digest('hex'));
+      const created = await this.payments.createLink(CUSTOMER_ACTOR, reg.id, {}, now, 'CUSTOMER');
       logger.child({ registrationId: reg.id, source: 'CUSTOMER' }).info('customer started a payment');
       const row = await this.prisma.registrationPayment.findUniqueOrThrow({ where: { id: created.id } });
-      // Returned twice on purpose: inside `link` (the original contract) and at the top level (what the web reads).
-      return { outcome: 'link', link: { ...this.linkView(row), payerSecret }, payerSecret };
+      return { outcome: 'link', link: this.linkView(row) };
     } catch (err) {
-      // Belt and braces if the lock was ever bypassed: hand back the link that exists instead of failing.
+      // Belt and braces if the claim was ever bypassed: hand back the link that exists instead of failing.
       if (err instanceof ConflictError) {
         const raced = await this.openLink(reg.id, now);
         if (raced) return { outcome: 'link', link: this.linkView(raced) };
@@ -78,6 +87,40 @@ export class CustomerPayService {
       if (err instanceof ValidationError) return { outcome: 'contact-us' };
       throw err;
     }
+  }
+
+  /** Another tap holds the claim: wait briefly for its link; if it never shows, say we will send one. */
+  private async waitForOther(reg: RegistrationRequest, first: Date): Promise<CustomerPayAnswer> {
+    const deadline = Date.now() + WAIT_FOR_OTHER_MS;
+    let now = first;
+    while (Date.now() < deadline) {
+      await sleep(POLL_MS);
+      now = new Date();
+      if (await this.paidLink(reg.id)) return { outcome: 'paid' };
+      const open = await this.openLink(reg.id, now);
+      if (open) return { outcome: 'link', link: this.linkView(open) };
+      // The other tap gave up (error): take over rather than leave the owner waiting.
+      if (await this.claimCreate(reg.id, now)) {
+        try {
+          return await this.createFresh(reg, now);
+        } finally {
+          await this.releaseCreate(reg.id);
+        }
+      }
+    }
+    return { outcome: 'contact-us' };
+  }
+
+  private async claimCreate(registrationId: string, now: Date): Promise<boolean> {
+    const res = await this.prisma.registrationRequest.updateMany({
+      where: { id: registrationId, OR: [{ payLockedAt: null }, { payLockedAt: { lt: new Date(now.getTime() - CREATE_LOCK_MS) } }] },
+      data: { payLockedAt: now },
+    });
+    return res.count === 1;
+  }
+
+  private async releaseCreate(registrationId: string): Promise<void> {
+    await this.prisma.registrationRequest.updateMany({ where: { id: registrationId }, data: { payLockedAt: null } }).catch(() => undefined);
   }
 
   /**

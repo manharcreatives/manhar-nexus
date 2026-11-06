@@ -4,7 +4,7 @@ import { apiBase, REQUEST_TIMEOUT_MS, type SubmitOptions } from './submit';
 /**
  * The owner's way into a freshly created account, with no email provider: after they pay, the page asks the server
  * for a one-time "set your password" link. The server releases it only to the browser that pressed "Pay now" (it
- * holds a payer secret) and only with the last four digits of the registered mobile number.
+ * holds the payer secret from registration) and only with the last four digits of the registered mobile number.
  *
  * The token is a credential: it travels in the URL fragment only, is never logged and never put in a query string.
  */
@@ -35,12 +35,21 @@ export const CLAIM_COPY = {
 
 const storageKey = (referenceCode: string): string => `nx.payer.${referenceCode}`;
 
-/** Remember the payer secret in this browser. Storage can be blocked; the page works without it. */
+/** Remember the payer secret (handed out once, when the registration form was submitted) in this browser. Storage can be blocked; the page works without it. */
 export function rememberPayerSecret(referenceCode: string, secret: string): void {
   try {
     window.localStorage.setItem(storageKey(referenceCode), secret);
   } catch {
     /* private window or blocked storage: the sign-in link then comes on WhatsApp */
+  }
+}
+
+/** Forget the secret (the claim is done, or it can never work again), so it does not sit in storage for good. */
+export function clearPayerSecret(referenceCode: string): void {
+  try {
+    window.localStorage.removeItem(storageKey(referenceCode));
+  } catch {
+    /* blocked storage: nothing to clear */
   }
 }
 
@@ -66,7 +75,8 @@ export function supportWhatsAppUrl(text: string): string {
 
 export type ClaimResult =
   | { readonly kind: 'ready'; readonly token: string; readonly expiresAt: string }
-  | { readonly kind: 'pending' }
+  /** `paid`: the server says the money has arrived and the account is being made. */
+  | { readonly kind: 'pending'; readonly paid: boolean }
   /** A person is finishing this account (typed amount, failed job...): stop waiting. */
   | { readonly kind: 'manual' }
   /** 429: stop polling. */
@@ -99,7 +109,7 @@ export async function issueClaim(who: { referenceCode: string; phoneLast4: strin
     if (body.status === 'ready' && typeof body.token === 'string' && body.token.length > 0) {
       return { kind: 'ready', token: body.token, expiresAt: typeof body.expiresAt === 'string' ? body.expiresAt : '' };
     }
-    if (body.status === 'pending') return { kind: 'pending' };
+    if (body.status === 'pending') return { kind: 'pending', paid: body.paid === true };
     if (body.status === 'manual') return { kind: 'manual' };
     return { kind: 'failed' };
   } catch {

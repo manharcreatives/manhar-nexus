@@ -138,4 +138,10 @@ export type UpdateRegistrationDto = z.infer<typeof updateRegistrationSchema>;
 export interface RegistrationAck {
   ok: true;
   referenceCode: string;
+  /**
+   * A one-time secret for the browser that submitted the form (only its sha256 is stored). With the reference code and
+   * the last four digits of the mobile number it lets that browser claim the owner login after paying. Spam rows get
+   * one too, so the acknowledgement never tells a bot apart from a person.
+   */
+  payerSecret: string;
 }

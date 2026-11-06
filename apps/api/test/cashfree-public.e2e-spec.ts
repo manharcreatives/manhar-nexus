@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -115,20 +114,15 @@ describe('Customer "Pay now" (e2e)', () => {
     expect(res.status).toBe(200);
     expect(res.body.outcome).toBe('link');
     expect(res.body.link).toMatchObject({ linkUrl: 'https://payments-test.cashfree.com/links/cust', amountPaise: 1_149_320 });
-    expect(Object.keys(res.body.link as object).sort()).toEqual(['amountPaise', 'breakdown', 'expiresAt', 'linkUrl', 'payerSecret', 'purpose']);
-    // CONTRACT: the secret is returned inside `link` and also at the top level of the body (the web reads the top level).
-    expect(Object.keys(res.body as object).sort()).toEqual(['link', 'outcome', 'payerSecret']);
-    expect(res.body.payerSecret).toBe(res.body.link.payerSecret);
+    // CONTRACT: no secret anywhere. The payer secret is minted at registration, so Pay now can never hand it out.
+    expect(Object.keys(res.body.link as object).sort()).toEqual(['amountPaise', 'breakdown', 'expiresAt', 'linkUrl', 'purpose']);
+    expect(Object.keys(res.body as object).sort()).toEqual(['link', 'outcome']);
     const row = await prisma.registrationPayment.findFirstOrThrow({ where: { registrationId: lead.id } });
-    expect(row).toMatchObject({ source: 'CUSTOMER', planKey: 'floor', amountPaise: 1_149_320, status: 'CREATED' });
-    // Only the hash of the payer secret is stored; asking again never returns the secret.
-    const secret = res.body.link.payerSecret as string;
-    expect(secret.length).toBeGreaterThanOrEqual(43);
-    expect(row.payerSecretHash).toBe(createHash('sha256').update(secret).digest('hex'));
-    expect(JSON.stringify(row)).not.toContain(secret);
+    expect(row).toMatchObject({ source: 'CUSTOMER', planKey: 'floor', amountPaise: 1_149_320, status: 'CREATED', payerSecretHash: null });
     const again = await payLink(who(lead));
-    expect(again.body.link.payerSecret).toBeUndefined();
-    expect(again.body.payerSecret).toBeUndefined();
+    expect(JSON.stringify(again.body)).not.toMatch(/ecret/);
+    // The claim taken while the link is made is always released.
+    expect((await prisma.registrationRequest.findUniqueOrThrow({ where: { id: lead.id } })).payLockedAt).toBeNull();
     expect((await status(who(lead))).body).toEqual({ paid: false });
     const sent = JSON.parse((cashfreeFetch.mock.calls[0] as [string, RequestInit])[1].body as string) as { link_amount: number };
     expect(sent.link_amount).toBe(11_493.2);

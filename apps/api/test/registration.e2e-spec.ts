@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 // Set BEFORE the app modules load:
 //  - TRUST_PROXY=1 lets each request choose its client IP through X-Forwarded-For, so the
 //    per-IP throttle and DB caps can be exercised without the tests sharing one source.
@@ -136,7 +137,7 @@ describe('Public registrations (e2e)', () => {
       const email = `Mixed.Case${++seq}${EMAIL_TAG}`.replace('example.test', 'EXAMPLE.test');
       const res = await submit(body({ email: `  ${email}  `, message: 'Two outlets, one kitchen.' }), ip, 'jest-agent/1.0');
       expect(res.status).toBe(202);
-      expect(Object.keys(res.body).sort()).toEqual(['ok', 'referenceCode']);
+      expect(Object.keys(res.body).sort()).toEqual(['ok', 'payerSecret', 'referenceCode']);
       expect(res.body.ok).toBe(true);
       expect(res.body.referenceCode).toMatch(REFERENCE_CODE_PATTERN);
 
@@ -153,6 +154,23 @@ describe('Public registrations (e2e)', () => {
       expect(row.userAgent).toBe('jest-agent/1.0');
       expect(row.internalNotes).toBeNull();
       expect(row.businessId).toBeNull();
+    });
+
+    it('hands the browser a one-time payer secret and stores only its sha256 (never shown to staff)', async () => {
+      const res = await submit(body(), freshIp());
+      expect(res.status).toBe(202);
+      const secret = res.body.payerSecret as string;
+      expect(secret).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      const row = await rowByRef(res.body.referenceCode as string);
+      expect(row.payerSecretHash).toBe(createHash('sha256').update(secret).digest('hex'));
+      expect(JSON.stringify(row)).not.toContain(secret);
+      const staff = await pGet('/internal/registrations/' + row.id);
+      expect(staff.status).toBe(200);
+      expect(Object.keys(staff.body as object)).not.toEqual(expect.arrayContaining(['payerSecretHash']));
+      expect(Object.keys(staff.body as object)).not.toEqual(expect.arrayContaining(['payLockedAt']));
+      expect(JSON.stringify(staff.body)).not.toContain(row.payerSecretHash as string);
+      const other = await submit(body({ email: freshEmail() }), freshIp());
+      expect(other.body.payerSecret).not.toBe(secret);
     });
 
     it('stores an HMAC of the IP (never the raw address) and truncates the user agent to 200', async () => {
@@ -297,7 +315,7 @@ describe('Public registrations (e2e)', () => {
     it('time-trap: a form filled in under 2 seconds is stored as SPAM, still 202', async () => {
       const fast = await submit(body({ startedAt: Date.now() - 500 }));
       expect(fast.status).toBe(202);
-      expect(Object.keys(fast.body).sort()).toEqual(['ok', 'referenceCode']);
+      expect(Object.keys(fast.body).sort()).toEqual(['ok', 'payerSecret', 'referenceCode']);
       const row = await rowByRef(fast.body.referenceCode as string);
       expect(row.status).toBe('SPAM');
       expect(row.internalNotes).toBe('auto: time-trap');
@@ -323,7 +341,7 @@ describe('Public registrations (e2e)', () => {
       for (let i = 0; i < 3; i++) {
         const res = await submit(body({ email: i % 2 ? email.toUpperCase().replace('EXAMPLE.TEST', 'example.test') : email }));
         expect(res.status).toBe(202);
-        expect(Object.keys(res.body).sort()).toEqual(['ok', 'referenceCode']);
+        expect(Object.keys(res.body).sort()).toEqual(['ok', 'payerSecret', 'referenceCode']);
         refs.push(res.body.referenceCode as string);
       }
       const over = await submit(body({ email: email.toUpperCase().replace('EXAMPLE.TEST', 'example.test') }));

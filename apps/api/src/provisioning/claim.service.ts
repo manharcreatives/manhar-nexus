@@ -41,9 +41,12 @@ export const claimRedeemSchema = z
   .strict();
 export type ClaimRedeemDto = z.infer<typeof claimRedeemSchema>;
 
-export type ClaimIssueAnswer = { status: 'ready'; token: string; expiresAt: Date } | { status: 'pending' } | { status: 'manual' };
+/** `paid` on a pending answer tells the (already proven) payer whether the money has arrived yet. */
+export type ClaimIssueAnswer = { status: 'ready'; token: string; expiresAt: Date } | { status: 'pending'; paid: boolean } | { status: 'manual' };
 
-const sha256hex = (v: string): string => createHash('sha256').update(v).digest('hex');
+const NIL_ID = '00000000-0000-0000-0000-000000000000';
+
+const sha256hex =(v: string): string => createHash('sha256').update(v).digest('hex');
 const digest = (v: string): Buffer => createHash('sha256').update(v).digest();
 
 /** Timing-safe equality of a digest with a stored sha256 hex string (false for null or a malformed value). */
@@ -56,7 +59,11 @@ function sameHash(given: Buffer, storedHex: string | null): boolean {
 /** One-time "set your password" links for owners of automatically created accounts. Only a hash of a token is stored. */
 @Injectable()
 export class ClaimService {
-  /** Best-effort per-instance counter; the 256-bit payer secret is what really stops guessing. */
+  /**
+   * Best-effort per-instance counter (it resets on a cold start and is not shared between serverless instances). A
+   * shared counter would need a new table or Redis; the real control is the 256-bit payer secret, which cannot be
+   * guessed at any rate, plus the last-four-digits check. See docs/runbooks/auto-provisioning.md.
+   */
   private readonly failures = new Map<string, { count: number; resetAt: number }>();
 
   constructor(
@@ -84,17 +91,16 @@ export class ClaimService {
     return { token, expiresAt };
   }
 
-  /** The payer's browser asks for the owner's link. Needs code + phone last 4 + the secret from the "Pay now" response. */
+  /** The payer's browser asks for the owner's link. Needs code + phone last 4 + the secret from the registration response. */
   async issueForPayer(dto: ClaimIssueDto, ip = 'unknown', now = new Date()): Promise<ClaimIssueAnswer> {
     const key = `${dto.referenceCode}|${ip}`;
     if (this.blocked(key, now)) throw new NotFoundError(CLAIM_NOT_FOUND);
     const reg = await this.prisma.registrationRequest.findUnique({ where: { referenceCode: dto.referenceCode } });
-    const phoneOk = timingSafeEqual(digest(dto.phoneLast4), digest((reg?.phone ?? '').replace(/D/g, '').slice(-4)));
-    const payments = reg ? await this.prisma.registrationPayment.findMany({ where: { registrationId: reg.id } }) : [];
-    const given = digest(dto.payerSecret);
-    // Look at every row (no early exit) so timing does not reveal how many payments exist.
-    let secretOk = false;
-    for (const p of payments) secretOk = sameHash(given, p.payerSecretHash) || secretOk;
+    const phoneOk = timingSafeEqual(digest(dto.phoneLast4), digest((reg?.phone ?? '').replace(/\D/g, '').slice(-4)));
+    // The secret was minted when the registration form was submitted and belongs to the registration itself. The
+    // payments query runs even for an unknown code (with a nil id), so a wrong code is not faster than a wrong secret.
+    const payments = await this.prisma.registrationPayment.findMany({ where: { registrationId: reg?.id ?? NIL_ID } });
+    const secretOk = sameHash(digest(dto.payerSecret), reg?.payerSecretHash ?? null);
     if (!reg || !phoneOk || !secretOk) {
       this.fail(key, now);
       throw new NotFoundError(CLAIM_NOT_FOUND);
@@ -102,7 +108,9 @@ export class ClaimService {
 
     // Proof is good. Nothing paid yet: ask again shortly. Money arrived but it is not an automatic case (typed amount,
     // Many Doors, amount mismatch): a person finishes it, so say so instead of leaving the payer waiting.
-    if (!payments.some((p) => p.status === 'PAID')) return { status: 'pending' };
+    // A payment that does not match its quote needs a person, whatever else is on the request.
+    if (payments.some((p) => p.status === 'AMOUNT_MISMATCH')) return { status: 'manual' };
+    if (!payments.some((p) => p.status === 'PAID')) return { status: 'pending', paid: false };
     if (!payments.some((p) => isAutoEligiblePayment(p))) return { status: 'manual' };
     let job = await this.prisma.registrationProvisioning.findUnique({ where: { registrationId: reg.id } });
     if (job?.status !== 'DONE') {
@@ -111,11 +119,14 @@ export class ClaimService {
     }
     // Failed for a clear reason (say, the email already has an account): waiting will not help, staff finish it.
     if (job?.status === 'FAILED' && job.lastError && job.lastError !== TRANSIENT_FAILURE_MESSAGE) return { status: 'manual' };
-    if (job?.status !== 'DONE' || !job.businessId) return { status: 'pending' };
+    if (job?.status !== 'DONE' || !job.businessId) return { status: 'pending', paid: true };
 
     const owner = await this.ownerOf(job.businessId, job.input as unknown as ProvisionInput);
     // The owner already signed in: this link would be a password reset for a live account. Staff handle that.
     if (!owner || owner.lastLoginAt) throw new NotFoundError(CLAIM_NOT_FOUND);
+    // A link was already used to set a password (the owner has not signed in yet): a second one would let the holder
+    // of the secret reset that password again. Staff re-issue from the admin if the owner really lost it.
+    if ((await this.prisma.credentialToken.count({ where: { userId: owner.id, usedAt: { not: null } } })) > 0) throw new NotFoundError(CLAIM_NOT_FOUND);
     const issued = await this.issue(owner.id, reg.id, job.businessId, 'customer', now);
     return { status: 'ready', token: issued.token, expiresAt: issued.expiresAt };
   }

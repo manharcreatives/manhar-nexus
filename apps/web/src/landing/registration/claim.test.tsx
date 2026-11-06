@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLAIM_COPY, CLAIM_MAX_POLLS, claimDelay, issueClaim, lastFourDigits, recallPayerSecret, rememberPayerSecret, setPasswordHref, supportWhatsAppUrl } from './claim';
+import { CLAIM_COPY, CLAIM_MAX_POLLS, claimDelay, clearPayerSecret, issueClaim, lastFourDigits, recallPayerSecret, rememberPayerSecret, setPasswordHref, supportWhatsAppUrl } from './claim';
 import { PAY_COPY, requestPayLink } from './payNow';
 import { RegistrationTicket } from './Ticket';
 
@@ -29,7 +29,8 @@ describe('claim client', () => {
   });
 
   it('maps pending, manual, 429, 404 and every odd answer', async () => {
-    expect(await issueClaim(WHO, 's', opts(vi.fn().mockResolvedValue(reply(200, { status: 'pending' }))))).toEqual({ kind: 'pending' });
+    expect(await issueClaim(WHO, 's', opts(vi.fn().mockResolvedValue(reply(200, { status: 'pending' }))))).toEqual({ kind: 'pending', paid: false });
+    expect(await issueClaim(WHO, 's', opts(vi.fn().mockResolvedValue(reply(200, { status: 'pending', paid: true }))))).toEqual({ kind: 'pending', paid: true });
     expect(await issueClaim(WHO, 's', opts(vi.fn().mockResolvedValue(reply(200, { status: 'manual' }))))).toEqual({ kind: 'manual' });
     expect(await issueClaim(WHO, 's', opts(vi.fn().mockResolvedValue(reply(429))))).toEqual({ kind: 'rateLimited' });
     expect(await issueClaim(WHO, 's', opts(vi.fn().mockResolvedValue(reply(404))))).toEqual({ kind: 'unknown' });
@@ -79,20 +80,24 @@ describe('claim client', () => {
   });
 });
 
-describe('pay-link contract: the payer secret', () => {
+describe('pay-link contract: no secret ever comes from Pay now', () => {
   const link = { linkUrl: 'https://payments-test.cashfree.com/links/x', amountPaise: 5 };
-  it('is read from the top level of the real API shape', async () => {
-    const f = vi.fn().mockResolvedValue(reply(200, { outcome: 'link', link, payerSecret: 'top-secret' }));
-    expect(await requestPayLink({ referenceCode: 'NX-1', email: 'a@b.co' }, opts(f))).toMatchObject({ kind: 'link', payerSecret: 'top-secret' });
+  it('ignores any secret in the response (the payer secret is minted at registration)', async () => {
+    const f = vi.fn().mockResolvedValue(reply(200, { outcome: 'link', link: { ...link, payerSecret: 'inner' }, payerSecret: 'top' }));
+    expect(await requestPayLink({ referenceCode: 'NX-1', email: 'a@b.co' }, opts(f))).toEqual({ kind: 'link', link });
   });
-  it('falls back to the copy inside link', async () => {
-    const f = vi.fn().mockResolvedValue(reply(200, { outcome: 'link', link: { ...link, payerSecret: 'inner-secret' } }));
-    expect(await requestPayLink({ referenceCode: 'NX-1', email: 'a@b.co' }, opts(f))).toMatchObject({ kind: 'link', payerSecret: 'inner-secret' });
-  });
-  it('is absent on a repeat call', async () => {
+  it('reads the real API shape: just the link fields', async () => {
     const f = vi.fn().mockResolvedValue(reply(200, { outcome: 'link', link }));
-    const res = await requestPayLink({ referenceCode: 'NX-1', email: 'a@b.co' }, opts(f));
-    expect(res).toEqual({ kind: 'link', link });
+    expect(await requestPayLink({ referenceCode: 'NX-1', email: 'a@b.co' }, opts(f))).toEqual({ kind: 'link', link });
+  });
+});
+
+describe('the payer secret in this browser', () => {
+  it('is forgotten with clearPayerSecret', () => {
+    rememberPayerSecret('NX-7K2Q9M', 'sec-1234567890123456');
+    expect(recallPayerSecret('NX-7K2Q9M')).toBe('sec-1234567890123456');
+    clearPayerSecret('NX-7K2Q9M');
+    expect(recallPayerSecret('NX-7K2Q9M')).toBeNull();
   });
 });
 
@@ -239,17 +244,17 @@ describe('RegistrationTicket: claim the account after paying', () => {
     await waitFor(() => expect(issueCalls(f)).toHaveLength(CLAIM_MAX_POLLS + 1));
   });
 
-  it('remembers the payer secret when the pay link is first created (real API shape)', async () => {
+  it('Pay now stores nothing: the secret comes from the registration, not from the pay link', async () => {
     const assign = vi.fn();
     vi.stubGlobal('location', { ...window.location, assign });
     const f = vi.fn(async (url: string) =>
       url.endsWith('/config')
         ? reply(200, { customerPay: true })
-        : reply(200, { outcome: 'link', link: { linkUrl: 'https://payments-test.cashfree.com/links/x', amountPaise: 5, payerSecret: 'fresh-secret' }, payerSecret: 'fresh-secret' }),
+        : reply(200, { outcome: 'link', link: { linkUrl: 'https://payments-test.cashfree.com/links/x', amountPaise: 5 } }),
     );
     ticket(f);
     fireEvent.click(await screen.findByRole('button', { name: PAY_COPY.button }));
     await waitFor(() => expect(assign).toHaveBeenCalled());
-    expect(recallPayerSecret('NX-7K2Q9M')).toBe('fresh-secret');
+    expect(recallPayerSecret('NX-7K2Q9M')).toBeNull();
   });
 });

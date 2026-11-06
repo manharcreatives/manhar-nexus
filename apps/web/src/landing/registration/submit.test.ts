@@ -83,6 +83,12 @@ describe('payload shape (the 03_PLAN.md contract)', () => {
 describe('submitRegistration', () => {
   const payload = toRegistrationPayload(values, 1_793_000_000_000);
 
+  it('returns the one-time payer secret from the real registration response shape', async () => {
+    const secret = 'Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5MGFiY2RlZmdoaWo';
+    const fetchImpl = vi.fn().mockResolvedValue(reply(202, { ok: true, referenceCode: 'NX-7K2Q9M', payerSecret: secret }));
+    expect(await submitRegistration(payload, { fetchImpl, baseUrl: 'https://nexus.test/api/' })).toEqual({ ok: true, referenceCode: 'NX-7K2Q9M', payerSecret: secret });
+  });
+
   it('POSTs JSON without credentials to {base}/public/registrations and returns the reference code', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(reply(202, { ok: true, referenceCode: 'NX-7K2Q9M' }));
     const result = await submitRegistration(payload, { fetchImpl, baseUrl: 'https://nexus.test/api/' });
