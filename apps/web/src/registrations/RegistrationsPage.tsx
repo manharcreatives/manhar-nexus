@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '../commercial/helpers';
 import { ListSkeleton } from '../commercial/Shared';
+import { AttentionStrip } from './AttentionStrip';
+import { ClaimLinkButtons } from './ClaimLinkButtons';
 import { CreateAccountDialog } from './CreateAccountDialog';
 import { AutopayDialog } from './AutopayDialog';
 import { PaymentLinkDialog } from './PaymentLinkDialog';
@@ -51,7 +53,10 @@ const PAYMENT_TONE: Record<PaymentStatus, 'info' | 'ok' | 'neutral' | 'bad' | 'w
 export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (businessId: string) => void }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const [filter, setFilter] = useState<Filter>('open');
+  // A link from the Clients page (#reg-<id>) points at an account that already exists, so start on the converted tab.
+  const [filter, setFilter] = useState<Filter>(() => (window.location.hash.startsWith('#reg-') ? 'CONVERTED' : 'open'));
+  const [attentionKey, setAttentionKey] = useState(0);
+  const pendingCreate = useRef<string | null>(null);
   const [items, setItems] = useState<RegistrationRequest[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -79,6 +84,29 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   useEffect(() => {
     void load();
   }, [load]);
+
+  // After a list load: open the account dialog asked for by the attention strip, and scroll to a #reg-<id> target.
+  useEffect(() => {
+    if (!items) return;
+    const wanted = pendingCreate.current;
+    if (wanted) {
+      const hit = items.find((r) => r.id === wanted);
+      if (hit) {
+        pendingCreate.current = null;
+        setCreating(hit);
+      }
+    }
+    const target = window.location.hash.startsWith('#reg-') ? document.getElementById(window.location.hash.slice(1)) : null;
+    target?.scrollIntoView?.({ block: 'center' });
+  }, [items]);
+
+  function createFromAttention(registrationId: string) {
+    const hit = items?.find((r) => r.id === registrationId);
+    if (hit) return setCreating(hit);
+    pendingCreate.current = registrationId;
+    if (filter === 'open') void load();
+    else setFilter('open');
+  }
 
   async function move(r: RegistrationRequest, status: RegistrationStatus) {
     setBusyId(r.id);
@@ -112,6 +140,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   /** The server created the workspace and marked the request converted in its last step. */
   function onAccountCreated(r: RegistrationRequest) {
     toast.show(t('registrations.converted', { name: r.restaurantName }));
+    setAttentionKey((k) => k + 1);
     void load();
   }
 
@@ -135,6 +164,8 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
         ]}
       />
 
+      <AttentionStrip onCreate={createFromAttention} onChanged={() => void load()} refreshKey={attentionKey} />
+
       <div role="tabpanel">
         {loadFailed ? (
           <ErrorState
@@ -150,7 +181,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
         ) : (
           <ul className="space-y-3">
             {items.map((r) => (
-              <li key={r.id} className="nx-glass rounded-panel p-4">
+              <li key={r.id} id={`reg-${r.id}`} className="nx-glass rounded-panel p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-lg font-semibold">{r.restaurantName}</p>
@@ -232,6 +263,9 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                     ))}
                   </ul>
                 ) : null}
+                {r.status === 'CONVERTED' && r.autoProvisioned ? (
+                  <p className="mt-2 text-sm text-ok">{t('registrations.autoCreated')}</p>
+                ) : null}
                 {isPaid(r) && r.status !== 'CONVERTED' ? (
                   <p className="mt-2 text-sm text-ok">{t('registrations.payment.paidHint')}</p>
                 ) : null}
@@ -280,6 +314,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                       {t('registrations.reopen')}
                     </Button>
                   ) : null}
+                  {r.status === 'CONVERTED' && r.businessId ? <ClaimLinkButtons request={r} /> : null}
                   {r.status === 'CONVERTED' && r.businessId && onOpenOnboarding ? (
                     <Button variant="secondary" onClick={() => onOpenOnboarding(r.businessId as string)}>
                       {t('registrations.openChecklist')}

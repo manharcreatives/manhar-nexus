@@ -12,6 +12,7 @@ import { RealtimeProvider } from './realtime/RealtimeProvider';
 import { isHomePath, isPublicPath, normalizePath } from './landing/paths';
 import { isGuestMenuPath } from './guestmenu/path';
 import { isAutopayPath } from './autopay/path';
+import { isClaimPath } from './claim/path';
 
 // The marketing site is a separate lazy chunk: the app's entry bundle never includes it.
 const LandingApp = lazy(() => import('./landing/LandingApp'));
@@ -19,6 +20,9 @@ const LandingApp = lazy(() => import('./landing/LandingApp'));
 const GuestMenuApp = lazy(() => import('./guestmenu'));
 // The owner's UPI AutoPay approval page (/pay/autopay/:token): public, auth-free, its own lazy chunk.
 const AutopayApp = lazy(() => import('./autopay/AutopayApp'));
+
+// The owner's one-time "set your password" page (/set-password#t=...): public, auth-free, its own lazy chunk.
+const ClaimApp = lazy(() => import('./claim/ClaimApp'));
 
 function PublicSite() {
   return (
@@ -83,6 +87,14 @@ export default function App() {
     return (
       <Suspense fallback={null}>
         <AutopayApp />
+      </Suspense>
+    );
+  }
+  // /set-password is opened by a new restaurant owner from the link we gave them: no sign-in, no session refresh.
+  if (isClaimPath(window.location.pathname)) {
+    return (
+      <Suspense fallback={null}>
+        <ClaimApp />
       </Suspense>
     );
   }

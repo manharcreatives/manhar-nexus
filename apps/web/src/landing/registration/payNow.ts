@@ -42,7 +42,8 @@ export interface PayLink {
 }
 
 export type PayResult =
-  | { readonly kind: 'link'; readonly link: PayLink }
+  /** `payerSecret` is sent once, when the link is first created; keep it to claim the account after paying. */
+  | { readonly kind: 'link'; readonly link: PayLink; readonly payerSecret?: string }
   | { readonly kind: 'paid' }
   | { readonly kind: 'contact-us' }
   | { readonly kind: 'failed' };
@@ -85,7 +86,8 @@ export async function requestPayLink(who: { referenceCode: string; email: string
   if (body.outcome === 'contact-us') return { kind: 'contact-us' };
   const link = isRecord(body.link) ? body.link : null;
   if (body.outcome === 'link' && link && typeof link.linkUrl === 'string' && typeof link.amountPaise === 'number' && /^https:\/\//.test(link.linkUrl)) {
-    return { kind: 'link', link: { linkUrl: link.linkUrl, amountPaise: link.amountPaise } };
+    const secret = typeof body.payerSecret === 'string' && body.payerSecret.length > 0 ? body.payerSecret : undefined;
+    return { kind: 'link', link: { linkUrl: link.linkUrl, amountPaise: link.amountPaise }, ...(secret ? { payerSecret: secret } : {}) };
   }
   return { kind: 'failed' };
 }

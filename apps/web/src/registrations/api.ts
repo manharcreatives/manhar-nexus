@@ -47,6 +47,8 @@ export interface RegistrationRequest {
   assignedTo: string | null;
   internalNotes: string | null;
   businessId: string | null;
+  /** True when the server created the account itself right after the payment (no staff click). */
+  autoProvisioned?: boolean;
   /** Newest payment links first (the API sends the latest few). */
   payments: PaymentLink[];
   createdAt: string;
@@ -151,4 +153,34 @@ export interface ProvisionBody {
 /** Creates (or resumes) the restaurant account for a request as one server-side job. */
 export function provisionRegistration(registrationId: string, body: ProvisionBody): Promise<ProvisionResult> {
   return api<ProvisionResult>(`/internal/registrations/${registrationId}/provision`, { method: 'POST', body: JSON.stringify(body) });
+}
+
+/** A one-time "set your password" link for the owner of an auto-created account. Staff only; it replaces any earlier link. */
+export interface ClaimLink {
+  token: string;
+  expiresAt: string;
+}
+
+export function issueClaimLink(registrationId: string): Promise<ClaimLink> {
+  return api<ClaimLink>(`/internal/registrations/${registrationId}/claim-link`, { method: 'POST', body: JSON.stringify({}) });
+}
+
+/** The page the owner opens to choose a password. The token travels in the URL fragment, never in the query string. */
+export function claimUrl(token: string, origin: string = window.location.origin): string {
+  return `${origin}/set-password#t=${token}`;
+}
+
+/** What the owner is sent once the account exists. */
+export function claimMessage(r: Pick<RegistrationRequest, 'contactName' | 'restaurantName'>, url: string): string {
+  return `Hello ${r.contactName}, your Manhar Nexus account for ${r.restaurantName} is ready. Set your password here: ${url} (valid 72 hours)`;
+}
+
+/** Things that need a person: a failed account job, or money received but no account yet. */
+export interface Attention {
+  failedProvisioning: { registrationId: string; restaurantName: string; lastError: string | null; currentStep: string | null }[];
+  paidNotConverted: { registrationId: string; restaurantName: string }[];
+}
+
+export function getAttention(): Promise<Attention> {
+  return api<Attention>('/internal/registrations/attention');
 }

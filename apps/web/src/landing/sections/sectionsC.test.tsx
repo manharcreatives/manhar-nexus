@@ -799,9 +799,16 @@ describe('source hygiene for the sections-C files', () => {
   });
 
   it('keeps personal data out of browser storage', () => {
-    for (const { file, text } of sources.filter((s) => s.file.startsWith('registration/'))) {
+    // claim.ts alone may use localStorage, for the random payer secret (a capability, not personal data) that lets the
+    // paying browser claim its account; it must store nothing else.
+    for (const { file, text } of sources.filter((s) => s.file.startsWith('registration/') && s.file !== 'registration/claim.ts')) {
       expect(text, file).not.toMatch(/localStorage|sessionStorage|indexedDB|document\.cookie/);
     }
+    const claim = sources.find((s) => s.file === 'registration/claim.ts');
+    expect(claim?.text).not.toMatch(/sessionStorage|indexedDB|document\.cookie/);
+    const calls = claim?.text.match(/localStorage\.(get|set)Item\([^)]*\)/g) ?? [];
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.every((c) => c.includes('storageKey(referenceCode)'))).toBe(true);
   });
 
   it('keeps every file under the 700-line budget', () => {

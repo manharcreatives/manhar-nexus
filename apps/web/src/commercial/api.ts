@@ -68,6 +68,13 @@ export interface ClientSummary {
   createdAt: string;
   businessType: { key: string; name: string };
   _count: { activationRequests: number; locations: number };
+  /** Billing facts copied from the paid registration (absent for clients created before auto-provisioning). */
+  planKey?: string | null;
+  billingCycle?: string | null;
+  paidUntil?: string | null;
+  billingSource?: string | null;
+  registrationId?: string | null;
+  subscriptionId?: string | null;
 }
 
 export interface ClientDetail extends ClientSummary {

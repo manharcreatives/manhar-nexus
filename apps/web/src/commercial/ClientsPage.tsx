@@ -40,6 +40,7 @@ import {
   toMinorUnits,
 } from './helpers';
 import { FormError, ListSkeleton } from './Shared';
+import { PlanInfo } from './PlanInfo';
 
 const REQUEST_FORM = 'activation-request-form';
 const TRANSITION_FORM = 'activation-transition-form';
@@ -136,6 +137,7 @@ export function ClientsPage() {
               <Th>{t('commercial.col.name')}</Th>
               <Th>{t('commercial.col.type')}</Th>
               <Th>{t('commercial.col.status')}</Th>
+              <Th>{t('commercial.plan.col')}</Th>
               <Th numeric>{t('commercial.col.locations')}</Th>
               <Th>{t('commercial.col.assignedTo')}</Th>
             </tr>
@@ -157,6 +159,9 @@ export function ClientsPage() {
                   <StatusPill tone={COMMERCIAL_TONE[c.commercialStatus]}>
                     {t(`commercial.status.${c.commercialStatus}`)}
                   </StatusPill>
+                </Td>
+                <Td>
+                  <PlanInfo client={c} compact />
                 </Td>
                 <Td numeric>{c._count.locations}</Td>
                 <Td>{c.assignedTo ?? <span className="text-muted">{t('commercial.clients.unassigned')}</span>}</Td>
@@ -288,6 +293,9 @@ function ClientDetailView({ summary, onBack }: { summary: ClientSummary; onBack:
             <p className="mt-1 text-sm text-muted">
               {detail.businessType.name} · {t('commercial.clients.locationCount', { count: detail.locations.length })}
             </p>
+            <div className="mt-2">
+              <PlanInfo client={detail} />
+            </div>
           </div>
           <div className="flex items-end gap-3">
             <StatusPill tone={COMMERCIAL_TONE[detail.commercialStatus]}>

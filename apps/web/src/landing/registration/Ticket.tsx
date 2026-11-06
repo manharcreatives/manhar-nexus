@@ -4,6 +4,7 @@ import { buildWhatsAppUrl, registrationSuccess, type BeginMode } from '../conten
 import { copyText } from '../sectionsC/clipboard';
 import { Copy, MessageCircle } from '../sectionsC/icons';
 import { nextSteps } from './nextSteps';
+import { CLAIM_COPY, CLAIM_MAX_POLLS, CLAIM_POLL_MS, issueClaim, recallPayerSecret, rememberPayerSecret, setPasswordHref } from './claim';
 import { fetchPayAvailable, fetchPaid, PAY_COPY, PAYABLE_PLANS, priceLine, requestPayLink } from './payNow';
 import type { SubmitOptions } from './submit';
 
@@ -36,6 +37,8 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
   const [price] = useState(() => priceLine(planKey, billingCycle));
   const [payAvailable, setPayAvailable] = useState(false);
   const [payState, setPayState] = useState<'idle' | 'busy' | 'checking' | 'paid' | 'notYet' | 'contactUs' | 'failed'>('idle');
+  // After paying: the account is built on the server, then the owner claims it with a one-time set-password link.
+  const [claim, setClaim] = useState<{ state: 'idle' | 'pending' | 'ready' | 'later' | 'timedOut'; token?: string }>({ state: 'idle' });
 
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: false });
@@ -54,6 +57,34 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
   }, [payable]);
 
   useEffect(() => {
+    if (payState !== 'paid') return;
+    const secret = recallPayerSecret(referenceCode);
+    if (!secret) {
+      setClaim({ state: 'later' });
+      return;
+    }
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    const tick = async (): Promise<void> => {
+      attempts += 1;
+      const result = await issueClaim(who, secret, payOptions);
+      if (!live) return;
+      if (result.kind === 'ready') return setClaim({ state: 'ready', token: result.token });
+      if (result.kind === 'unknown') return setClaim({ state: 'later' });
+      if (attempts >= CLAIM_MAX_POLLS) return setClaim({ state: 'timedOut' });
+      setClaim({ state: 'pending' });
+      timer = setTimeout(() => void tick(), CLAIM_POLL_MS);
+    };
+    setClaim({ state: 'pending' });
+    void tick();
+    return () => {
+      live = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [payState]);
+
+  useEffect(() => {
     if (copied === 'idle') return;
     const t = window.setTimeout(() => setCopied('idle'), 2800);
     return () => window.clearTimeout(t);
@@ -68,6 +99,7 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
     setPayState('busy');
     const result = await requestPayLink(who, payOptions);
     if (result.kind === 'link') {
+      if (result.payerSecret) rememberPayerSecret(referenceCode, result.payerSecret);
       window.location.assign(result.link.linkUrl);
       return;
     }
@@ -136,6 +168,21 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
           <p className="lp-ticket__hint" role="status" aria-live="polite">
             {payMessage || PAY_COPY.later}
           </p>
+          {payState === 'paid' && claim.state !== 'idle' ? (
+            <div className="lp-ticket__claim" data-testid="claim" role="status" aria-live="polite">
+              {claim.state === 'pending' ? <p>{CLAIM_COPY.pending}</p> : null}
+              {claim.state === 'later' ? <p>{CLAIM_COPY.later}</p> : null}
+              {claim.state === 'timedOut' ? <p>{CLAIM_COPY.timedOut}</p> : null}
+              {claim.state === 'ready' && claim.token ? (
+                <>
+                  <p>{CLAIM_COPY.ready}</p>
+                  <Button variant="primary" onClick={() => window.location.assign(setPasswordHref(claim.token as string))}>
+                    {CLAIM_COPY.button}
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className="lp-ticket__actions">
