@@ -137,6 +137,18 @@
     box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.2);
   }
   input, select, textarea { color-scheme: dark; }
+  /*
+   * Dropdown popups: the select itself is a translucent glass box, but the browser paints the open list on its own,
+   * and without a solid colour it falls back to white text on white. Give every list a solid dark surface.
+   */
+  select { color: var(--color-ink); }
+  select option,
+  select optgroup {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+  select option:checked { background-color: var(--color-sunken); }
+  select option:disabled { color: var(--color-muted); }
   input[role="combobox"]:focus-visible { box-shadow: none; outline: none; }
   hr {
     border: 0;

@@ -53,6 +53,11 @@
   color-scheme: dark;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
+.lp-select option,
+.lp-select optgroup {
+  background-color: #0f1513;
+  color: var(--lp-fg);
+}
 .lp-textarea {
   min-height: 7rem;
   resize: vertical;
