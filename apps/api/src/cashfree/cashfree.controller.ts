@@ -11,6 +11,8 @@ import { createPaymentLinkSchema, type CreatePaymentLinkDto } from './cashfree.d
 import { parseLinkEvent, webhookEventType } from './cashfree.events';
 import { verifyWebhookSignature } from './cashfree.signature';
 import { RegistrationPaymentService } from './registration-payment.service';
+import { parseSubscriptionEvent, subscriptionEventType } from './subscription.events';
+import { SubscriptionService } from './subscription.service';
 
 /** Manhar staff: create and see the payment links for one registration request. */
 @Controller('internal/registrations/:id/payment-links')
@@ -52,6 +54,7 @@ export class CashfreeWebhookController {
   constructor(
     private readonly cashfree: CashfreeClient,
     private readonly payments: RegistrationPaymentService,
+    private readonly subscriptions: SubscriptionService,
   ) {}
 
   @Post('webhook')
@@ -68,6 +71,15 @@ export class CashfreeWebhookController {
       throw new UnauthorizedError('Invalid webhook signature');
     }
     if (rawBody === undefined) throw new ValidationError('Empty body');
+
+    // Subscription (UPI AutoPay) events share this webhook URL; they are JSON and have a SUBSCRIPTION_ type.
+    const subType = subscriptionEventType(rawBody);
+    if (subType) {
+      const subEvent = parseSubscriptionEvent(rawBody);
+      const subOutcome = subEvent ? await this.subscriptions.applyEvent(subEvent) : 'ignored';
+      logger.child({ cashfree: { event: subType, outcome: subOutcome } }).info('cashfree subscription webhook handled');
+      return { ok: true, outcome: subOutcome };
+    }
 
     const contentType = req.headers['content-type'];
     const type = webhookEventType(rawBody, contentType);

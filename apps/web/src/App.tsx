@@ -11,11 +11,14 @@ import { WorkLocationProvider } from './context/LocationContext';
 import { RealtimeProvider } from './realtime/RealtimeProvider';
 import { isHomePath, isPublicPath, normalizePath } from './landing/paths';
 import { isGuestMenuPath } from './guestmenu/path';
+import { isAutopayPath } from './autopay/path';
 
 // The marketing site is a separate lazy chunk: the app's entry bundle never includes it.
 const LandingApp = lazy(() => import('./landing/LandingApp'));
 // The customer QR menu (/m/:tableToken) is public, auth-free and its own lazy chunk (never in the entry bundle).
 const GuestMenuApp = lazy(() => import('./guestmenu'));
+// The owner's UPI AutoPay approval page (/pay/autopay/:token): public, auth-free, its own lazy chunk.
+const AutopayApp = lazy(() => import('./autopay/AutopayApp'));
 
 function PublicSite() {
   return (
@@ -72,6 +75,14 @@ export default function App() {
     return (
       <Suspense fallback={null}>
         <GuestMenuApp />
+      </Suspense>
+    );
+  }
+  // /pay/autopay/* is opened by the restaurant owner from a link we sent: no sign-in, no session refresh.
+  if (isAutopayPath(window.location.pathname)) {
+    return (
+      <Suspense fallback={null}>
+        <AutopayApp />
       </Suspense>
     );
   }

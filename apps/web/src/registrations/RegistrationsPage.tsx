@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { errorMessage } from '../commercial/helpers';
 import { ListSkeleton } from '../commercial/Shared';
 import { CreateAccountDialog } from './CreateAccountDialog';
+import { AutopayDialog } from './AutopayDialog';
 import { PaymentLinkDialog } from './PaymentLinkDialog';
 import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
@@ -56,6 +57,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState<RegistrationRequest | null>(null);
   const [charging, setCharging] = useState<RegistrationRequest | null>(null);
+  const [autopay, setAutopay] = useState<RegistrationRequest | null>(null);
 
   const load = useCallback(async () => {
     setLoadFailed(false);
@@ -240,6 +242,11 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                       {t(r.payments.length > 0 ? 'registrations.payment.sendAnother' : 'registrations.payment.send')}
                     </Button>
                   ) : null}
+                  {!['CONVERTED', 'SPAM', 'REJECTED'].includes(r.status) ? (
+                    <Button variant="secondary" onClick={() => setAutopay(r)} disabled={busyId === r.id}>
+                      {t('registrations.autopay.open')}
+                    </Button>
+                  ) : null}
                   {canCreate(r) ? (
                     <Button variant={canCharge(r) ? 'secondary' : 'primary'} onClick={() => setCreating(r)} disabled={busyId === r.id}>
                       {t('registrations.createAccount')}
@@ -295,6 +302,8 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
           }}
         />
       ) : null}
+
+      {autopay ? <AutopayDialog request={autopay} onClose={() => setAutopay(null)} /> : null}
 
       {creating ? (
         <CreateAccountDialog

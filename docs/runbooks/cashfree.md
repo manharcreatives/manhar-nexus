@@ -102,3 +102,28 @@ Not yet seen: which of those three events was the link event and its exact body.
 - Code: redeploy the previous Vercel deployment (`rollback.md`). The new columns are additive and ignored by the old code, so the migration does NOT need to be reverted.
 - Links already created keep working; their breakdown is stored in `registration_payment.quote`.
 - Only if you must remove the columns (not normally needed): `ALTER TABLE "registration_payment" DROP COLUMN "planKey", DROP COLUMN "billingCycle", DROP COLUMN "quote", DROP COLUMN "source";` after the old code is live.
+
+## UPI AutoPay (monthly plans) — Cashfree Subscriptions
+
+Off by default. Staff open **UPI AutoPay** on a request in Registrations, press *Create AutoPay link*, and send the owner the link (copy or WhatsApp). The owner opens `/pay/autopay/<token>` on their phone, approves the mandate in their UPI app (a ₹1 test debit is refunded), and Cashfree then debits the plan's **monthly price + 18% GST** every month. The price is always the server's `quotePlan` (monthly cycle, no Launch Pack, no Founding discount); the browser never sends an amount.
+
+**To turn it on**
+1. Cashfree dashboard: make sure **Subscriptions** is enabled for the merchant account and UPI AutoPay is allowed (the sandbox has it; production may need a request to Cashfree support). Without it Cashfree answers 4xx and staff see "Cashfree said no (...)".
+2. In the Cashfree dashboard webhooks, subscribe the SAME webhook URL (`/api/public/cashfree/webhook`) to the subscription events: `SUBSCRIPTION_STATUS_CHANGED`, `SUBSCRIPTION_AUTH_STATUS`, `SUBSCRIPTION_PAYMENT_SUCCESS`, `SUBSCRIPTION_PAYMENT_FAILED`. Use webhook version 2025-01-01.
+3. Apply migration `20261106140000_registration_subscription` (additive: two new tables) to Neon before deploying (backup, unpooled URL).
+4. Set `SUBSCRIPTIONS_ENABLED=true` (and keep `QR_PUBLIC_BASE_URL` set so Cashfree returns the owner to our page) and redeploy.
+5. The CSP in `vercel.json` and `deploy/Caddyfile` now allows `https://sdk.cashfree.com` (script, connect, frame) and the Cashfree hosts (frame, connect), because the approval screen is Cashfree's JS SDK. Revert that if AutoPay is dropped.
+
+**Verified on the sandbox:** create a PERIODIC monthly UPI subscription (`POST /pg/subscriptions`, api version 2025-01-01, returns `subscription_session_id`, status `INITIALIZED`), read it (`GET /subscriptions/{id}`, issues a fresh session each time), cancel it (`POST /subscriptions/{id}/manage` `{action: "CANCEL"}` → `CANCELLED`).
+
+**NOT verified (documented API only, no way to exercise it headlessly):**
+- The owner approval screen: `Cashfree({mode}).subscriptionsCheckout({subscriptionsSessionId, redirectTarget: '_self'})` from `https://sdk.cashfree.com/js/v3/cashfree.js` (`apps/web/src/autopay/AutopayApp.tsx`). Open a generated link in a browser against the sandbox and complete it once before enabling in production.
+- The subscription webhook bodies: parsed from the docs' examples (`apps/api/src/cashfree/subscription.events.ts`); the signature is assumed to be the same scheme as links. Watch the first real events in the logs (event type + outcome are logged, no payload).
+- Whether production will accept the account for Subscriptions at all.
+
+**Behaviour to know**
+- One live mandate per request. A mandate the owner has not approved can be replaced (cancels the old one at Cashfree first); an approved one must be cancelled first.
+- The first successful monthly debit counts as "paid" (a PAID payment row with source `AUTOPAY`, request becomes QUALIFIED, "Create restaurant account" unlocks). If a payment link was already paid, the first AutoPay debit is scheduled a month after it.
+- A debit whose amount differs from the quote is recorded as `AMOUNT_MISMATCH` and does not count as paid.
+- UPI AutoPay without extra authentication is limited to ₹15,000 per debit (all plans are far below). Pre-debit notifications are sent by the bank/UPI app and Cashfree.
+- A failed monthly debit is recorded and shown to staff (last debit status); Cashfree's own retry rules apply. There is no automatic dunning email yet.

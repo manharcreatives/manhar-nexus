@@ -20,6 +20,30 @@ export interface CashfreeLink {
   status: string;
 }
 
+export interface CreateSubscriptionInput {
+  /** Our id for the subscription (alphanumerics, `_`, `-`, `.`; <= 250 chars). */
+  subscriptionId: string;
+  planName: string;
+  /** The recurring monthly debit, GST inclusive. */
+  amountPaise: number;
+  customer: { name: string; email: string; phone: string };
+  firstChargeAt: Date;
+  expiresAt: Date;
+  /** Shown on the owner's UPI app next to the mandate. */
+  pspNote: string;
+  /** Where Cashfree sends the owner after authorising (our own page); omitted when the public URL is unknown. */
+  returnUrl?: string;
+}
+
+export interface CashfreeSubscription {
+  subscriptionId: string;
+  cfSubscriptionId: string | null;
+  /** Token for the Cashfree JS SDK checkout; null if Cashfree did not send one. */
+  sessionId: string | null;
+  /** Cashfree's status text, upper-cased: INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | CANCELLED ... */
+  status: string;
+}
+
 const TIMEOUT_MS = 15_000;
 
 /** Minimal Cashfree Payment Links client. `fetch` is injectable so tests never touch the network. */
@@ -72,6 +96,64 @@ export class CashfreeClient {
   async cancelLink(linkId: string): Promise<void> {
     const config = this.config();
     await this.call(config, 'POST', `/links/${encodeURIComponent(linkId)}/cancel`, {});
+  }
+
+  /**
+   * Creates a PERIODIC monthly UPI AutoPay subscription (verified on the sandbox: returns subscription_session_id and
+   * status INITIALIZED; there is no hosted auth URL, the owner authorises through the Cashfree JS SDK with the session).
+   */
+  async createSubscription(input: CreateSubscriptionInput): Promise<CashfreeSubscription> {
+    const config = this.config();
+    const rupees = Number((input.amountPaise / 100).toFixed(2));
+    const body = {
+      subscription_id: input.subscriptionId,
+      customer_details: {
+        customer_name: input.customer.name,
+        customer_email: input.customer.email,
+        customer_phone: input.customer.phone,
+      },
+      plan_details: {
+        plan_name: input.planName.slice(0, 40),
+        plan_type: 'PERIODIC',
+        plan_amount: rupees,
+        plan_max_amount: rupees,
+        plan_max_cycles: 120,
+        plan_intervals: 1,
+        plan_interval_type: 'MONTH',
+        plan_currency: 'INR',
+      },
+      authorization_details: { authorization_amount: 1, authorization_amount_refund: true, payment_methods: ['upi'] },
+      subscription_meta: { notification_channel: ['EMAIL'], ...(input.returnUrl ? { return_url: input.returnUrl } : {}) },
+      subscription_expiry_time: input.expiresAt.toISOString(),
+      subscription_first_charge_time: input.firstChargeAt.toISOString(),
+      subscription_tags: { psp_note: input.pspNote.slice(0, 200) },
+    };
+    return this.toSubscription(await this.call(config, 'POST', '/subscriptions', body), input.subscriptionId);
+  }
+
+  /** Current state (and a fresh session id, which Cashfree issues on every read: verified on the sandbox). */
+  async getSubscription(subscriptionId: string): Promise<CashfreeSubscription> {
+    const config = this.config();
+    return this.toSubscription(await this.call(config, 'GET', `/subscriptions/${encodeURIComponent(subscriptionId)}`), subscriptionId);
+  }
+
+  /** Cancels the mandate (verified on the sandbox: returns the subscription with status CANCELLED). */
+  async cancelSubscription(subscriptionId: string): Promise<CashfreeSubscription> {
+    const config = this.config();
+    const path = `/subscriptions/${encodeURIComponent(subscriptionId)}/manage`;
+    return this.toSubscription(await this.call(config, 'POST', path, { subscription_id: subscriptionId, action: 'CANCEL' }), subscriptionId);
+  }
+
+  private toSubscription(json: Record<string, unknown>, fallbackId: string): CashfreeSubscription {
+    const sessionId = typeof json.subscription_session_id === 'string' ? json.subscription_session_id : null;
+    const status = typeof json.subscription_status === 'string' ? json.subscription_status.toUpperCase() : null;
+    if (!status) throw new PaymentProviderError('Cashfree did not return the subscription status.');
+    return {
+      subscriptionId: typeof json.subscription_id === 'string' ? json.subscription_id : fallbackId,
+      cfSubscriptionId: json.cf_subscription_id !== undefined && json.cf_subscription_id !== null ? String(json.cf_subscription_id) : null,
+      sessionId,
+      status,
+    };
   }
 
   async getLink(linkId: string): Promise<CashfreeLink & { amountPaidRupees: number | null }> {

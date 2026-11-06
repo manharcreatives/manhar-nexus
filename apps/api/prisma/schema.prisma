@@ -1967,6 +1967,7 @@ model RegistrationRequest {
   @@index([ipHash, createdAt])
   payments       RegistrationPayment[]
   provisioning   RegistrationProvisioning?
+  subscriptions  RegistrationSubscription[]
   @@map("registration_request")
 }
 
@@ -2252,4 +2253,55 @@ model WaiterCall {
   @@index([businessId, status, createdAt])
   @@index([diningTableId, status])
   @@map("waiter_call")
+}
+
+/// A UPI AutoPay (Cashfree Subscriptions) mandate for a registration request's MONTHLY plan. The recurring amount is
+/// the server's quote (GST inclusive); Cashfree debits it each month once the owner has authorised the mandate.
+model RegistrationSubscription {
+  id               String                         @id @default(uuid()) @db.Uuid
+  registrationId   String                         @db.Uuid
+  registration     RegistrationRequest            @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  /// Our id for the subscription (what Cashfree echoes back in webhooks).
+  subscriptionId   String                         @unique
+  cfSubscriptionId String?
+  /// Random token in the owner's authorisation link (/pay/autopay/<token>); never the Cashfree session id.
+  authToken        String                         @unique
+  /// Cashfree's status text (INITIALIZED | BANK_APPROVAL_PENDING | ACTIVE | ON_HOLD | PAUSED | COMPLETED |
+  /// CUSTOMER_CANCELLED | CUSTOMER_PAUSED | EXPIRED | LINK_EXPIRED | CANCELLED), validated in code, not a DB enum.
+  status           String                         @default("INITIALIZED")
+  planKey          String
+  amountPaise      Int
+  quote            Json
+  firstChargeAt    DateTime?                      @db.Timestamptz(6)
+  activatedAt      DateTime?                      @db.Timestamptz(6)
+  cancelledAt      DateTime?                      @db.Timestamptz(6)
+  lastChargeStatus String?
+  lastChargeAt     DateTime?                      @db.Timestamptz(6)
+  /// Platform user id of the staff member who created it.
+  createdBy        String
+  createdAt        DateTime                       @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime                       @updatedAt @db.Timestamptz(6)
+  charges          RegistrationSubscriptionCharge[]
+
+  @@index([registrationId, createdAt])
+  @@map("registration_subscription")
+}
+
+/// One authorisation or monthly debit reported by Cashfree. cfPaymentId is unique so a retried webhook is a no-op.
+model RegistrationSubscriptionCharge {
+  id             String                   @id @default(uuid()) @db.Uuid
+  subscriptionRowId String                @db.Uuid
+  subscription   RegistrationSubscription @relation(fields: [subscriptionRowId], references: [id], onDelete: Restrict)
+  cfPaymentId    String                   @unique
+  /// AUTH | CHARGE
+  kind           String
+  /// SUCCESS | FAILED | AMOUNT_MISMATCH
+  status         String
+  amountPaise    Int
+  failureReason  String?
+  occurredAt     DateTime                 @db.Timestamptz(6)
+  createdAt      DateTime                 @default(now()) @db.Timestamptz(6)
+
+  @@index([subscriptionRowId, occurredAt])
+  @@map("registration_subscription_charge")
 }
