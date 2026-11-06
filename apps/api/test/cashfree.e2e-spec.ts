@@ -43,7 +43,7 @@ describe('Cashfree payment links (e2e)', () => {
   const pPost = (path: string, b: object) => request(http()).post(path).set('authorization', `Bearer ${platformToken}`).send(b);
 
   /** A stored registration request (inserted directly: the public endpoint has its own per-IP throttle). */
-  async function createLead() {
+  async function createLead(plan: { planKey?: string; billingCycle?: string; createdAt?: Date } = {}) {
     return prisma.registrationRequest.create({
       data: {
         referenceCode: generateReferenceCode(),
@@ -54,10 +54,11 @@ describe('Cashfree payment links (e2e)', () => {
         city: 'Visnagar',
         businessKind: 'cafe',
         outlets: 2,
-        planKey: 'not-sure',
-        billingCycle: 'yearly',
+        planKey: plan.planKey ?? 'not-sure',
+        billingCycle: plan.billingCycle ?? 'yearly',
         consentVersion: CONSENT_VERSIONS[0],
         consentAt: new Date(),
+        ...(plan.createdAt ? { createdAt: plan.createdAt } : {}),
       },
     });
   }
@@ -74,7 +75,7 @@ describe('Cashfree payment links (e2e)', () => {
   async function leadWithLink(amountRupees = 1500) {
     const lead = await createLead();
     stubCashfreeLink();
-    const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, { amountRupees });
+    const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, { amountRupees, overrideReason: 'e2e typed amount' });
     expect(res.status).toBe(201);
     const payment = await prisma.registrationPayment.findUniqueOrThrow({ where: { linkId: res.body.linkId as string } });
     return { lead, payment, view: res.body as Record<string, unknown> };
@@ -154,7 +155,7 @@ describe('Cashfree payment links (e2e)', () => {
     it('creating a link answers 503 with a plain message, and nothing is stored or sent', async () => {
       activeConfig = null;
       const lead = await createLead();
-      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, { amountRupees: 1500 });
+      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, {});
       expect(res.status).toBe(503);
       expect(res.body.error.code).toBe('PAYMENTS_NOT_CONFIGURED');
       expect(res.body.error.message).toMatch(/not set up/i);
@@ -174,29 +175,53 @@ describe('Cashfree payment links (e2e)', () => {
     it('401 without a token, 403 for a restaurant (business-realm) user', async () => {
       const lead = await createLead();
       const url = `/internal/registrations/${lead.id}/payment-links`;
-      expect((await request(http()).post(url).send({ amountRupees: 100 })).status).toBe(401);
-      const denied = await request(http()).post(url).set('authorization', `Bearer ${businessToken}`).send({ amountRupees: 100 });
+      expect((await request(http()).post(url).send({})).status).toBe(401);
+      const denied = await request(http()).post(url).set('authorization', `Bearer ${businessToken}`).send({});
       expect(denied.status).toBe(403);
       expect((await request(http()).get(url).set('authorization', `Bearer ${businessToken}`)).status).toBe(403);
       expect(cashfreeFetch).not.toHaveBeenCalled();
     });
 
-    it('validates the amount: positive, at most two decimals, within bounds, no unknown fields', async () => {
+    it('validates the body: a typed amount needs a reason and cannot mix with plan fields; bounds; unknown fields', async () => {
       const lead = await createLead();
       const url = `/internal/registrations/${lead.id}/payment-links`;
-      for (const bad of [{}, { amountRupees: 0 }, { amountRupees: -5 }, { amountRupees: 10.001 }, { amountRupees: 5_000_000 }, { amountRupees: '100' }, { amountRupees: 100, extra: 1 }]) {
+      const why = { overrideReason: 'agreed on the phone' };
+      for (const bad of [
+        { amountRupees: 1500 },
+        { amountRupees: 0, ...why },
+        { amountRupees: -5, ...why },
+        { amountRupees: 10.001, ...why },
+        { amountRupees: 5_000_000, ...why },
+        { amountRupees: '100', ...why },
+        { amountRupees: 100, ...why, planKey: 'floor' },
+        { amountRupees: 100, ...why, extra: 1 },
+        { planKey: 'many-doors' },
+        { cycle: 'weekly' },
+        { totalPaise: 1 },
+        { purpose: 'anything' },
+      ]) {
         expect((await pPost(url, bad)).status).toBe(400);
       }
       expect(cashfreeFetch).not.toHaveBeenCalled();
     });
 
-    it('404 for an unknown request', async () => {
-      expect((await pPost('/internal/registrations/00000000-0000-4000-8000-000000000000/payment-links', { amountRupees: 100 })).status).toBe(404);
+    it('answers 400 needsPlan for a request with no plan or Many Doors, nothing sent to Cashfree', async () => {
+      for (const planKey of ['not-sure', 'many-doors']) {
+        const lead = await createLead({ planKey });
+        const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, {});
+        expect(res.status).toBe(400);
+        expect(res.body.error.details.needsPlan).toBe(true);
+      }
+      expect(cashfreeFetch).not.toHaveBeenCalled();
     });
 
-    it('creates the link on Cashfree and stores it, with the owner details Cashfree needs', async () => {
+    it('404 for an unknown request', async () => {
+      expect((await pPost('/internal/registrations/00000000-0000-4000-8000-000000000000/payment-links', {})).status).toBe(404);
+    });
+
+    it('creates a typed-amount link on Cashfree and stores it with its reason, with the owner details Cashfree needs', async () => {
       const { lead, payment, view } = await leadWithLink(1500.5);
-      expect(view).toMatchObject({ linkUrl: 'https://payments-test.cashfree.com/links/e2e', amountPaise: 150_050, status: 'CREATED', currency: 'INR' });
+      expect(view).toMatchObject({ linkUrl: 'https://payments-test.cashfree.com/links/e2e', amountPaise: 150_050, status: 'CREATED', currency: 'INR', planKey: null, overrideReason: 'e2e typed amount' });
       expect(view).not.toHaveProperty('createdBy');
       expect(payment.registrationId).toBe(lead.id);
       expect(payment.cfLinkId).toBe('4242');
@@ -214,6 +239,66 @@ describe('Cashfree payment links (e2e)', () => {
       });
     });
 
+    it('prices the link from the plan the visitor chose: Floor yearly in the Founding window = 9,740 + 18% GST, no amount typed', async () => {
+      const lead = await createLead({ planKey: 'floor', billingCycle: 'yearly', createdAt: new Date('2026-12-01T10:00:00+05:30') });
+      stubCashfreeLink();
+      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, {});
+      expect(res.status).toBe(201);
+      expect(res.body).toMatchObject({ amountPaise: 1_149_320, planKey: 'floor', billingCycle: 'yearly', source: 'STAFF', overrideReason: null });
+      expect(res.body.purpose).toBe('Manhar Nexus Floor, yearly (Founding 25% off), incl. 18% GST');
+      expect((res.body.breakdown as { label: string }[]).map((l) => l.label)).toEqual([
+        'Floor plan, yearly',
+        'Founding Restaurants offer (25% off the first year)',
+        'GST 18%',
+      ]);
+      const sent = JSON.parse((cashfreeFetch.mock.calls[0] as [string, RequestInit])[1].body as string) as Record<string, unknown>;
+      expect(sent).toMatchObject({ link_amount: 11_493.2, link_purpose: 'Manhar Nexus Floor, yearly (Founding 25% off), incl. 18% GST' });
+      const row = await prisma.registrationPayment.findUniqueOrThrow({ where: { id: res.body.id as string } });
+      expect(row.quote).toMatchObject({ planKey: 'floor', foundingApplied: true, totalPaise: 1_149_320 });
+    });
+
+    it('a lead registered after the Founding window pays list price + GST; staff can choose plan and Launch Pack for a "not sure" lead', async () => {
+      const late = await createLead({ planKey: 'floor', billingCycle: 'yearly', createdAt: new Date('2027-03-01T10:00:00+05:30') });
+      stubCashfreeLink();
+      expect((await pPost(`/internal/registrations/${late.id}/payment-links`, {})).body.amountPaise).toBe(1_532_820);
+
+      const unsure = await createLead({ planKey: 'not-sure', billingCycle: 'monthly' });
+      stubCashfreeLink();
+      const res = await pPost(`/internal/registrations/${unsure.id}/payment-links`, { planKey: 'counter', cycle: 'monthly', launchPack: true });
+      expect(res.status).toBe(201);
+      expect(res.body.amountPaise).toBe(483_564); // (599 + 3,499) + 18% GST
+    });
+
+    it('one live link per request: a second is refused (409) until staff replace it, which cancels the old link at Cashfree first', async () => {
+      const { lead, payment } = await leadWithLink();
+      const url = `/internal/registrations/${lead.id}/payment-links`;
+      const blocked = await pPost(url, { amountRupees: 200, overrideReason: 'second' });
+      expect(blocked.status).toBe(409);
+      expect(blocked.body.error.details.openLinkIds).toEqual([payment.id]);
+
+      cashfreeFetch.mockResolvedValueOnce({ ok: true, status: 200, text: async () => '{}' }); // cancel
+      stubCashfreeLink('https://payments-test.cashfree.com/links/e2e-new'); // create
+      const replaced = await pPost(url, { amountRupees: 200, overrideReason: 'new amount agreed', replaceOpen: true });
+      expect(replaced.status).toBe(201);
+      const calls = cashfreeFetch.mock.calls.map((c) => [c[0] as string, (c[1] as RequestInit).method]);
+      expect(calls.slice(-2)).toEqual([
+        [`https://sandbox.cashfree.com/pg/links/${payment.linkId}/cancel`, 'POST'],
+        ['https://sandbox.cashfree.com/pg/links', 'POST'],
+      ]);
+      expect((await prisma.registrationPayment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('CANCELLED');
+      expect(await prisma.registrationPayment.count({ where: { registrationId: lead.id, status: 'CREATED' } })).toBe(1);
+    });
+
+    it('if Cashfree refuses to cancel the old link (say it was just paid), nothing new is created and the old one stays open', async () => {
+      const { lead, payment } = await leadWithLink();
+      cashfreeFetch.mockResolvedValueOnce({ ok: false, status: 409, text: async () => JSON.stringify({ code: 'link_already_paid', message: 'Link is already paid' }) });
+      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, { amountRupees: 200, overrideReason: 'replace', replaceOpen: true });
+      expect(res.status).toBe(502);
+      expect(res.body.error.message).toContain('already paid');
+      expect((await prisma.registrationPayment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('CREATED');
+      expect(await prisma.registrationPayment.count({ where: { registrationId: lead.id } })).toBe(1);
+    });
+
     it('shows the link on GET .../payment-links and inside the registration request itself', async () => {
       const { lead, payment } = await leadWithLink();
       const list = await pGet(`/internal/registrations/${lead.id}/payment-links`);
@@ -228,9 +313,9 @@ describe('Cashfree payment links (e2e)', () => {
     });
 
     it('reports a Cashfree refusal as 502 with the reason, and stores nothing', async () => {
-      const lead = await createLead();
+      const lead = await createLead({ planKey: 'counter', billingCycle: 'monthly' });
       cashfreeFetch.mockResolvedValueOnce({ ok: false, status: 401, text: async () => JSON.stringify({ code: 'authentication_failed', message: 'Invalid client credentials' }) });
-      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, { amountRupees: 100 });
+      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, {});
       expect(res.status).toBe(502);
       expect(res.body.error.code).toBe('PAYMENT_PROVIDER_ERROR');
       expect(res.body.error.message).toContain('Invalid client credentials');
@@ -331,7 +416,7 @@ describe('Cashfree payment links (e2e)', () => {
     it('once paid, another link for the same request is refused (409): no double charge', async () => {
       const { lead, payment } = await leadWithLink();
       expect((await webhook(linkEvent(payment.linkId))).status).toBe(200);
-      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, { amountRupees: 100 });
+      const res = await pPost(`/internal/registrations/${lead.id}/payment-links`, { amountRupees: 100, overrideReason: 'second try' });
       expect(res.status).toBe(409);
       expect(cashfreeFetch).toHaveBeenCalledTimes(1); // only the original creation
     });

@@ -1992,6 +1992,13 @@ model RegistrationPayment {
   paidAt          DateTime?           @db.Timestamptz(6)
   /// Platform user id of the staff member who created the link.
   createdBy       String
+  /// The plan and cycle this payment was priced from (null for a typed, overridden amount).
+  planKey         String?
+  billingCycle    String?
+  /// The server-computed quote (lines, GST, flags) or { override: { reason } } for a typed amount.
+  quote           Json?
+  /// Who created it: STAFF today; CUSTOMER once self-serve pay-now exists.
+  source          String              @default("STAFF")
   createdAt       DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime            @updatedAt @db.Timestamptz(6)
 

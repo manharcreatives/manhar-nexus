@@ -129,9 +129,55 @@ describe('RegistrationsPage: owner payment (Cashfree link)', () => {
     expect(screen.getByRole('button', { name: 'Create restaurant account' })).toBeTruthy();
   });
 
+  it('prices from the plan: shows the breakdown and sends only the plan, never an amount', async () => {
+    createPaymentLink.mockResolvedValue(link({ amountPaise: 1_149_320 }));
+    withRows({ ...row, planKey: 'floor', billingCycle: 'yearly', createdAt: '2026-12-01T10:00:00.000Z' });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Send payment link' }));
+    expect(await screen.findByText('Founding Restaurants offer (25% off the first year)')).toBeTruthy();
+    expect(screen.getByText('₹11,493.20')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Create link' }));
+    await waitFor(() => expect(createPaymentLink).toHaveBeenCalledWith(row.id, { planKey: 'floor', cycle: 'yearly', launchPack: false }));
+  });
+
+  it('a "not sure" request needs a plan chosen before a link can be made', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Send payment link' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Create link' }));
+    expect(await screen.findByText('Choose a plan first, or type an amount.')).toBeTruthy();
+    expect(createPaymentLink).not.toHaveBeenCalled();
+  });
+
+  it('a typed amount needs a reason and sends both', async () => {
+    createPaymentLink.mockResolvedValue(link());
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Send payment link' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Type an amount instead' }));
+    fireEvent.change(await screen.findByLabelText(/Amount/), { target: { value: '1500' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create link' }));
+    expect(await screen.findByText(/Write a short reason/)).toBeTruthy();
+    expect(createPaymentLink).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText(/Why a different amount/), { target: { value: 'agreed on the phone' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create link' }));
+    await waitFor(() => expect(createPaymentLink).toHaveBeenCalledWith(row.id, { amountRupees: 1500, overrideReason: 'agreed on the phone' }));
+  });
+
+  it('with an open link, offers to replace it and sends replaceOpen only when ticked', async () => {
+    createPaymentLink.mockResolvedValue(link());
+    withRows({ ...row, planKey: 'counter', billingCycle: 'monthly', payments: [link()] });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'New payment link' }));
+    fireEvent.click(await screen.findByLabelText(/Cancel it and create this new one/));
+    fireEvent.click(screen.getByRole('button', { name: 'Create link' }));
+    await waitFor(() =>
+      expect(createPaymentLink).toHaveBeenCalledWith(row.id, { planKey: 'counter', cycle: 'monthly', launchPack: false, replaceOpen: true }),
+    );
+  });
+
   it('rejects a bad amount in the dialog without calling the API', async () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Send payment link' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Type an amount instead' }));
     const amount = await screen.findByLabelText(/Amount/);
     for (const bad of ['', '0', 'abc', '10.001', '-5']) {
       fireEvent.change(amount, { target: { value: bad } });
@@ -145,9 +191,11 @@ describe('RegistrationsPage: owner payment (Cashfree link)', () => {
     createPaymentLink.mockResolvedValue(link());
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Send payment link' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Type an amount instead' }));
     fireEvent.change(await screen.findByLabelText(/Amount/), { target: { value: '₹1,500' } });
+    fireEvent.change(screen.getByLabelText(/Why a different amount/), { target: { value: 'custom deal' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create link' }));
-    await waitFor(() => expect(createPaymentLink).toHaveBeenCalledWith(row.id, { amountRupees: 1500 }));
+    await waitFor(() => expect(createPaymentLink).toHaveBeenCalledWith(row.id, { amountRupees: 1500, overrideReason: 'custom deal' }));
     expect(await screen.findByText('https://payments-test.cashfree.com/links/abc')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeTruthy();
     const wa = screen.getByRole('link', { name: 'WhatsApp the owner' });
@@ -159,9 +207,9 @@ describe('RegistrationsPage: owner payment (Cashfree link)', () => {
     createPaymentLink.mockRejectedValue(
       Object.assign(new Error('Online payments are not set up on this server yet (Cashfree keys missing).'), { status: 503 }),
     );
+    withRows({ ...row, planKey: 'counter', billingCycle: 'monthly' });
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Send payment link' }));
-    fireEvent.change(await screen.findByLabelText(/Amount/), { target: { value: '1500' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create link' }));
     expect(await screen.findByText(/not set up on this server yet/)).toBeTruthy();
   });

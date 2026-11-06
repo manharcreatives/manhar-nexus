@@ -17,6 +17,13 @@ export interface PaymentLink {
   purpose: string;
   status: PaymentStatus;
   paidAmountPaise: number | null;
+  /** Set when the amount came from the plan catalog; null for a typed amount. */
+  planKey?: string | null;
+  billingCycle?: string | null;
+  breakdown?: { label: string; amountPaise: number }[] | null;
+  /** Why staff typed an amount instead of using the quote. */
+  overrideReason?: string | null;
+  source?: string;
   expiresAt: string | null;
   paidAt: string | null;
   createdAt: string;
@@ -83,8 +90,13 @@ export function whatsappUrl(phone: string, text?: string): string {
   return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 }
 
-/** Creates a Cashfree payment link for the request. Amount is in rupees (at most two decimals). */
-export function createPaymentLink(registrationId: string, body: { amountRupees: number; purpose?: string }): Promise<PaymentLink> {
+/** What staff send: a plan (the server prices it) or a typed amount with a reason, never both. */
+export type CreatePaymentLinkBody =
+  | { planKey?: string; cycle?: string; launchPack?: boolean; replaceOpen?: boolean }
+  | { amountRupees: number; overrideReason: string; replaceOpen?: boolean };
+
+/** Creates a Cashfree payment link for the request. The server computes the price from its own plan catalog. */
+export function createPaymentLink(registrationId: string, body: CreatePaymentLinkBody): Promise<PaymentLink> {
   return api<PaymentLink>(`/internal/registrations/${registrationId}/payment-links`, { method: 'POST', body: JSON.stringify(body) });
 }
 

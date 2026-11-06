@@ -68,6 +68,12 @@ export class CashfreeClient {
     return this.toLink(json, input.linkId);
   }
 
+  /** Cancels a link that has not been paid (Cashfree refuses once it is paid or already closed). */
+  async cancelLink(linkId: string): Promise<void> {
+    const config = this.config();
+    await this.call(config, 'POST', `/links/${encodeURIComponent(linkId)}/cancel`, {});
+  }
+
   async getLink(linkId: string): Promise<CashfreeLink & { amountPaidRupees: number | null }> {
     const config = this.config();
     const json = await this.call(config, 'GET', `/links/${encodeURIComponent(linkId)}`);

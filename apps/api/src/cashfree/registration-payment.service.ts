@@ -1,12 +1,13 @@
 import { randomBytes } from 'node:crypto';
+import { QuoteError, quotePlan, type Quote } from '@nexus/shared';
 import { Injectable } from '@nestjs/common';
-import type { RegistrationPayment } from '@prisma/client';
+import type { Prisma, RegistrationPayment } from '@prisma/client';
 import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
 import type { ActorContext } from '../common/tenant-scope';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
 import { CashfreeClient } from './cashfree.client';
-import type { CreatePaymentLinkDto, PaymentLinkView } from './cashfree.dto';
+import type { BreakdownLine, CreatePaymentLinkDto, PaymentLinkView } from './cashfree.dto';
 import type { LinkEvent } from './cashfree.events';
 
 /** A request in one of these states is not a customer we are selling to. */
@@ -16,7 +17,19 @@ const DAY_MS = 86_400_000;
 
 export type LinkEventOutcome = 'ignored' | 'updated' | 'duplicate' | 'amount-mismatch';
 
+/** The stored quote JSON is either a Quote (lines, GST, flags) or { override: { reason } } for a typed amount. */
+function readQuote(json: unknown): { breakdown: BreakdownLine[] | null; overrideReason: string | null } {
+  if (typeof json !== 'object' || json === null) return { breakdown: null, overrideReason: null };
+  const q = json as { lines?: unknown; override?: { reason?: unknown } };
+  const breakdown = Array.isArray(q.lines)
+    ? (q.lines as BreakdownLine[]).filter((l) => typeof l?.label === 'string' && typeof l?.amountPaise === 'number')
+    : null;
+  const reason = q.override && typeof q.override.reason === 'string' ? q.override.reason : null;
+  return { breakdown, overrideReason: reason };
+}
+
 export function toPaymentView(row: RegistrationPayment): PaymentLinkView {
+  const { breakdown, overrideReason } = readQuote(row.quote);
   return {
     id: row.id,
     registrationId: row.registrationId,
@@ -27,6 +40,11 @@ export function toPaymentView(row: RegistrationPayment): PaymentLinkView {
     purpose: row.purpose,
     status: row.status,
     paidAmountPaise: row.paidAmountPaise,
+    planKey: row.planKey,
+    billingCycle: row.billingCycle,
+    breakdown,
+    overrideReason,
+    source: row.source,
     expiresAt: row.expiresAt,
     paidAt: row.paidAt,
     createdAt: row.createdAt,
@@ -61,14 +79,35 @@ export class RegistrationPaymentService {
     // Fail fast with a clear 503 when the keys are missing, before touching anything else.
     this.cashfree.config();
 
-    const amountPaise = Math.round(dto.amountRupees * 100);
+    // What to charge: the server's own quote from the plan catalog, or a typed amount with a recorded reason.
+    let amountPaise: number;
+    let purpose: string;
+    let planKey: string | null = null;
+    let billingCycle: string | null = null;
+    let quote: Prisma.InputJsonValue;
+    if (dto.amountRupees !== undefined) {
+      amountPaise = Math.round(dto.amountRupees * 100);
+      purpose = 'Manhar Nexus subscription';
+      quote = { override: { reason: dto.overrideReason ?? '' } };
+    } else {
+      const priced = this.priceRequest(reg, dto);
+      amountPaise = priced.totalPaise;
+      purpose = priced.description;
+      planKey = priced.planKey;
+      billingCycle = priced.cycle;
+      quote = JSON.parse(JSON.stringify(priced)) as Prisma.InputJsonValue;
+    }
+
+    // One live link per request, so two links can never both be paid.
+    await this.closeOpenLinks(registrationId, dto.replaceOpen === true, now);
+
     const linkId = `${reg.referenceCode}-${randomBytes(4).toString('hex')}`;
     const expiresAt = new Date(now.getTime() + LINK_VALID_DAYS * DAY_MS);
     const link = await this.cashfree.createLink({
       linkId,
       amountPaise,
-      purpose: dto.purpose,
-      customer: { name: reg.contactName, email: reg.email, phone: reg.phone.replace(/\D/g, '').slice(-10) },
+      purpose,
+      customer: { name: reg.contactName, email: reg.email, phone: reg.phone.replace(/D/g, '').slice(-10) },
       expiresAt,
     });
     const row = await this.prisma.registrationPayment.create({
@@ -78,13 +117,55 @@ export class RegistrationPaymentService {
         cfLinkId: link.cfLinkId,
         linkUrl: link.linkUrl,
         amountPaise,
-        purpose: dto.purpose,
+        purpose,
         expiresAt,
         createdBy: actor.id ?? actor.label,
+        planKey,
+        billingCycle,
+        quote,
+        source: 'STAFF',
       },
     });
-    logger.child({ registrationId, linkId, amountPaise }).info('payment link created');
+    logger.child({ registrationId, linkId, amountPaise, planKey, billingCycle }).info('payment link created');
     return toPaymentView(row);
+  }
+
+  /** The catalog price for a request: plan and cycle from the body, else from what the visitor chose. */
+  private priceRequest(reg: { planKey: string; billingCycle: string; createdAt: Date }, dto: CreatePaymentLinkDto): Quote {
+    try {
+      return quotePlan({
+        planKey: dto.planKey ?? reg.planKey,
+        cycle: dto.cycle ?? reg.billingCycle,
+        // The Founding offer is judged at the day they registered, so a lead keeps the price it signed up under.
+        offerDate: reg.createdAt,
+        launchPack: dto.launchPack === true,
+      });
+    } catch (err) {
+      if (err instanceof QuoteError) throw new ValidationError(err.message, { needsPlan: true });
+      throw err;
+    }
+  }
+
+  /**
+   * An open link (still CREATED and not expired) blocks a new one, unless staff chose to replace it. Replacing cancels
+   * it at Cashfree FIRST; if Cashfree refuses (for instance it was just paid) we stop, because creating a second live
+   * link next to an unpaid-looking one is how a customer gets charged twice.
+   */
+  private async closeOpenLinks(registrationId: string, replace: boolean, now: Date): Promise<void> {
+    const open = await this.prisma.registrationPayment.findMany({
+      where: { registrationId, status: 'CREATED', OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+    });
+    if (open.length === 0) return;
+    if (!replace) {
+      throw new ConflictError(
+        'This request already has an open payment link. Check its payment first, or replace it with a new one.',
+        { openLinkIds: open.map((p) => p.id) },
+      );
+    }
+    for (const p of open) {
+      await this.cashfree.cancelLink(p.linkId);
+      await this.prisma.registrationPayment.updateMany({ where: { id: p.id, status: 'CREATED' }, data: { status: 'CANCELLED' } });
+    }
   }
 
   /**

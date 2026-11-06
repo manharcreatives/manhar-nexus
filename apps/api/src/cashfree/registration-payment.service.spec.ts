@@ -1,10 +1,11 @@
 import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
 import type { PrismaService } from '../prisma/prisma.service';
 import { CashfreeClient } from './cashfree.client';
-import { PaymentsNotConfiguredError } from './cashfree.errors';
-import { RegistrationPaymentService } from './registration-payment.service';
+import { PaymentProviderError, PaymentsNotConfiguredError } from './cashfree.errors';
+import { RegistrationPaymentService, toPaymentView } from './registration-payment.service';
 
 const ACTOR = { type: 'USER', id: 'staff-1', label: 'staff' } as never;
+// Registered on 5 Nov 2026: inside the Founding window (1 Nov 2026 to 31 Jan 2027).
 const REG = {
   id: 'reg-1',
   referenceCode: 'NX-ABC123',
@@ -12,6 +13,9 @@ const REG = {
   contactName: 'Asha Patel',
   email: 'asha@example.com',
   phone: '+919714571522',
+  planKey: 'floor',
+  billingCycle: 'yearly',
+  createdAt: new Date('2026-11-05T10:00:00+05:30'),
 };
 const PAYMENT = {
   id: 'pay-1',
@@ -23,6 +27,10 @@ const PAYMENT = {
   purpose: 'Manhar Nexus subscription',
   status: 'CREATED',
   paidAmountPaise: null,
+  planKey: null,
+  billingCycle: null,
+  quote: null,
+  source: 'STAFF',
   expiresAt: null,
   paidAt: null,
   createdAt: new Date(),
@@ -33,6 +41,7 @@ interface Fakes {
   paidCount?: number;
   payment?: unknown;
   updateCount?: number;
+  open?: unknown[];
 }
 
 function setup(f: Fakes = {}) {
@@ -44,55 +53,95 @@ function setup(f: Fakes = {}) {
     registrationPayment: {
       count: jest.fn().mockResolvedValue(f.paidCount ?? 0),
       findUnique: jest.fn().mockResolvedValue('payment' in f ? f.payment : PAYMENT),
-      findMany: jest.fn().mockResolvedValue([PAYMENT]),
+      findMany: jest.fn().mockResolvedValue(f.open ?? []),
       create,
       updateMany,
     },
   } as unknown as PrismaService;
   const createLink = jest.fn().mockResolvedValue({ cfLinkId: '77', linkId: 'x', linkUrl: 'https://pay.test/new', status: 'ACTIVE' });
-  const client = {
-    config: jest.fn().mockReturnValue({}),
-    createLink,
-  } as unknown as CashfreeClient;
-  return { service: new RegistrationPaymentService(prisma, client), createLink, create, updateMany, regUpdateMany, client };
+  const cancelLink = jest.fn().mockResolvedValue(undefined);
+  const client = { config: jest.fn().mockReturnValue({}), createLink, cancelLink } as unknown as CashfreeClient;
+  return { service: new RegistrationPaymentService(prisma, client), createLink, cancelLink, create, updateMany, regUpdateMany, client };
 }
 
-describe('RegistrationPaymentService.createLink', () => {
-  it('asks Cashfree with the owner details (10-digit phone, rupees as paise) and stores the link', async () => {
+describe('RegistrationPaymentService.createLink: priced from the plan catalog', () => {
+  it('prices Floor yearly during Founding from the server catalog: 9,740 + 18% GST = 11,493.20', async () => {
     const { service, createLink, create } = setup();
-    const view = await service.createLink(ACTOR, 'reg-1', { amountRupees: 1500.5, purpose: 'Manhar Nexus subscription' });
-    expect(createLink).toHaveBeenCalledTimes(1);
+    const view = await service.createLink(ACTOR, 'reg-1', {});
     const arg = createLink.mock.calls[0]?.[0];
-    expect(arg.amountPaise).toBe(150_050);
+    expect(arg.amountPaise).toBe(1_149_320);
+    expect(arg.purpose).toBe('Manhar Nexus Floor, yearly (Founding 25% off), incl. 18% GST');
     expect(arg.customer).toEqual({ name: 'Asha Patel', email: 'asha@example.com', phone: '9714571522' });
     expect(arg.linkId).toMatch(/^NX-ABC123-[0-9a-f]{8}$/);
-    expect(arg.linkId.length).toBeLessThanOrEqual(50);
     expect(arg.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * 86_400_000);
-    expect(create.mock.calls[0]?.[0].data).toMatchObject({ registrationId: 'reg-1', amountPaise: 150_050, createdBy: 'staff-1', cfLinkId: '77' });
-    expect(view.linkUrl).toBe('https://pay.test/new');
-    expect(view).not.toHaveProperty('createdBy');
+    const data = create.mock.calls[0]?.[0].data;
+    expect(data).toMatchObject({ amountPaise: 1_149_320, planKey: 'floor', billingCycle: 'yearly', source: 'STAFF', createdBy: 'staff-1' });
+    expect(data.quote).toMatchObject({ foundingApplied: true, totalPaise: 1_149_320 });
+    expect(view.breakdown?.map((l) => l.label)).toEqual([
+      'Floor plan, yearly',
+      'Founding Restaurants offer (25% off the first year)',
+      'GST 18%',
+    ]);
+    expect(view.overrideReason).toBeNull();
   });
 
-  it('rounds rupee amounts to whole paise without floating-point drift', async () => {
+  it('judges the Founding offer at the registration date, so a lead keeps the price it signed up under', async () => {
+    const early = setup({ reg: { ...REG, createdAt: new Date('2027-01-30T10:00:00+05:30') } });
+    await early.service.createLink(ACTOR, 'reg-1', {}, new Date('2027-03-01T10:00:00+05:30'));
+    expect(early.createLink.mock.calls[0]?.[0].amountPaise).toBe(1_149_320); // still Founding in March
+    const late = setup({ reg: { ...REG, createdAt: new Date('2027-02-02T10:00:00+05:30') } });
+    await late.service.createLink(ACTOR, 'reg-1', {});
+    expect(late.createLink.mock.calls[0]?.[0].amountPaise).toBe(1_532_820); // list price + GST
+  });
+
+  it('lets staff pick the plan, cycle and Launch Pack when the visitor said "not sure"', async () => {
+    const { service, createLink } = setup({ reg: { ...REG, planKey: 'not-sure', billingCycle: 'monthly', createdAt: new Date('2027-03-01T10:00:00+05:30') } });
+    await service.createLink(ACTOR, 'reg-1', { planKey: 'counter', cycle: 'monthly', launchPack: true });
+    // Counter monthly 599 + Launch Pack 3,499 = 4,098; GST 737.64; total 4,835.64
+    expect(createLink.mock.calls[0]?.[0].amountPaise).toBe(483_564);
+    expect(createLink.mock.calls[0]?.[0].purpose).toBe('Manhar Nexus Counter, monthly (with Launch Pack), incl. 18% GST');
+  });
+
+  it('refuses to price a request with no plan or a Many Doors plan, and asks Cashfree nothing', async () => {
+    for (const planKey of ['not-sure', 'many-doors']) {
+      const { service, createLink } = setup({ reg: { ...REG, planKey } });
+      const err = (await service.createLink(ACTOR, 'reg-1', {}).then(() => null, (e: unknown) => e)) as ValidationError;
+      expect(err).toBeInstanceOf(ValidationError);
+      expect(err.details).toMatchObject({ needsPlan: true });
+      expect(createLink).not.toHaveBeenCalled();
+    }
+  });
+
+  it('a typed amount is charged as typed and its reason is stored (no plan recorded)', async () => {
+    const { service, createLink, create } = setup();
+    const view = await service.createLink(ACTOR, 'reg-1', { amountRupees: 1500.5, overrideReason: 'Agreed on the phone: pilot price' });
+    expect(createLink.mock.calls[0]?.[0].amountPaise).toBe(150_050);
+    const data = create.mock.calls[0]?.[0].data;
+    expect(data).toMatchObject({ planKey: null, billingCycle: null, quote: { override: { reason: 'Agreed on the phone: pilot price' } } });
+    expect(view.overrideReason).toBe('Agreed on the phone: pilot price');
+    expect(view.breakdown).toBeNull();
+  });
+
+  it('rounds a typed rupee amount to whole paise without floating-point drift', async () => {
     const { service, createLink } = setup();
-    await service.createLink(ACTOR, 'reg-1', { amountRupees: 19.99, purpose: 'Manhar Nexus subscription' });
+    await service.createLink(ACTOR, 'reg-1', { amountRupees: 19.99, overrideReason: 'test amount' });
     expect(createLink.mock.calls[0]?.[0].amountPaise).toBe(1999);
   });
 
   it('is a 404 for an unknown request', async () => {
     const { service } = setup({ reg: null });
-    await expect(service.createLink(ACTOR, 'nope', { amountRupees: 100, purpose: 'x y z' })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.createLink(ACTOR, 'nope', {})).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it.each(['CONVERTED', 'SPAM', 'REJECTED'])('refuses a %s request without calling Cashfree', async (status) => {
     const { service, createLink } = setup({ reg: { ...REG, status } });
-    await expect(service.createLink(ACTOR, 'reg-1', { amountRupees: 100, purpose: 'x y z' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(service.createLink(ACTOR, 'reg-1', {})).rejects.toBeInstanceOf(ValidationError);
     expect(createLink).not.toHaveBeenCalled();
   });
 
   it('refuses a second link once one has been paid (no double charge)', async () => {
     const { service, createLink } = setup({ paidCount: 1 });
-    await expect(service.createLink(ACTOR, 'reg-1', { amountRupees: 100, purpose: 'x y z' })).rejects.toBeInstanceOf(ConflictError);
+    await expect(service.createLink(ACTOR, 'reg-1', {})).rejects.toBeInstanceOf(ConflictError);
     expect(createLink).not.toHaveBeenCalled();
   });
 
@@ -101,9 +150,55 @@ describe('RegistrationPaymentService.createLink', () => {
     (client.config as jest.Mock).mockImplementation(() => {
       throw new PaymentsNotConfiguredError('not set up');
     });
-    await expect(service.createLink(ACTOR, 'reg-1', { amountRupees: 100, purpose: 'x y z' })).rejects.toBeInstanceOf(PaymentsNotConfiguredError);
+    await expect(service.createLink(ACTOR, 'reg-1', {})).rejects.toBeInstanceOf(PaymentsNotConfiguredError);
     expect(createLink).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe('RegistrationPaymentService.createLink: one live link per request', () => {
+  const OPEN = { ...PAYMENT, id: 'pay-open', linkId: 'NX-ABC123-open0001', expiresAt: new Date(Date.now() + 86_400_000) };
+
+  it('an open link blocks a second one (409) and nothing is created or cancelled', async () => {
+    const { service, createLink, cancelLink } = setup({ open: [OPEN] });
+    const err = (await service.createLink(ACTOR, 'reg-1', {}).then(() => null, (e: unknown) => e)) as ConflictError;
+    expect(err).toBeInstanceOf(ConflictError);
+    expect(err.details).toMatchObject({ openLinkIds: ['pay-open'] });
+    expect(createLink).not.toHaveBeenCalled();
+    expect(cancelLink).not.toHaveBeenCalled();
+  });
+
+  it('replaceOpen cancels the old link at Cashfree first, marks it CANCELLED, then creates the new one', async () => {
+    const { service, createLink, cancelLink, updateMany } = setup({ open: [OPEN] });
+    const order: string[] = [];
+    cancelLink.mockImplementation(async () => void order.push('cancel'));
+    createLink.mockImplementation(async () => {
+      order.push('create');
+      return { cfLinkId: '1', linkId: 'x', linkUrl: 'https://pay.test/new', status: 'ACTIVE' };
+    });
+    await service.createLink(ACTOR, 'reg-1', { replaceOpen: true });
+    expect(order).toEqual(['cancel', 'create']);
+    expect(cancelLink).toHaveBeenCalledWith('NX-ABC123-open0001');
+    expect(updateMany.mock.calls[0]?.[0]).toMatchObject({ where: { id: 'pay-open', status: 'CREATED' }, data: { status: 'CANCELLED' } });
+  });
+
+  it('if Cashfree will not cancel the old link (say it was just paid) it stops: no second live link', async () => {
+    const { service, createLink, cancelLink, create } = setup({ open: [OPEN] });
+    cancelLink.mockRejectedValue(new PaymentProviderError('Cashfree said no (409): link already paid'));
+    await expect(service.createLink(ACTOR, 'reg-1', { replaceOpen: true })).rejects.toBeInstanceOf(PaymentProviderError);
+    expect(createLink).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe('toPaymentView', () => {
+  it('exposes the breakdown for a priced link and the reason for a typed one, never createdBy', () => {
+    const priced = toPaymentView({ ...PAYMENT, planKey: 'floor', billingCycle: 'yearly', quote: { lines: [{ label: 'Floor plan, yearly', amountPaise: 1_299_000 }, { nope: 1 }] } } as never);
+    expect(priced.breakdown).toEqual([{ label: 'Floor plan, yearly', amountPaise: 1_299_000 }]);
+    expect(priced).not.toHaveProperty('createdBy');
+    const typed = toPaymentView({ ...PAYMENT, quote: { override: { reason: 'pilot' } } } as never);
+    expect(typed).toMatchObject({ breakdown: null, overrideReason: 'pilot' });
+    expect(toPaymentView({ ...PAYMENT, quote: 'garbage' } as never)).toMatchObject({ breakdown: null, overrideReason: null });
   });
 });
 
