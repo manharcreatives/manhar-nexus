@@ -149,6 +149,17 @@ model Business {
   accountNotes   String?
   /// Manhar staff member (name/email) responsible for this account.
   assignedTo     String?
+  /// What this client pays for, copied from the paid registration (plan key, e.g. counter | floor | pass).
+  planKey        String?
+  billingCycle   String?
+  /// The date up to which the client has paid; extended by each successful payment or AutoPay debit.
+  paidUntil      DateTime?      @db.Timestamptz(6)
+  /// How they pay: LINK | AUTOPAY | MANUAL (validated in code).
+  billingSource  String?
+  /// The registration request this business was created from (at most one business per request).
+  registrationId String?        @unique @db.Uuid
+  /// Our id of the AutoPay subscription, when there is one.
+  subscriptionId String?
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
 
@@ -2001,11 +2012,34 @@ model RegistrationPayment {
   quote           Json?
   /// Who created it: STAFF today; CUSTOMER once self-serve pay-now exists.
   source          String              @default("STAFF")
+  /// sha256 of a random secret given only to the browser that pressed "Pay now" (CUSTOMER links). Whoever holds the
+  /// secret may ask for the owner's set-password link; the registration code and email alone never release it.
+  payerSecretHash String?
   createdAt       DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime            @updatedAt @db.Timestamptz(6)
 
   @@index([registrationId, createdAt])
   @@map("registration_payment")
+}
+
+/// A one-time "set your password" link for a freshly created owner. Only the sha256 of the token is stored.
+model CredentialToken {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  registrationId String?   @db.Uuid
+  businessId     String?   @db.Uuid
+  tokenHash      String    @unique
+  expiresAt      DateTime  @db.Timestamptz(6)
+  /// Set when the password was chosen with it (compare-and-set, so it works once).
+  usedAt         DateTime? @db.Timestamptz(6)
+  /// Set when a newer link replaced this one.
+  revokedAt      DateTime? @db.Timestamptz(6)
+  /// customer (payer's browser) | staff:<id/label>
+  issuedBy       String
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@map("credential_token")
 }
 
 /// The server-side, resumable "create the restaurant account" job for a registration request: one row per request.
