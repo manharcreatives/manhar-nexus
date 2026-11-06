@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { DomainExceptionFilter } from './common/domain-exception.filter';
+import { publicNoStore } from './common/public-no-store.middleware';
 import { SerializeInterceptor } from './common/serialize.interceptor';
 import { loggingMiddleware } from './logging/logging.middleware';
 
@@ -31,6 +32,7 @@ export function applyHttpDefaults(app: INestApplication): void {
   });
   app.use(cookieParser());
   app.use(loggingMiddleware());
+  app.use(publicNoStore());
   app.useGlobalInterceptors(new SerializeInterceptor());
   app.useGlobalFilters(new DomainExceptionFilter());
 }

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { QuoteError, quotePlan, type Quote } from '@nexus/shared';
 import { Injectable, Optional } from '@nestjs/common';
-import type { Prisma, RegistrationPayment } from '@prisma/client';
+import type { Prisma, RegistrationPayment, RegistrationRequest } from '@prisma/client';
 import { ConflictError, NotFoundError, ValidationError } from '../common/errors';
 import type { ActorContext } from '../common/tenant-scope';
 import { logger } from '../logging/logger';
@@ -11,6 +11,7 @@ import { afterResponse } from './after-response';
 import { CashfreeClient } from './cashfree.client';
 import type { BreakdownLine, CreatePaymentLinkDto, PaymentLinkView } from './cashfree.dto';
 import type { LinkEvent } from './cashfree.events';
+import { claimCreateLock, releaseCreateLock } from './pay-lock';
 
 /** A request in one of these states is not a customer we are selling to. */
 const NOT_PAYABLE = new Set(['CONVERTED', 'SPAM', 'REJECTED']);
@@ -104,6 +105,38 @@ export class RegistrationPaymentService {
       quote = JSON.parse(JSON.stringify(priced)) as Prisma.InputJsonValue;
     }
 
+    // A staff click and the owner's own "Pay now" must not both create a live link. The owner's path already holds the
+    // creation lock when it calls in here; staff claim it themselves (a compare-and-set, never a transaction or an
+    // advisory lock across the Cashfree call).
+    let held: Date | null = null;
+    if (source === 'STAFF') {
+      held = await claimCreateLock(this.prisma, registrationId, now);
+      if (!held) {
+        throw new ConflictError('A payment link is being created for this request right now. Wait a few seconds, then check its payment links.');
+      }
+    }
+    try {
+      return await this.issueLink({ actor, reg, dto, now, source, amountPaise, purpose, planKey, billingCycle, quote });
+    } finally {
+      if (held) await releaseCreateLock(this.prisma, registrationId, held);
+    }
+  }
+
+  /** Under the creation lock: close or refuse an open link, create the Cashfree link, and record it. */
+  private async issueLink(args: {
+    actor: ActorContext;
+    reg: RegistrationRequest;
+    dto: CreatePaymentLinkDto;
+    now: Date;
+    source: PaymentSource;
+    amountPaise: number;
+    purpose: string;
+    planKey: string | null;
+    billingCycle: string | null;
+    quote: Prisma.InputJsonValue;
+  }): Promise<PaymentLinkView> {
+    const { actor, reg, dto, now, source, amountPaise, purpose, planKey, billingCycle, quote } = args;
+    const registrationId = reg.id;
     // One live link per request, so two links can never both be paid.
     await this.closeOpenLinks(registrationId, dto.replaceOpen === true, now);
 
@@ -120,22 +153,32 @@ export class RegistrationPaymentService {
       // own link needs the return page.
       ...(source === 'CUSTOMER' ? this.returnUrlFor(reg.referenceCode) : {}),
     });
-    const row = await this.prisma.registrationPayment.create({
-      data: {
-        registrationId,
-        linkId,
-        cfLinkId: link.cfLinkId,
-        linkUrl: link.linkUrl,
-        amountPaise,
-        purpose,
-        expiresAt,
-        createdBy: actor.id ?? actor.label,
-        planKey,
-        billingCycle,
-        quote,
-        source,
-      },
-    });
+    let row: RegistrationPayment;
+    try {
+      row = await this.prisma.registrationPayment.create({
+        data: {
+          registrationId,
+          linkId,
+          cfLinkId: link.cfLinkId,
+          linkUrl: link.linkUrl,
+          amountPaise,
+          purpose,
+          expiresAt,
+          createdBy: actor.id ?? actor.label,
+          planKey,
+          billingCycle,
+          quote,
+          source,
+        },
+      });
+    } catch (err) {
+      // The link exists at Cashfree but we could not record it: a payment on it would arrive as an unknown link and be
+      // ignored. Close it (best effort) so nobody can pay a link we do not know about, then fail as before.
+      await this.cashfree.cancelLink(linkId).catch((cancelErr: unknown) => {
+        logger.child({ registrationId, linkId }).error(`could not cancel an unrecorded payment link: ${(cancelErr as Error).name}`);
+      });
+      throw err;
+    }
     logger.child({ registrationId, linkId, amountPaise, planKey, billingCycle }).info('payment link created');
     return toPaymentView(row);
   }

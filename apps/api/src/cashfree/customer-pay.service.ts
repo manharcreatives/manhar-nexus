@@ -7,6 +7,7 @@ import type { ActorContext } from '../common/tenant-scope';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
 import { customerPayAvailable } from './customer-pay.config';
+import { claimCreateLock, releaseCreateLock } from './pay-lock';
 import type { CustomerLinkView, CustomerPayAnswer, CustomerPayDto, CustomerPayStatus } from './customer-pay.dto';
 import { RegistrationPaymentService, toPaymentView } from './registration-payment.service';
 
@@ -18,8 +19,6 @@ const NOT_FOUND_MESSAGE = 'We could not find a request with that reference code 
 
 const digest = (value: string): Buffer => createHash('sha256').update(value).digest();
 
-/** A claim on one request while its Cashfree link is being created; stale after this long (a crashed instance). */
-const CREATE_LOCK_MS = 60_000;
 /** How long a second tap waits for the first one's link before saying we will send it. */
 const WAIT_FOR_OTHER_MS = 9_000;
 const POLL_MS = 400;
@@ -58,11 +57,12 @@ export class CustomerPayService {
     // Only one tap at a time may create the link. The claim is a compare-and-set on the request row, so it works
     // across API instances WITHOUT holding a transaction or an advisory lock while Cashfree is being called (with a
     // single pooled connection that would starve every other query until the pool timed out).
-    if (!(await this.claimCreate(reg.id, now))) return this.waitForOther(reg, now);
+    const held = await claimCreateLock(this.prisma, reg.id, now);
+    if (!held) return this.waitForOther(reg, now);
     try {
       return await this.createFresh(reg, now);
     } finally {
-      await this.releaseCreate(reg.id);
+      await releaseCreateLock(this.prisma, reg.id, held);
     }
   }
 
@@ -100,27 +100,16 @@ export class CustomerPayService {
       const open = await this.openLink(reg.id, now);
       if (open) return { outcome: 'link', link: this.linkView(open) };
       // The other tap gave up (error): take over rather than leave the owner waiting.
-      if (await this.claimCreate(reg.id, now)) {
+      const held = await claimCreateLock(this.prisma, reg.id, now);
+      if (held) {
         try {
           return await this.createFresh(reg, now);
         } finally {
-          await this.releaseCreate(reg.id);
+          await releaseCreateLock(this.prisma, reg.id, held);
         }
       }
     }
     return { outcome: 'contact-us' };
-  }
-
-  private async claimCreate(registrationId: string, now: Date): Promise<boolean> {
-    const res = await this.prisma.registrationRequest.updateMany({
-      where: { id: registrationId, OR: [{ payLockedAt: null }, { payLockedAt: { lt: new Date(now.getTime() - CREATE_LOCK_MS) } }] },
-      data: { payLockedAt: now },
-    });
-    return res.count === 1;
-  }
-
-  private async releaseCreate(registrationId: string): Promise<void> {
-    await this.prisma.registrationRequest.updateMany({ where: { id: registrationId }, data: { payLockedAt: null } }).catch(() => undefined);
   }
 
   /**

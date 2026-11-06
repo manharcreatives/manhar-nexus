@@ -67,6 +67,20 @@ registration made before this change has no secret hash: its claim answers 404 a
 - "Pay now" and the AutoPay first-debit write run without holding a transaction across a network call. The Pay now claim is a
   compare-and-set on `registration_request.payLockedAt` (60 s, then stale), so it works with Neon's pooled URL where each
   serverless instance has ONE connection (`test/pool-one.e2e-spec.ts` runs the chain with `connection_limit=1`).
+- The creation lock is released only by the request that wrote it (`payLockedAt` must still equal its own value), so a stalled
+  request whose claim went stale cannot clear a newer request's lock and let a third one create a second live link. Staff
+  "create payment link" claims the same lock: a staff click while the owner's Pay now is creating a link answers 409 ("a payment
+  link is being created ... wait a few seconds"). Neither path holds a transaction or advisory lock across the Cashfree call.
+- If Cashfree creates a link but recording it in our database fails, the link is cancelled at Cashfree (best effort; only the
+  error name is logged) before the error is returned, so nobody can pay a link we do not know about. If that cancel also fails
+  the log line "could not cancel an unrecorded payment link" names the link id: cancel it in the Cashfree dashboard.
+- `POST /public/payments/status` still answers `{paid}` for anyone who knows a reference code AND its email (the email is not a
+  secret). It reveals one boolean and nothing else; the landing page does not send the payer secret there, so it is not required.
+  Everything that releases an account (`claim/issue`) needs the payer secret.
+- Public responses (`/public/*`) carry `Cache-Control: no-store` by default (a Nest middleware, so it also holds behind Caddy;
+  `vercel.json` repeats it for registrations, claim, payments and the Cashfree webhook). The QR menu sets its own ETag
+  revalidation and is not affected. The registration and `claim/issue` responses contain one-time secrets and tokens.
+- The Cashfree SDK origins are allowed in the CSP only on `/pay/autopay/*` (see `cashfree.md`).
 - An owner email nobody verified: the account is bound to the email on the registration form. Confirm the contact on the
   first call.
 
@@ -76,7 +90,8 @@ registration made before this change has no secret hash: its claim answers 404 a
 10 minutes. Add two repository secrets (Settings > Secrets and variables > Actions): `APP_URL` (production origin, no
 trailing slash, must start with `https://`: the job fails otherwise, because the secret travels in a header) and `CRON_SECRET`
 (same value as on Vercel). If either is missing the job skips cleanly. GitHub disables scheduled workflows after 60 days
-without repository activity: re-enable it (Actions tab) if the repo goes quiet. The route is
+without repository activity: re-enable it (Actions tab) if the repo goes quiet; the Vercel daily cron is the backstop, and
+`claim/issue` and "Check payment" also start provisioning. The route is
 idempotent, so overlapping with the Vercel cron is harmless.
 
 ## Return page after paying

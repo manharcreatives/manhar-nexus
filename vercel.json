@@ -23,10 +23,6 @@
           "key": "Strict-Transport-Security",
           "value": "max-age=31536000; includeSubDomains"
         },
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://sandbox.cashfree.com https://api.cashfree.com https://sdk.cashfree.com; manifest-src 'self'; worker-src 'self'; frame-src https://sdk.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
-        },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
@@ -36,6 +32,28 @@
         },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" }
       ]
+    },
+    {
+      "source": "/((?!pay/autopay/).*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "source": "/pay/autopay/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://sandbox.cashfree.com https://api.cashfree.com https://sdk.cashfree.com; manifest-src 'self'; worker-src 'self'; frame-src https://sdk.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "source": "/api/public/(registrations|claim|payments|cashfree)(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
     },
     {
       "source": "/assets/(.*)",

@@ -103,6 +103,31 @@ Not yet seen: which of those three events was the link event and its exact body.
 - Links already created keep working; their breakdown is stored in `registration_payment.quote`.
 - Only if you must remove the columns (not normally needed): `ALTER TABLE "registration_payment" DROP COLUMN "planKey", DROP COLUMN "billingCycle", DROP COLUMN "quote", DROP COLUMN "source";` after the old code is live.
 
+## Webhook signature and going live
+
+- The webhook signature is checked with the **client secret** (`CASHFREE_CLIENT_SECRET`); there is no separate webhook-secret variable (`cashfree.controller.ts` reads `cashfree.config().clientSecret`). Switching to the live key pair changes the verifying secret at the same time.
+- **Set `CASHFREE_ENV=production` in the same step as the live keys.** Any other value (or unset) means sandbox: the API would send live keys to `sandbox.cashfree.com`, which rejects them, and sandbox keys to production.
+- Keep the sandbox pair in Vercel until the live keys and the dashboard webhook for production are ready; payment links answer 503 when the keys are missing.
+
+## Environment variables (names only; values never go in the repo)
+
+| Name | Needed | If missing |
+|---|---|---|
+| `DATABASE_URL` (pooled; Vercel adds `connection_limit=1`), `DATABASE_URL_UNPOOLED` (migrations) | yes | API cannot start / migrate fails |
+| `JWT_ACCESS_SECRET` (64+ chars), `REGISTRATION_IP_SALT` (32+ chars) | yes | API refuses to start |
+| `PLATFORM_BOOTSTRAP_EMAIL`, `PLATFORM_BOOTSTRAP_PASSWORD` | yes | no platform admin on a fresh DB |
+| `CORS_ORIGIN` | yes | browser calls blocked |
+| `TRUST_PROXY=1` | yes on Vercel | with 0 every visitor shares one rate-limit bucket |
+| `QR_PUBLIC_BASE_URL` (production origin, no trailing slash) | yes | no payment return URL, no AutoPay link, no default webhook URL |
+| `CASHFREE_CLIENT_ID`, `CASHFREE_CLIENT_SECRET` | for payments | payment links answer 503 |
+| `CASHFREE_ENV` (`production` / `sandbox`) | with the keys | wrong host for the key pair |
+| `CASHFREE_API_VERSION`, `CASHFREE_WEBHOOK_URL` | optional | defaults (2025-01-01; `QR_PUBLIC_BASE_URL` + `/api/public/cashfree/webhook`) |
+| `CRON_SECRET` (32+ chars) | yes, for the cron | cron route answers 503 |
+| `CUSTOMER_PAY_ENABLED`, `SUBSCRIPTIONS_ENABLED` | optional, off by default | feature stays off |
+| `CUSTOMER_PAY_RATE_LIMIT`, `CUSTOMER_PAY_RATE_TTL_MS`, `REGISTRATION_RATE_LIMIT`, `REGISTRATION_RATE_TTL_MS`, `LOG_LEVEL` | optional | defaults |
+
+GitHub repository secrets for the scheduled cron workflow: `APP_URL`, `CRON_SECRET`.
+
 ## UPI AutoPay (monthly plans) — Cashfree Subscriptions
 
 Off by default. Staff open **UPI AutoPay** on a request in Registrations, press *Create AutoPay link*, and send the owner the link (copy or WhatsApp). The owner opens `/pay/autopay/<token>` on their phone, approves the mandate in their UPI app (a ₹1 test debit is refunded), and Cashfree then debits the plan's **monthly price + 18% GST** every month. The price is always the server's `quotePlan` (monthly cycle, no Launch Pack, no Founding discount); the browser never sends an amount.
@@ -112,7 +137,7 @@ Off by default. Staff open **UPI AutoPay** on a request in Registrations, press 
 2. In the Cashfree dashboard webhooks, subscribe the SAME webhook URL (`/api/public/cashfree/webhook`) to the subscription events: `SUBSCRIPTION_STATUS_CHANGED`, `SUBSCRIPTION_AUTH_STATUS`, `SUBSCRIPTION_PAYMENT_SUCCESS`, `SUBSCRIPTION_PAYMENT_FAILED`. Use webhook version 2025-01-01.
 3. Apply migration `20261106140000_registration_subscription` (additive: two new tables) to Neon before deploying (backup, unpooled URL).
 4. Set `SUBSCRIPTIONS_ENABLED=true` (and keep `QR_PUBLIC_BASE_URL` set so Cashfree returns the owner to our page) and redeploy.
-5. The CSP in `vercel.json` and `deploy/Caddyfile` now allows `https://sdk.cashfree.com` (script, connect, frame) and the Cashfree hosts (frame, connect), because the approval screen is Cashfree's JS SDK. Revert that if AutoPay is dropped.
+5. The approval screen is Cashfree's JS SDK, so the CSP allows `https://sdk.cashfree.com` (script, connect, frame) and the Cashfree hosts (frame, connect) **only on `/pay/autopay/*`**. Every other path keeps the strict policy (`script-src 'self'`, `connect-src 'self'`, `frame-src 'none'`), so a compromised third-party script cannot read the owner's payer secret from `localStorage` on the registration, `/pay/return` or `/set-password` pages. This is two header rules in `vercel.json` (a negative-lookahead rule for everything except that path, and a rule for it) and the `@strict` / `@autopay` matchers in `deploy/Caddyfile`; `apps/api/src/cashfree/csp-scope.spec.ts` pins which policy applies to which path. The payment-link flow is a full-page redirect and needs no CSP entry.
 
 **Verified on the sandbox:** create a PERIODIC monthly UPI subscription (`POST /pg/subscriptions`, api version 2025-01-01, returns `subscription_session_id`, status `INITIALIZED`), read it (`GET /subscriptions/{id}`, issues a fresh session each time), cancel it (`POST /subscriptions/{id}/manage` `{action: "CANCEL"}` → `CANCELLED`).
 
