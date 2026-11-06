@@ -1966,6 +1966,7 @@ model RegistrationRequest {
   @@index([email, createdAt])
   @@index([ipHash, createdAt])
   payments       RegistrationPayment[]
+  provisioning   RegistrationProvisioning?
   @@map("registration_request")
 }
 
@@ -2004,6 +2005,34 @@ model RegistrationPayment {
 
   @@index([registrationId, createdAt])
   @@map("registration_payment")
+}
+
+/// The server-side, resumable "create the restaurant account" job for a registration request: one row per request.
+/// Steps run in order and are recorded in completedSteps, so a retry resumes at the failed step and never duplicates
+/// anything. No password is ever stored here; the owner's temporary password is returned once by the API.
+model RegistrationProvisioning {
+  id             String              @id @default(uuid()) @db.Uuid
+  registrationId String              @unique @db.Uuid
+  registration   RegistrationRequest @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  /// RUNNING | FAILED | DONE (validated in code, not a DB enum).
+  status         String              @default("RUNNING")
+  /// Step ids finished so far, e.g. business, location, owner, module:restaurant, commercial, onboarding, finalize.
+  completedSteps String[]
+  /// The step that failed (or is running).
+  currentStep    String?
+  /// Set as soon as the business exists (same transaction that creates it), so a retry never creates a second one.
+  businessId     String?             @db.Uuid
+  /// Wizard choices: { name, locationName, ownerName, ownerEmail, commercialStatus, modules }.
+  input          Json
+  /// A short, safe message (never a secret) for the last failure.
+  lastError      String?
+  /// Claimed while a run is in progress; a stale claim (a crashed run) can be taken over.
+  lockedAt       DateTime?           @db.Timestamptz(6)
+  startedBy      String
+  createdAt      DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime            @updatedAt @db.Timestamptz(6)
+
+  @@map("registration_provisioning")
 }
 
 // ═════════════════════════════════════════════════════════════

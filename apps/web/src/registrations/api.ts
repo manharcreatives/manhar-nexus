@@ -124,3 +124,31 @@ export function formatRupees(paise: number): string {
 export function paymentMessage(r: Pick<RegistrationRequest, 'contactName' | 'restaurantName'>, link: Pick<PaymentLink, 'linkUrl' | 'amountPaise'>): string {
   return `Hello ${r.contactName}, this is Manhar Nexus. Here is your secure payment link for ${r.restaurantName}: ${link.linkUrl} (₹${formatRupees(link.amountPaise)}). Once it is paid we will set up your account.`;
 }
+
+export type ProvisionStepState = 'pending' | 'running' | 'done' | 'failed';
+export interface ProvisionResult {
+  status: 'RUNNING' | 'FAILED' | 'DONE';
+  steps: { id: string; state: ProvisionStepState }[];
+  failedStep: string | null;
+  error: string | null;
+  businessId: string | null;
+  ownerEmail: string;
+  /** Only in the response of the run that issued the temporary password; never again. */
+  credentials?: { email: string; password: string };
+}
+
+export interface ProvisionBody {
+  name?: string;
+  locationName?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  commercialStatus?: 'PROSPECT' | 'TRIAL' | 'ACTIVE';
+  extraModules?: ('reports' | 'costs')[];
+  allowUnpaid?: boolean;
+  reissuePassword?: boolean;
+}
+
+/** Creates (or resumes) the restaurant account for a request as one server-side job. */
+export function provisionRegistration(registrationId: string, body: ProvisionBody): Promise<ProvisionResult> {
+  return api<ProvisionResult>(`/internal/registrations/${registrationId}/provision`, { method: 'POST', body: JSON.stringify(body) });
+}

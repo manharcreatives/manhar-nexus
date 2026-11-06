@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '../commercial/helpers';
 import { ListSkeleton } from '../commercial/Shared';
-import { NewRestaurantDialog } from '../onboarding/NewRestaurantDialog';
+import { CreateAccountDialog } from './CreateAccountDialog';
 import { PaymentLinkDialog } from './PaymentLinkDialog';
 import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
@@ -107,15 +107,9 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
     }
   }
 
-  /** The workspace now exists; link it to the request and mark it converted. */
-  async function onCreated(r: RegistrationRequest, businessId: string) {
-    try {
-      await updateRegistration(r.id, { status: 'CONVERTED', businessId });
-      toast.show(t('registrations.converted', { name: r.restaurantName }));
-    } catch (err) {
-      // The restaurant was created; only the bookkeeping failed. Say so, never hide it.
-      toast.show(errorMessage(err, t('registrations.errors.linkFailed')));
-    }
+  /** The server created the workspace and marked the request converted in its last step. */
+  function onAccountCreated(r: RegistrationRequest) {
+    toast.show(t('registrations.converted', { name: r.restaurantName }));
     void load();
   }
 
@@ -296,16 +290,11 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
       ) : null}
 
       {creating ? (
-        <NewRestaurantDialog
-          prefill={{
-            name: creating.restaurantName,
-            ownerName: creating.contactName,
-            ownerEmail: creating.email,
-            note: t('registrations.prefillNote', { ref: creating.referenceCode }),
-          }}
-          onCreated={(businessId) => void onCreated(creating, businessId)}
+        <CreateAccountDialog
+          request={creating}
+          onDone={() => onAccountCreated(creating)}
           onClose={() => setCreating(null)}
-          onOpenChecklist={() => setCreating(null)}
+          onOpenChecklist={onOpenOnboarding ? (businessId) => { setCreating(null); onOpenOnboarding(businessId); } : undefined}
         />
       ) : null}
     </div>

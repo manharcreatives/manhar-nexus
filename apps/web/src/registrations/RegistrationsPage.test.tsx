@@ -30,12 +30,14 @@ const listRegistrations = vi.fn();
 const updateRegistration = vi.fn();
 const createPaymentLink = vi.fn();
 const refreshPaymentLink = vi.fn();
+const provisionRegistration = vi.fn();
 vi.mock('./api', async (orig) => ({
   ...(await orig<typeof import('./api')>()),
   listRegistrations: (...a: unknown[]) => listRegistrations(...a),
   updateRegistration: (...a: unknown[]) => updateRegistration(...a),
   createPaymentLink: (...a: unknown[]) => createPaymentLink(...a),
   refreshPaymentLink: (...a: unknown[]) => refreshPaymentLink(...a),
+  provisionRegistration: (...a: unknown[]) => provisionRegistration(...a),
 }));
 
 import { RegistrationsPage } from './RegistrationsPage';
@@ -88,6 +90,7 @@ beforeEach(() => {
   updateRegistration.mockReset();
   createPaymentLink.mockReset();
   refreshPaymentLink.mockReset();
+  provisionRegistration.mockReset();
   withRows(row);
 });
 
@@ -278,5 +281,57 @@ describe('RegistrationsPage: owner payment (Cashfree link)', () => {
     renderPage();
     expect(await screen.findByText('Check amount')).toBeTruthy();
     expect(screen.queryByText('Paid. Create the restaurant account now.')).toBeNull();
+  });
+});
+
+const STEPS = ['business', 'location', 'owner', 'module:restaurant', 'commercial', 'onboarding', 'finalize'];
+const steps = (upTo: number, failAt = -1) =>
+  STEPS.map((id, i) => ({ id, state: i === failAt ? 'failed' : i < upTo ? 'done' : 'pending' }));
+
+describe('RegistrationsPage: create the restaurant account (server-side job)', () => {
+  it('an unpaid request needs the free-pilot box ticked; nothing is sent until then', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Create restaurant account' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Create account' }));
+    expect(await screen.findByText('Wait for the payment, or tick the free pilot option.')).toBeTruthy();
+    expect(provisionRegistration).not.toHaveBeenCalled();
+    provisionRegistration.mockResolvedValue({ status: 'DONE', steps: steps(7), failedStep: null, error: null, businessId: 'b-1', ownerEmail: row.email, credentials: { email: row.email, password: 'Tmp-Pass#1234' } });
+    fireEvent.click(screen.getByLabelText(/free pilot/));
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    await waitFor(() => expect(provisionRegistration).toHaveBeenCalledWith(row.id, expect.objectContaining({ allowUnpaid: true, ownerEmail: row.email })));
+  });
+
+  it('a paid request is created with one call and the password is shown once', async () => {
+    withRows({ ...row, status: 'QUALIFIED', payments: [link({ status: 'PAID', paidAmountPaise: 150_000 })] });
+    listRegistrations.mockImplementation(({ status }: { status: string }) =>
+      Promise.resolve({ items: status === 'QUALIFIED' ? [{ ...row, status: 'QUALIFIED', payments: [link({ status: 'PAID' })] }] : [], total: 1, skip: 0, take: 100 }),
+    );
+    provisionRegistration.mockResolvedValue({ status: 'DONE', steps: steps(7), failedStep: null, error: null, businessId: 'b-1', ownerEmail: row.email, credentials: { email: row.email, password: 'Tmp-Pass#1234' } });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Create restaurant account' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Create account' }));
+    expect(await screen.findByText('Tmp-Pass#1234')).toBeTruthy();
+    expect(provisionRegistration).toHaveBeenCalledTimes(1);
+    expect(provisionRegistration.mock.calls[0]?.[1]).not.toHaveProperty('allowUnpaid');
+    expect(screen.getByText(/shown only now and is not stored/)).toBeTruthy();
+  });
+
+  it('a failed step is shown with the server message, and Retry resumes (the owner email can be fixed)', async () => {
+    withRows({ ...row, status: 'QUALIFIED', payments: [link({ status: 'PAID' })] });
+    listRegistrations.mockImplementation(({ status }: { status: string }) =>
+      Promise.resolve({ items: status === 'QUALIFIED' ? [{ ...row, status: 'QUALIFIED', payments: [link({ status: 'PAID' })] }] : [], total: 1, skip: 0, take: 100 }),
+    );
+    provisionRegistration
+      .mockResolvedValueOnce({ status: 'FAILED', steps: steps(2, 2), failedStep: 'owner', error: 'That email already has an account. Use a different owner email and retry.', businessId: 'b-1', ownerEmail: row.email })
+      .mockResolvedValueOnce({ status: 'DONE', steps: steps(7), failedStep: null, error: null, businessId: 'b-1', ownerEmail: 'new@example.com', credentials: { email: 'new@example.com', password: 'Tmp-Pass#9999' } });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Create restaurant account' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Create account' }));
+    expect(await screen.findByText(/already has an account/)).toBeTruthy();
+    expect(screen.getByText('Create the owner login')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Owner email.*change it/), { target: { value: 'new@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Tmp-Pass#9999')).toBeTruthy();
+    expect(provisionRegistration).toHaveBeenLastCalledWith(row.id, { ownerEmail: 'new@example.com' });
   });
 });
