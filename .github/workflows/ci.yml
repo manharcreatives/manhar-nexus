@@ -157,6 +157,8 @@ jobs:
             echo "JWT_ACCESS_SECRET=$(openssl rand -hex 48)"
             echo "PLATFORM_BOOTSTRAP_EMAIL=ci-admin@example.com"
             echo "PLATFORM_BOOTSTRAP_PASSWORD=$smoke_pass"
+            # Production mode refuses the development salt (>= 32 chars required); without this the API never boots.
+            echo "REGISTRATION_IP_SALT=$(openssl rand -hex 24)"
           } > deploy/api.env
           echo "::add-mask::$smoke_pass"
           echo "SMOKE_PASS=$smoke_pass" >> "$GITHUB_ENV"

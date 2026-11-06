@@ -99,6 +99,7 @@ Edit `deploy/api.env` and replace every value marked `[PROD]`:
 | `PLATFORM_BOOTSTRAP_EMAIL` | a real operator mailbox (not `platform@manhar.local`) |
 | `PLATFORM_BOOTSTRAP_PASSWORD` | ≥ 16 chars, unique; rotate in the app after first login |
 | `REGISTRATION_IP_SALT` | ≥ 32 random chars (HMAC key for the stored visitor-IP hash; landing registration form, ADR-033): `openssl rand -base64 48 \| tr -d '\n'` |
+| `CASHFREE_CLIENT_ID`, `CASHFREE_CLIENT_SECRET`, `CASHFREE_ENV` | optional; owner subscription payment links. Without them the API still boots and "Send payment link" answers 503. See `docs/runbooks/cashfree.md` |
 | `LOG_LEVEL` | `info` (or `warn`) |
 
 Compose forces `NODE_ENV=production`, `PORT=3000` and `TRUST_PROXY=1`. Do not set `NEXUS_DEMO_SEED`.
