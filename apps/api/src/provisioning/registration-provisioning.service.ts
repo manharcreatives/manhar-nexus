@@ -10,8 +10,10 @@ import { logger } from '../logging/logger';
 import { ModuleService } from '../modules/module.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { BillingRecordService } from './billing-record.service';
 import {
   CORE_MODULES,
+  TRANSIENT_FAILURE_MESSAGE,
   generateTempPassword,
   stepsFor,
   type ProvisionDto,
@@ -47,6 +49,7 @@ export class RegistrationProvisioningService {
     private readonly modules: ModuleService,
     private readonly onboarding: OnboardingService,
     private readonly passwords: PasswordService,
+    private readonly billing: BillingRecordService,
   ) {}
 
   /** The job's progress (never a password). 404 when nothing has been started. */
@@ -57,7 +60,7 @@ export class RegistrationProvisioningService {
     return this.view(job, reg.email);
   }
 
-  async run(actor: ActorContext, registrationId: string, dto: ProvisionDto, now = new Date()): Promise<ProvisionView> {
+  async run(actor: ActorContext, registrationId: string, dto: ProvisionDto, now = new Date(), opts: { auto?: boolean } = {}): Promise<ProvisionView> {
     const reg = await this.registrationOrThrow(registrationId);
     const existing = await this.prisma.registrationProvisioning.findUnique({ where: { registrationId } });
 
@@ -73,13 +76,13 @@ export class RegistrationProvisioningService {
       }
     }
 
-    const job = await this.claim(actor, reg, existing, dto, now);
+    const job = await this.claim(actor, reg, existing, dto, now, opts.auto === true);
     return this.execute(actor, job, reg, now);
   }
 
   // ── claiming ────────────────────────────────────────────────────────────────
 
-  private defaults(reg: RegistrationRequest, dto: ProvisionDto): ProvisionInput {
+  private defaults(reg: RegistrationRequest, dto: ProvisionDto, auto: boolean): ProvisionInput {
     const extras = dto.extraModules ?? ['reports', 'costs'];
     return {
       name: dto.name ?? reg.restaurantName,
@@ -88,6 +91,7 @@ export class RegistrationProvisioningService {
       ownerEmail: dto.ownerEmail ?? reg.email,
       commercialStatus: dto.commercialStatus ?? (dto.allowUnpaid ? 'TRIAL' : 'ACTIVE'),
       modules: [...CORE_MODULES, ...extras.filter((m, i) => extras.indexOf(m) === i)],
+      ...(auto ? { auto: true } : {}),
     };
   }
 
@@ -97,6 +101,7 @@ export class RegistrationProvisioningService {
     existing: RegistrationProvisioning | null,
     dto: ProvisionDto,
     now: Date,
+    auto: boolean,
   ): Promise<RegistrationProvisioning> {
     if (!existing) {
       try {
@@ -105,7 +110,7 @@ export class RegistrationProvisioningService {
             registrationId: reg.id,
             status: 'RUNNING',
             completedSteps: [],
-            input: this.defaults(reg, dto) as unknown as Prisma.InputJsonValue,
+            input: this.defaults(reg, dto, auto) as unknown as Prisma.InputJsonValue,
             lockedAt: now,
             startedBy: actor.id ?? actor.label,
           },
@@ -162,7 +167,7 @@ export class RegistrationProvisioningService {
           job = await this.prisma.registrationProvisioning.findUniqueOrThrow({ where: { id: job.id } });
         }
       } catch (err) {
-        const message = err instanceof DomainError ? err.message.slice(0, 300) : 'Something went wrong on our side. Try again; nothing is duplicated.';
+        const message = err instanceof DomainError ? err.message.slice(0, 300) : TRANSIENT_FAILURE_MESSAGE;
         if (!(err instanceof DomainError)) log.error({ err, step: id }, 'provisioning step failed');
         else log.warn(`provisioning step ${id} refused: ${message}`);
         job = await this.prisma.registrationProvisioning.update({
@@ -204,13 +209,13 @@ export class RegistrationProvisioningService {
     }
     if (id === 'commercial') {
       await this.prisma.business.update({ where: { id: businessId }, data: { commercialStatus: input.commercialStatus } });
+      await this.billing.recordForBusiness(businessId, reg.id);
       return;
     }
     if (id === 'onboarding') {
       await this.onboarding.initialize(actor, businessId, {});
       return;
     }
-    void reg;
   }
 
   /** Business + audit + the job's businessId and "business done" in ONE transaction: no orphan, no duplicate. */
@@ -229,7 +234,7 @@ export class RegistrationProvisioningService {
         action: 'business.created',
         resourceType: 'business',
         resourceId: business.id,
-        metadata: { name: business.name, businessTypeKey: 'restaurant', registrationId: job.registrationId },
+        metadata: { name: business.name, businessTypeKey: 'restaurant', registrationId: job.registrationId, ...(input.auto ? { autoProvisioned: true } : {}) },
       });
       await tx.registrationProvisioning.update({ where: { id: job.id }, data: { businessId: business.id, completedSteps: { push: 'business' } } });
     });
@@ -261,10 +266,11 @@ export class RegistrationProvisioningService {
   }
 
   /** Issue the temporary password, then (last of all) mark the request converted. */
-  private async finalize(actor: ActorContext, job: RegistrationProvisioning, reg: RegistrationRequest, input: ProvisionInput, now: Date): Promise<ProvisionView['credentials']> {
+  private async finalize(actor: ActorContext, job: RegistrationProvisioning, reg: RegistrationRequest, input: ProvisionInput, now: Date): Promise<ProvisionView['credentials'] | undefined> {
     const businessId = job.businessId as string;
     const email = input.ownerEmail.trim().toLowerCase();
-    const credentials = await this.setTempPassword(businessId, email);
+    // An automatic run never issues a password: the owner sets their own through a one-time link.
+    const credentials = input.auto ? undefined : await this.setTempPassword(businessId, email);
     const res = await this.prisma.registrationRequest.updateMany({
       where: { id: reg.id, status: { in: OPEN_STATUSES } },
       data: { status: 'CONVERTED', businessId, updatedAt: now },

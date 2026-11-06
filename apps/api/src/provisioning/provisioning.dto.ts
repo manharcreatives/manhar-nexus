@@ -30,7 +30,12 @@ export interface ProvisionInput {
   ownerEmail: string;
   commercialStatus: 'PROSPECT' | 'TRIAL' | 'ACTIVE';
   modules: string[];
+  /** Created automatically after a verified payment: no temporary password is ever issued; the owner claims the account. */
+  auto?: boolean;
 }
+
+/** Shown to staff when a step failed for a reason that needs a person (and that a blind retry would not fix). */
+export const TRANSIENT_FAILURE_MESSAGE = 'Something went wrong on our side. Try again; nothing is duplicated.';
 
 export type StepId = 'business' | 'location' | 'owner' | `module:${string}` | 'commercial' | 'onboarding' | 'finalize';
 export type StepState = 'pending' | 'running' | 'done' | 'failed';
