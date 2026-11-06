@@ -13,6 +13,7 @@ import { isHomePath, isPublicPath, normalizePath } from './landing/paths';
 import { isGuestMenuPath } from './guestmenu/path';
 import { isAutopayPath } from './autopay/path';
 import { isClaimPath } from './claim/path';
+import { isPayReturnPath } from './payreturn/path';
 
 // The marketing site is a separate lazy chunk: the app's entry bundle never includes it.
 const LandingApp = lazy(() => import('./landing/LandingApp'));
@@ -23,6 +24,8 @@ const AutopayApp = lazy(() => import('./autopay/AutopayApp'));
 
 // The owner's one-time "set your password" page (/set-password#t=...): public, auth-free, its own lazy chunk.
 const ClaimApp = lazy(() => import('./claim/ClaimApp'));
+// Where the owner lands after paying (/pay/return?code=...): public, auth-free, its own lazy chunk.
+const PayReturnApp = lazy(() => import('./payreturn/PayReturnApp'));
 
 function PublicSite() {
   return (
@@ -87,6 +90,14 @@ export default function App() {
     return (
       <Suspense fallback={null}>
         <AutopayApp />
+      </Suspense>
+    );
+  }
+  // /pay/return is where Cashfree sends the owner after paying: no sign-in, no session refresh.
+  if (isPayReturnPath(window.location.pathname)) {
+    return (
+      <Suspense fallback={null}>
+        <PayReturnApp />
       </Suspense>
     );
   }

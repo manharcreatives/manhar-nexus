@@ -13,7 +13,9 @@ export const PAY_COPY = {
   later: 'Prefer to pay later? No problem. We will message you with a payment link.',
   check: 'I have paid, check',
   checking: 'Checking…',
-  paid: 'Payment received. Thank you! We will set up your account and message you.',
+  paid: 'Payment received. Thank you!',
+  /** Shown instead of `paid` when this browser holds no payer secret, so nothing sets up the sign-in on this page. */
+  paidWhatsApp: 'Payment received. Thank you! We will set up your account and message you.',
   notYet: 'We have not seen the payment yet. It can take a minute. Try again shortly.',
   contactUs: 'We will check your plan and message you a payment link, so there is nothing to pay right now.',
   alreadyPaid: 'This request is already paid. We will message you about your account.',
@@ -86,7 +88,9 @@ export async function requestPayLink(who: { referenceCode: string; email: string
   if (body.outcome === 'contact-us') return { kind: 'contact-us' };
   const link = isRecord(body.link) ? body.link : null;
   if (body.outcome === 'link' && link && typeof link.linkUrl === 'string' && typeof link.amountPaise === 'number' && /^https:\/\//.test(link.linkUrl)) {
-    const secret = typeof body.payerSecret === 'string' && body.payerSecret.length > 0 ? body.payerSecret : undefined;
+    // The API sends the secret (only when the link is first created) at the top level and inside `link`: read both.
+    const raw = typeof body.payerSecret === 'string' && body.payerSecret.length > 0 ? body.payerSecret : link.payerSecret;
+    const secret = typeof raw === 'string' && raw.length > 0 ? raw : undefined;
     return { kind: 'link', link: { linkUrl: link.linkUrl, amountPaise: link.amountPaise }, ...(secret ? { payerSecret: secret } : {}) };
   }
   return { kind: 'failed' };

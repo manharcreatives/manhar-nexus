@@ -78,6 +78,14 @@ describe('ClaimApp: the owner chooses a password', () => {
     expect(url).not.toContain(TOKEN);
   });
 
+  it('an invalid link offers a WhatsApp button with a prefilled message', () => {
+    open('');
+    render(<ClaimApp />);
+    const wa = document.querySelector('a[href^="https://wa.me/"]') as HTMLAnchorElement;
+    expect(wa).not.toBeNull();
+    expect(decodeURIComponent(wa.getAttribute('href') ?? '')).toContain('my set-password link expired');
+  });
+
   it('an expired, used or invalid link (400/404) shows one plain message, and the token is forgotten', async () => {
     open(`#t=${TOKEN}`);
     fetchMock.mockResolvedValue(reply(404));

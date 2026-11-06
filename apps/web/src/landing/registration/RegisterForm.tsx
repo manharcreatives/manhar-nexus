@@ -239,6 +239,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
             referenceCode={reference}
             begin={state.begin}
             email={state.email}
+            phone={state.phone}
             planKey={intent.plan}
             billingCycle={intent.cycle}
             payOptions={submitOptions}

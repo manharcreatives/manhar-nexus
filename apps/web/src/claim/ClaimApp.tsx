@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supportWhatsAppUrl } from '../landing/registration/claim';
 import { validateConfirm, validatePassword } from '../people/helpers';
 import { PasswordFields } from '../people/PasswordFields';
 import { Button } from '../ui/Button';
@@ -126,9 +127,14 @@ export default function ClaimApp() {
         {view.kind === 'invalid' ? (
           <div className="space-y-4" role="alert">
             <p>{t('claim.invalid')}</p>
-            <a href="/login" className={LINK_SECONDARY}>
-              {t('claim.signIn')}
-            </a>
+            <div className="flex flex-wrap gap-2">
+              <a href={supportWhatsAppUrl(t('claim.whatsappText'))} target="_blank" rel="noopener noreferrer" className={LINK_PRIMARY}>
+                {t('claim.whatsapp')}
+              </a>
+              <a href="/login" className={LINK_SECONDARY}>
+                {t('claim.signIn')}
+              </a>
+            </div>
           </div>
         ) : null}
       </section>

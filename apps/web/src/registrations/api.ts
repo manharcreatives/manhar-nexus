@@ -179,8 +179,27 @@ export function claimMessage(r: Pick<RegistrationRequest, 'contactName' | 'resta
 export interface Attention {
   failedProvisioning: { registrationId: string; restaurantName: string; lastError: string | null; currentStep: string | null }[];
   paidNotConverted: { registrationId: string; restaurantName: string }[];
+  /** Money received on a request marked spam or rejected: a person must decide (reopen it, or refund). */
+  paidClosed?: { registrationId: string; restaurantName: string }[];
 }
 
-export function getAttention(): Promise<Attention> {
-  return api<Attention>('/internal/registrations/attention');
+/** The API's list: one item per case, with a reason. */
+interface AttentionApi {
+  total: number;
+  items: { registrationId: string; referenceCode: string; restaurantName: string; reason: 'PROVISIONING_FAILED' | 'PAID_NOT_CREATED' | 'AMOUNT_MISMATCH' | 'PAID_ON_CLOSED_REQUEST'; detail: string | null }[];
+}
+
+/**
+ * Maps the API list to the two groups the strip shows. AMOUNT_MISMATCH is not offered here (it must not offer to
+ * create an account); the payment row itself carries the mismatch hint.
+ */
+export async function getAttention(): Promise<Attention> {
+  const res = await api<AttentionApi>('/internal/provisioning/attention');
+  return {
+    failedProvisioning: res.items
+      .filter((i) => i.reason === 'PROVISIONING_FAILED')
+      .map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName, lastError: i.detail, currentStep: null })),
+    paidNotConverted: res.items.filter((i) => i.reason === 'PAID_NOT_CREATED').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
+    paidClosed: res.items.filter((i) => i.reason === 'PAID_ON_CLOSED_REQUEST').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
+  };
 }

@@ -40,7 +40,7 @@ export function AttentionStrip({ onCreate, onChanged, refreshKey }: { onCreate: 
     }
   }
 
-  if (!data || (data.failedProvisioning.length === 0 && data.paidNotConverted.length === 0)) return null;
+  if (!data || (data.failedProvisioning.length === 0 && data.paidNotConverted.length === 0 && (data.paidClosed ?? []).length === 0)) return null;
 
   return (
     <section aria-label={t('registrations.attention.title')} className="mb-4 rounded-panel border border-bad/40 bg-bad/10 p-4">
@@ -57,6 +57,9 @@ export function AttentionStrip({ onCreate, onChanged, refreshKey }: { onCreate: 
               {t('registrations.attention.retry')}
             </Button>
           </li>
+        ))}
+        {(data.paidClosed ?? []).map((p) => (
+          <li key={`c-${p.registrationId}`}>{t('registrations.attention.paidClosed', { name: p.restaurantName })}</li>
         ))}
         {data.paidNotConverted.map((p) => (
           <li key={`p-${p.registrationId}`} className="flex flex-wrap items-center justify-between gap-2">

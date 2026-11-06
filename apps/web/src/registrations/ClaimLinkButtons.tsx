@@ -9,7 +9,7 @@ import { claimMessage, claimUrl, issueClaimLink, whatsappUrl, type ClaimLink, ty
  * WhatsApp. One link is made per visit and reused by both buttons, because making a new one cancels the old one.
  * The link is never shown on screen or logged; it only goes to the clipboard or into the WhatsApp message.
  */
-export function ClaimLinkButtons({ request }: { request: Pick<RegistrationRequest, 'id' | 'contactName' | 'restaurantName' | 'phone'> }) {
+export function ClaimLinkButtons({ request }: { request: Pick<RegistrationRequest, 'id' | 'contactName' | 'restaurantName' | 'phone'> & Partial<Pick<RegistrationRequest, 'payments'>> }) {
   const { t } = useTranslation();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -47,6 +47,8 @@ export function ClaimLinkButtons({ request }: { request: Pick<RegistrationReques
     window.open(whatsappUrl(request.phone, claimMessage(request, url)), '_blank', 'noopener,noreferrer');
   }
 
+  const paidByAutopay = request.payments?.some((p) => p.status === 'PAID' && p.source === 'AUTOPAY') === true;
+
   return (
     <>
       <Button variant="secondary" loading={busy} onClick={() => void copy()}>
@@ -55,6 +57,10 @@ export function ClaimLinkButtons({ request }: { request: Pick<RegistrationReques
       <Button variant="secondary" loading={busy} onClick={() => void whatsapp()}>
         {t('registrations.claim.whatsapp')}
       </Button>
+      <p className="basis-full text-xs text-muted">
+        {t('registrations.claim.note')}
+        {paidByAutopay ? ` ${t('registrations.claim.autopayNote')}` : ''}
+      </p>
     </>
   );
 }

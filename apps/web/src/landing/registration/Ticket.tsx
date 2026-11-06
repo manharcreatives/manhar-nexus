@@ -4,9 +4,10 @@ import { buildWhatsAppUrl, registrationSuccess, type BeginMode } from '../conten
 import { copyText } from '../sectionsC/clipboard';
 import { Copy, MessageCircle } from '../sectionsC/icons';
 import { nextSteps } from './nextSteps';
-import { CLAIM_COPY, CLAIM_MAX_POLLS, CLAIM_POLL_MS, issueClaim, recallPayerSecret, rememberPayerSecret, setPasswordHref } from './claim';
+import { CLAIM_COPY, lastFourDigits, rememberPayerSecret, setPasswordHref, supportWhatsAppUrl } from './claim';
 import { fetchPayAvailable, fetchPaid, PAY_COPY, PAYABLE_PLANS, priceLine, requestPayLink } from './payNow';
 import type { SubmitOptions } from './submit';
+import { useClaimFlow } from './useClaimFlow';
 
 export interface TicketProps {
   contactName: string;
@@ -15,6 +16,8 @@ export interface TicketProps {
   begin: BeginMode;
   /** The email they registered with: with the reference code it proves the request is theirs when paying. */
   email?: string;
+  /** The mobile number they registered with: its last four digits are the proof the claim call needs. */
+  phone?: string;
   planKey?: string;
   billingCycle?: string;
   /** Same network options as the form (tests inject fetch). */
@@ -26,7 +29,7 @@ export interface TicketProps {
  * Confirmation, styled as a kitchen ticket with a stamp. The stamp says RECEIVED, never PAID: the API only
  * confirms that the request was stored; no money has moved.
  */
-export function RegistrationTicket({ contactName, restaurantName, referenceCode, begin, email, planKey, billingCycle, payOptions, onReset }: TicketProps) {
+export function RegistrationTicket({ contactName, restaurantName, referenceCode, begin, email, phone, planKey, billingCycle, payOptions, onReset }: TicketProps) {
   const success = registrationSuccess(contactName, referenceCode);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [copied, setCopied] = useState<'idle' | 'done' | 'failed'>('idle');
@@ -38,7 +41,7 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
   const [payAvailable, setPayAvailable] = useState(false);
   const [payState, setPayState] = useState<'idle' | 'busy' | 'checking' | 'paid' | 'notYet' | 'contactUs' | 'failed'>('idle');
   // After paying: the account is built on the server, then the owner claims it with a one-time set-password link.
-  const [claim, setClaim] = useState<{ state: 'idle' | 'pending' | 'ready' | 'later' | 'timedOut'; token?: string }>({ state: 'idle' });
+  const { flow, start: startClaim } = useClaimFlow({ referenceCode, phoneLast4: lastFourDigits(phone ?? "") }, payOptions);
 
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: false });
@@ -57,32 +60,8 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
   }, [payable]);
 
   useEffect(() => {
-    if (payState !== 'paid') return;
-    const secret = recallPayerSecret(referenceCode);
-    if (!secret) {
-      setClaim({ state: 'later' });
-      return;
-    }
-    let live = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let attempts = 0;
-    const tick = async (): Promise<void> => {
-      attempts += 1;
-      const result = await issueClaim(who, secret, payOptions);
-      if (!live) return;
-      if (result.kind === 'ready') return setClaim({ state: 'ready', token: result.token });
-      if (result.kind === 'unknown') return setClaim({ state: 'later' });
-      if (attempts >= CLAIM_MAX_POLLS) return setClaim({ state: 'timedOut' });
-      setClaim({ state: 'pending' });
-      timer = setTimeout(() => void tick(), CLAIM_POLL_MS);
-    };
-    setClaim({ state: 'pending' });
-    void tick();
-    return () => {
-      live = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [payState]);
+    if (payState === 'paid') startClaim();
+  }, [payState, startClaim]);
 
   useEffect(() => {
     if (copied === 'idle') return;
@@ -112,8 +91,11 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
     setPayState(paid ? 'paid' : 'notYet');
   };
 
+  // After paying, say only "Payment received" when this page will go on to offer the sign-in; promise WhatsApp only
+  // when it cannot (no payer secret in this browser).
+  const paidMessage = flow.state === 'noSecret' || flow.state === 'unknown' || flow.state === 'manual' ? PAY_COPY.paidWhatsApp : PAY_COPY.paid;
   const payMessage =
-    payState === 'paid' ? PAY_COPY.paid : payState === 'notYet' ? PAY_COPY.notYet : payState === 'contactUs' ? PAY_COPY.contactUs : payState === 'failed' ? PAY_COPY.failed : '';
+    payState === 'paid' ? paidMessage : payState === 'notYet' ? PAY_COPY.notYet : payState === 'contactUs' ? PAY_COPY.contactUs : payState === 'failed' ? PAY_COPY.failed : '';
 
   return (
     <div className="lp-ticket">
@@ -165,24 +147,42 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
               {payState === 'checking' ? PAY_COPY.checking : PAY_COPY.check}
             </Button>
           ) : null}
-          <p className="lp-ticket__hint" role="status" aria-live="polite">
-            {payMessage || PAY_COPY.later}
-          </p>
-          {payState === 'paid' && claim.state !== 'idle' ? (
-            <div className="lp-ticket__claim" data-testid="claim" role="status" aria-live="polite">
-              {claim.state === 'pending' ? <p>{CLAIM_COPY.pending}</p> : null}
-              {claim.state === 'later' ? <p>{CLAIM_COPY.later}</p> : null}
-              {claim.state === 'timedOut' ? <p>{CLAIM_COPY.timedOut}</p> : null}
-              {claim.state === 'ready' && claim.token ? (
-                <>
-                  <p>{CLAIM_COPY.ready}</p>
-                  <Button variant="primary" onClick={() => window.location.assign(setPasswordHref(claim.token as string))}>
-                    {CLAIM_COPY.button}
+          <div className="lp-ticket__hint" role="status" aria-live="polite">
+            <p>{payMessage || PAY_COPY.later}</p>
+            {payState === 'paid' && flow.state !== 'idle' ? (
+              <div className="lp-ticket__claim" data-testid="claim">
+                {flow.state === 'pending' ? (
+                  <>
+                    <p>{CLAIM_COPY.pending}</p>
+                    <p>{CLAIM_COPY.otherDevice}</p>
+                  </>
+                ) : null}
+                {flow.state === 'noSecret' || flow.state === 'unknown' ? <p>{CLAIM_COPY.later}</p> : null}
+                {flow.state === 'manual' ? <p>{CLAIM_COPY.manual}</p> : null}
+                {flow.state === 'timedOut' ? <p>{CLAIM_COPY.timedOut}</p> : null}
+                {flow.state === 'rateLimited' ? <p>{CLAIM_COPY.rateLimited}</p> : null}
+                {flow.state === 'ready' ? (
+                  <>
+                    <p>{CLAIM_COPY.ready}</p>
+                    <Button variant="primary" onClick={() => window.location.assign(setPasswordHref(flow.token))}>
+                      {CLAIM_COPY.button}
+                    </Button>
+                  </>
+                ) : null}
+                {flow.state === 'timedOut' || flow.state === 'rateLimited' ? (
+                  <Button variant="secondary" size="sm" onClick={startClaim}>
+                    {CLAIM_COPY.retry}
                   </Button>
-                </>
-              ) : null}
-            </div>
-          ) : null}
+                ) : null}
+                {['noSecret', 'unknown', 'manual', 'timedOut', 'rateLimited'].includes(flow.state) ? (
+                  <Button href={supportWhatsAppUrl(`Hello, I paid for ${referenceCode} and need my set-password link.`)} external variant="secondary" size="sm">
+                    <Icon icon={MessageCircle} size={16} /> {CLAIM_COPY.whatsapp}
+                    <span className="lp-visually-hidden"> (opens in a new tab)</span>
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
       <div className="lp-ticket__actions">

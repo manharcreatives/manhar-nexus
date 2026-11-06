@@ -188,13 +188,15 @@
       "copied": "Link copied",
       "whatsapp": "WhatsApp the set-password link",
       "failed": "Could not make a link. Please try again.",
-      "note": "Valid for 72 hours. Making a new link cancels the old one."
+      "note": "Valid for 72 hours. Making a new link cancels the old one, including a link the owner already has open on their screen.",
+      "autopayNote": "Paid by AutoPay? The owner cannot claim on their own, so send this link."
     },
     "attention": {
       "title": "Needs attention",
       "failed": "The account for {{name}} could not be created.",
       "failedStep": "Stopped at: {{step}}",
       "paid": "{{name}} has paid but has no account yet.",
+      "paidClosed": "{{name}} paid, but the request is marked spam or rejected. Decide whether to reopen it or refund the payment.",
       "retry": "Retry",
       "create": "Create account",
       "retried": "Retried. Check the request below.",
@@ -218,7 +220,9 @@
       "rateLimited": "Too many tries. Please wait a few minutes and try again.",
       "failed": "Could not save your password. Please try again in a moment.",
       "offline": "No connection. Please check your internet and try again."
-    }
+    },
+    "whatsapp": "Message us on WhatsApp",
+    "whatsappText": "Hello, my set-password link expired. Please send me a new one."
   },
   "commercial": {
     "plan": {
@@ -238,5 +242,27 @@
       },
       "none": "No plan yet"
     }
+  },
+  "payReturn": {
+    "pageTitle": "Payment received",
+    "title": "Thank you for paying",
+    "noCode": "We could not find your reference code in this link. Message us on WhatsApp and we will help you right away.",
+    "otherDevice": "To sign in instantly, open this page on the same phone or computer where you paid. Or message us on WhatsApp with your reference {{code}} and we will send you the link.",
+    "intro": "Your reference is {{code}}. Enter the last 4 digits of the mobile number you registered with, and we will open your account.",
+    "last4": "Last 4 digits of your mobile number",
+    "last4Help": "Only the 4 digits, for example 1522.",
+    "last4Invalid": "Enter exactly 4 digits.",
+    "noMatch": "Those details did not match. Check the 4 digits, or message us on WhatsApp.",
+    "continue": "Continue",
+    "pending": "We are confirming your payment and setting up your restaurant. This takes a minute.",
+    "keepOpen": "Please keep this page open.",
+    "ready": "Your restaurant is ready. Choose your password to sign in.",
+    "setPassword": "Set your password",
+    "manual": "We are finishing your account by hand. We will message you on WhatsApp shortly.",
+    "timedOut": "This is taking longer than usual. No problem, we will message you on WhatsApp as soon as your account is ready.",
+    "rateLimited": "Too many tries. Please wait a few minutes, or message us on WhatsApp.",
+    "again": "Check again",
+    "whatsapp": "Message us on WhatsApp",
+    "whatsappText": "Hello, I paid for {{code}} and need my set-password link."
   }
 }

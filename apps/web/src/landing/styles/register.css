@@ -439,6 +439,17 @@
 .lp-ticket__pay .lp-ticket__hint {
   flex-basis: 100%;
 }
+.lp-ticket__claim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+}
+.lp-ticket__claim p {
+  flex-basis: 100%;
+  margin: 0;
+}
 .lp-ticket__actions {
   display: flex;
   flex-wrap: wrap;

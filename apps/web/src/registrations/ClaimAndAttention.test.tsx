@@ -118,6 +118,13 @@ describe('Registrations: set-password link for an account that exists', () => {
     expect(text).toBe(`Hello Asha Patel, your Manhar Nexus account for Ananda Cafe is ready. Set your password here: ${window.location.origin}/set-password#t=${TOKEN} (valid 72 hours)`);
   });
 
+  it('warns that a new link cancels the one the owner may have open, and mentions AutoPay-paid requests', async () => {
+    withRows('CONVERTED', { ...row, payments: [{ ...row.payments[0], id: 'p-a', status: 'PAID', source: 'AUTOPAY' } as never] });
+    renderPage();
+    const note = await screen.findByText(/cancels the old one, including a link the owner already has open/);
+    expect(note.textContent).toContain('Paid by AutoPay?');
+  });
+
   it('says so when a link could not be made, and copies nothing', async () => {
     withRows('CONVERTED', row);
     issueClaimLink.mockRejectedValue(new Error('boom'));
@@ -162,6 +169,16 @@ describe('Registrations: needs attention', () => {
     const strip = screen.getByRole('region', { name: 'Needs attention' });
     fireEvent.click(strip.querySelector('button') as HTMLButtonElement);
     expect(await screen.findByDisplayValue('Ananda Cafe')).toBeTruthy();
+  });
+
+  it('money on a spam or rejected request is shown for a human decision, with no Create account button', async () => {
+    window.history.replaceState(null, '', '/registrations');
+    withRows('NEW');
+    getAttention.mockResolvedValue({ failedProvisioning: [], paidNotConverted: [], paidClosed: [{ registrationId: row.id, restaurantName: 'Ananda Cafe' }] });
+    renderPage();
+    expect(await screen.findByText(/Ananda Cafe paid, but the request is marked spam or rejected/)).toBeTruthy();
+    const strip = screen.getByRole('region', { name: 'Needs attention' });
+    expect(strip.querySelector('button')).toBeNull();
   });
 
   it('a failed attention check does not break the page', async () => {
