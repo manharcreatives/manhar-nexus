@@ -137,10 +137,10 @@ Add these variables to **Production** (and Preview if previews must work). The
 |---|---|---|
 | `NODE_ENV` | `production` | Vercel also defaults to production. |
 | `LOG_LEVEL` | `info` | |
-| `DATABASE_URL` | pooled Neon URL | Runtime queries; include `pgbouncer=true`. |
+| `DATABASE_URL` | pooled Neon URL | Runtime queries; include `pgbouncer=true`. On Vercel the API adds `connection_limit=1` itself (one connection per serverless instance) unless you set a `connection_limit` yourself. |
 | `DATABASE_URL_UNPOOLED` | direct Neon URL | Prisma CLI/migrations; no `-pooler`. |
 | `CORS_ORIGIN` | `https://<project>.vercel.app` | Exact origin, no trailing slash. |
-| `TRUST_PROXY` | `1` | Vercel is one proxy hop. |
+| `TRUST_PROXY` | `1` | Vercel is one proxy hop. Must be set: with 0, every visitor shares one rate-limit bucket and the registration IP cap sees only the proxy. Check it with `vercel env ls production`. |
 | `REFRESH_COOKIE_PATH` | `/api/auth` | The browser sees `/api`, not `/auth`. |
 | `HEALTH_INCLUDE_OPTIONAL` | `false` | No Redis/Storage on this deployment. |
 | `JWT_ACCESS_SECRET` | 64+ random chars | Generate; never reuse another environment. |

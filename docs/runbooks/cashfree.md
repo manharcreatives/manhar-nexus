@@ -79,3 +79,26 @@ Not yet seen: which of those three events was the link event and its exact body.
 - [ ] Webhook URL set in the live dashboard and a real small payment tested end to end.
 - [ ] GST invoice for the subscription (Cashfree does not issue Manhar's tax invoice).
 - [ ] Landing/legal copy matches what actually happens (payment link by email/WhatsApp, Cashfree page).
+
+## How a payment link is priced (quote flow)
+
+- The price comes from the plan catalog in `packages/shared/src/billing.ts` (`quotePlan`). Staff pick plan, cycle and Launch Pack; the API computes the amount (Founding 25% off judged at the registration date, GST 18% on the discounted subtotal, integer paise). The browser's number is never trusted.
+- A typed amount is still possible but needs a reason (3-200 chars), stored with the link (`quote.override.reason`).
+- One live link per request. A second one returns 409 until staff tick "replace": the API cancels the old link at Cashfree first and aborts if Cashfree refuses (for example it was just paid), so nobody is charged twice.
+- A test (`apps/web/src/landing/content/plans.parity.test.ts`) fails the build if the landing page prices differ from the catalog. Change prices in BOTH places in one commit.
+
+### Cancel endpoint (verified on the sandbox, 6 Nov 2026)
+
+`POST /pg/links/{link_id}/cancel` with body `{}` returns 200 and `link_status: CANCELLED`; a later GET shows `CANCELLED`. Cancelling again returns 400 `link_not_active` ("Only link in ACTIVE state can be cancelled"), which is also what a paid or expired link returns.
+
+## Deploying the quote release (order matters)
+
+1. Back up Neon (branch or dump, see `backup-restore.md`).
+2. Apply migration `20261106100000_registration_payment_quote` with the UNPOOLED URL: `npx prisma migrate deploy`. It only adds nullable columns and `source` with a default, so the old code keeps working while it runs.
+3. Deploy the API/web. Deploying before step 2 breaks the Registrations page and payment-link creation (the code selects the new columns).
+
+## Rollback
+
+- Code: redeploy the previous Vercel deployment (`rollback.md`). The new columns are additive and ignored by the old code, so the migration does NOT need to be reverted.
+- Links already created keep working; their breakdown is stored in `registration_payment.quote`.
+- Only if you must remove the columns (not normally needed): `ALTER TABLE "registration_payment" DROP COLUMN "planKey", DROP COLUMN "billingCycle", DROP COLUMN "quote", DROP COLUMN "source";` after the old code is live.

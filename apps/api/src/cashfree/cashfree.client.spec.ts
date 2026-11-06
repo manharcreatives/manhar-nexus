@@ -131,3 +131,19 @@ describe('CashfreeClient', () => {
     expect((fetchImpl.mock.calls[0] as [string, RequestInit])[1].method).toBe('GET');
   });
 });
+
+describe('CashfreeClient.cancelLink (path and states confirmed against the sandbox)', () => {
+  it('POSTs /links/{id}/cancel with an empty JSON body', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(respond(200, { link_status: 'CANCELLED' }));
+    await clientWith(fetchMock).cancelLink('NX-ABC123-ab12cd34');
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://sandbox.cashfree.com/pg/links/NX-ABC123-ab12cd34/cancel');
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe('{}');
+  });
+
+  it('surfaces Cashfree refusing a link that is no longer ACTIVE (paid, expired, already cancelled)', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(respond(400, { code: 'link_not_active', message: 'Only link in ACTIVE state can be cancelled' }));
+    await expect(clientWith(fetchMock).cancelLink('x')).rejects.toThrow(/link_not_active/);
+  });
+});

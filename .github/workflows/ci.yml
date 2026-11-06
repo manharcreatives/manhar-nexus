@@ -68,6 +68,18 @@ jobs:
         working-directory: apps/api
         run: npx prisma migrate deploy
 
+      # schema.prisma and the hand-written migrations are not byte-identical (FK/index names), so a full diff is noisy.
+      # What must never differ is the data shape: a table or column in schema.prisma that no migration creates (or the
+      # reverse) breaks production the moment the code deploys. Compare against the freshly migrated throwaway DB.
+      - name: Schema vs migrations drift (tables and columns)
+        working-directory: apps/api
+        run: |
+          npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script > /tmp/drift.sql
+          if grep -E 'CREATE TABLE|DROP TABLE|ADD COLUMN|DROP COLUMN|SET DATA TYPE|(SET|DROP) NOT NULL' /tmp/drift.sql; then
+            echo "::error::schema.prisma has table/column changes that no migration creates. Add a migration (hand-written, additive)."
+            exit 1
+          fi
+
       - name: Seed reference data + platform admin
         working-directory: apps/api
         run: npx prisma db seed
