@@ -238,6 +238,9 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
             restaurantName={state.restaurantName.trim()}
             referenceCode={reference}
             begin={state.begin}
+            email={state.email}
+            planKey={intent.plan}
+            payOptions={submitOptions}
             onReset={reset}
           />
         ) : null}

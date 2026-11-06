@@ -15,6 +15,9 @@ const NOT_PAYABLE = new Set(['CONVERTED', 'SPAM', 'REJECTED']);
 const LINK_VALID_DAYS = 7;
 const DAY_MS = 86_400_000;
 
+/** Who started the link: Manhar staff from the admin page, or the owner themselves ("Pay now"). */
+export type PaymentSource = 'STAFF' | 'CUSTOMER';
+
 export type LinkEventOutcome = 'ignored' | 'updated' | 'duplicate' | 'amount-mismatch';
 
 /** The stored quote JSON is either a Quote (lines, GST, flags) or { override: { reason } } for a typed amount. */
@@ -68,7 +71,7 @@ export class RegistrationPaymentService {
     return rows.map(toPaymentView);
   }
 
-  async createLink(actor: ActorContext, registrationId: string, dto: CreatePaymentLinkDto, now = new Date()): Promise<PaymentLinkView> {
+  async createLink(actor: ActorContext, registrationId: string, dto: CreatePaymentLinkDto, now = new Date(), source: PaymentSource = 'STAFF'): Promise<PaymentLinkView> {
     const reg = await this.registrationOrThrow(registrationId);
     if (NOT_PAYABLE.has(reg.status)) {
       throw new ValidationError(`Cannot take payment for a ${reg.status.toLowerCase()} request`, { status: reg.status });
@@ -107,7 +110,7 @@ export class RegistrationPaymentService {
       linkId,
       amountPaise,
       purpose,
-      customer: { name: reg.contactName, email: reg.email, phone: reg.phone.replace(/D/g, '').slice(-10) },
+      customer: { name: reg.contactName, email: reg.email, phone: reg.phone.replace(/\D/g, '').slice(-10) },
       expiresAt,
     });
     const row = await this.prisma.registrationPayment.create({
@@ -123,7 +126,7 @@ export class RegistrationPaymentService {
         planKey,
         billingCycle,
         quote,
-        source: 'STAFF',
+        source,
       },
     });
     logger.child({ registrationId, linkId, amountPaise, planKey, billingCycle }).info('payment link created');

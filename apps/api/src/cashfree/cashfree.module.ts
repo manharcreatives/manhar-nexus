@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { CashfreeClient } from './cashfree.client';
 import { CashfreeWebhookController, RegistrationPaymentController } from './cashfree.controller';
+import { CustomerPayController } from './customer-pay.controller';
+import { CustomerPayService } from './customer-pay.service';
 import { RegistrationPaymentService } from './registration-payment.service';
 
 /**
@@ -9,8 +11,8 @@ import { RegistrationPaymentService } from './registration-payment.service';
  * answers 503 with a plain message.
  */
 @Module({
-  controllers: [RegistrationPaymentController, CashfreeWebhookController],
-  providers: [CashfreeClient, RegistrationPaymentService],
+  controllers: [RegistrationPaymentController, CashfreeWebhookController, CustomerPayController],
+  providers: [CashfreeClient, RegistrationPaymentService, CustomerPayService],
   exports: [CashfreeClient, RegistrationPaymentService],
 })
 export class CashfreeModule {}
