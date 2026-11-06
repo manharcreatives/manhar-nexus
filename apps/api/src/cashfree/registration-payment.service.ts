@@ -115,6 +115,9 @@ export class RegistrationPaymentService {
       purpose,
       customer: { name: reg.contactName, email: reg.email, phone: reg.phone.replace(/\D/g, '').slice(-10) },
       expiresAt,
+      // After paying on Cashfree the owner is sent back to our page, which finds their account link. Staff-made links
+      // go out over WhatsApp, where nobody holds a payer secret, so only the owner's own link needs it.
+      ...(source === 'CUSTOMER' ? this.returnUrlFor(reg.referenceCode) : {}),
     });
     const row = await this.prisma.registrationPayment.create({
       data: {
@@ -135,6 +138,12 @@ export class RegistrationPaymentService {
     });
     logger.child({ registrationId, linkId, amountPaise, planKey, billingCycle }).info('payment link created');
     return toPaymentView(row);
+  }
+
+  /** Where Cashfree sends the owner after paying; nothing when the public base URL is not configured. */
+  private returnUrlFor(referenceCode: string): { returnUrl?: string } {
+    const base = process.env.QR_PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
+    return base ? { returnUrl: `${base}/pay/return?code=${encodeURIComponent(referenceCode)}` } : {};
   }
 
   /** The catalog price for a request: plan and cycle from the body, else from what the visitor chose. */

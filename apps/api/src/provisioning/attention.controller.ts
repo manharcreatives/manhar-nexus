@@ -6,7 +6,7 @@ export interface AttentionItem {
   registrationId: string;
   referenceCode: string;
   restaurantName: string;
-  reason: 'PROVISIONING_FAILED' | 'PAID_NOT_CREATED' | 'AMOUNT_MISMATCH';
+  reason: 'PROVISIONING_FAILED' | 'PAID_NOT_CREATED' | 'AMOUNT_MISMATCH' | 'PAID_ON_CLOSED_REQUEST';
   detail: string | null;
 }
 
@@ -19,7 +19,7 @@ export class AttentionController {
   @RequirePermission('platform.registration.view')
   async attention(): Promise<{ total: number; items: AttentionItem[] }> {
     const open = { in: ['NEW', 'CONTACTED', 'QUALIFIED'] as ('NEW' | 'CONTACTED' | 'QUALIFIED')[] };
-    const [failed, paid, mismatch] = await Promise.all([
+    const [failed, paid, mismatch, closed] = await Promise.all([
       this.prisma.registrationProvisioning.findMany({
         where: { status: 'FAILED', registration: { status: open } },
         select: { lastError: true, registration: { select: { id: true, referenceCode: true, restaurantName: true } } },
@@ -33,6 +33,15 @@ export class AttentionController {
       }),
       this.prisma.registrationRequest.findMany({
         where: { status: open, payments: { some: { status: 'AMOUNT_MISMATCH' } } },
+        select: { id: true, referenceCode: true, restaurantName: true },
+        take: 50,
+      }),
+      // Money arrived on a request marked spam or rejected, or marked converted with no restaurant behind it: nobody must miss that.
+      this.prisma.registrationRequest.findMany({
+        where: {
+          payments: { some: { status: 'PAID' } },
+          OR: [{ status: { in: ['SPAM', 'REJECTED'] } }, { status: 'CONVERTED', businessId: null }],
+        },
         select: { id: true, referenceCode: true, restaurantName: true },
         take: 50,
       }),
@@ -51,6 +60,10 @@ export class AttentionController {
     for (const r of mismatch) {
       if (seen.has(r.id)) continue;
       items.push({ registrationId: r.id, referenceCode: r.referenceCode, restaurantName: r.restaurantName, reason: 'AMOUNT_MISMATCH', detail: null });
+    }
+    for (const r of closed) {
+      if (seen.has(r.id)) continue;
+      items.push({ registrationId: r.id, referenceCode: r.referenceCode, restaurantName: r.restaurantName, reason: 'PAID_ON_CLOSED_REQUEST', detail: null });
     }
     return { total: items.length, items };
   }

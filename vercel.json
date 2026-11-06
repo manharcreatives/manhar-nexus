@@ -7,11 +7,10 @@
   "regions": ["sin1"],
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 60,
-      "memory": 1024
+      "maxDuration": 60
     }
   },
-  "crons": [{ "path": "/api/internal/cron/provision", "schedule": "*/5 * * * *" }],
+  "crons": [{ "path": "/api/internal/cron/provision", "schedule": "0 3 * * *" }],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }

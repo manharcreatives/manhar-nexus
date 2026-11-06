@@ -282,29 +282,37 @@ export class SubscriptionService {
 
   /** The first successful monthly debit makes the request "paid" the same way a paid payment link does. */
   private async recordFirstPayment(sub: RegistrationSubscription, paidPaise: number, event: Extract<SubscriptionEvent, { kind: 'payment' }>, now: Date): Promise<boolean> {
-    const already = await this.prisma.registrationPayment.count({ where: { registrationId: sub.registrationId, status: 'PAID' } });
-    if (already > 0) return false;
     const quote = sub.quote as { description?: string } | null;
-    await this.prisma.registrationPayment.create({
-      data: {
-        registrationId: sub.registrationId,
-        linkId: `autopay-${event.cfPaymentId}`.slice(0, 50),
-        linkUrl: '',
-        amountPaise: sub.amountPaise,
-        purpose: quote?.description ?? 'Manhar Nexus monthly (UPI AutoPay)',
-        status: 'PAID',
-        paidAmountPaise: paidPaise,
-        providerOrderId: event.cfPaymentId,
-        paidAt: event.occurredAt ?? now,
-        createdBy: 'autopay-webhook',
-        planKey: sub.planKey,
-        billingCycle: 'monthly',
-        quote: sub.quote as Prisma.InputJsonValue,
-        source: 'AUTOPAY',
+    // The count and the insert run under a per-request advisory lock, so two debits (or a debit and a paid link)
+    // arriving together cannot both find "nothing paid yet" and write two PAID rows.
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${sub.registrationId}))`;
+        const already = await tx.registrationPayment.count({ where: { registrationId: sub.registrationId, status: 'PAID' } });
+        if (already > 0) return false;
+        await tx.registrationPayment.create({
+          data: {
+            registrationId: sub.registrationId,
+            linkId: `autopay-${event.cfPaymentId}`.slice(0, 50),
+            linkUrl: '',
+            amountPaise: sub.amountPaise,
+            purpose: quote?.description ?? 'Manhar Nexus monthly (UPI AutoPay)',
+            status: 'PAID',
+            paidAmountPaise: paidPaise,
+            providerOrderId: event.cfPaymentId,
+            paidAt: event.occurredAt ?? now,
+            createdBy: 'autopay-webhook',
+            planKey: sub.planKey,
+            billingCycle: 'monthly',
+            quote: sub.quote as Prisma.InputJsonValue,
+            source: 'AUTOPAY',
+          },
+        });
+        await tx.registrationRequest.updateMany({ where: { id: sub.registrationId, status: { in: ['NEW', 'CONTACTED'] } }, data: { status: 'QUALIFIED' } });
+        return true;
       },
-    });
-    await this.prisma.registrationRequest.updateMany({ where: { id: sub.registrationId, status: { in: ['NEW', 'CONTACTED'] } }, data: { status: 'QUALIFIED' } });
-    return true;
+      { timeout: 15_000, maxWait: 10_000 },
+    );
   }
 
   private recentCharges(rowId: string) {

@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Ip, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { CurrentActor } from '../common/current-actor.decorator';
 import type { ActorContext } from '../common/tenant-scope';
@@ -20,20 +20,22 @@ import {
 @Controller('public/claim')
 @Public()
 @UseGuards(ThrottlerGuard)
-@Throttle({ default: { limit: 30, ttl: 3_600_000 } })
 export class ClaimPublicController {
   constructor(private readonly claims: ClaimService) {}
 
-  /** The payer's browser asks for the link: reference code + registration email + the secret from "Pay now". */
+  /** The payer's browser asks for the link: reference code + last 4 digits of the registered mobile + the secret from "Pay now". */
+  // The thank-you page polls this while the account is built (about 20 calls), and owners share Wi-Fi/NAT addresses.
   @Post('issue')
   @HttpCode(200)
-  issue(@Body(zodBody(claimIssueSchema)) dto: ClaimIssueDto): Promise<ClaimIssueAnswer> {
-    return this.claims.issueForPayer(dto);
+  @Throttle({ default: { limit: 120, ttl: 3_600_000 } })
+  issue(@Body(zodBody(claimIssueSchema)) dto: ClaimIssueDto, @Ip() ip: string): Promise<ClaimIssueAnswer> {
+    return this.claims.issueForPayer(dto, ip);
   }
 
   /** Choose the password. Works once. */
   @Post('redeem')
   @HttpCode(200)
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
   redeem(@Body(zodBody(claimRedeemSchema)) dto: ClaimRedeemDto): Promise<{ email: string; businessName: string }> {
     return this.claims.redeem(dto);
   }

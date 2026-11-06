@@ -87,6 +87,19 @@ describe('CashfreeClient', () => {
     expect(JSON.parse((fetchImpl.mock.calls[0] as [string, RequestInit])[1].body as string)).not.toHaveProperty('link_meta');
   });
 
+  it('adds link_meta.return_url next to notify_url when a return URL is given (sandbox accepted and echoed it)', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(respond(200, { link_url: 'https://pay.test/x' }));
+    await clientWith(fetchImpl).createLink({ ...input, returnUrl: 'https://nexus.example.test/pay/return?code=NX-ABC123' });
+    expect(JSON.parse((fetchImpl.mock.calls[0] as [string, RequestInit])[1].body as string).link_meta).toEqual({
+      notify_url: 'https://example.test/api/public/cashfree/webhook',
+      return_url: 'https://nexus.example.test/pay/return?code=NX-ABC123',
+    });
+    // Without a webhook URL the return URL still goes out on its own.
+    const only = jest.fn().mockResolvedValue(respond(200, { link_url: 'https://pay.test/x' }));
+    await clientWith(only, { ...SANDBOX, webhookUrl: undefined }).createLink({ ...input, returnUrl: 'https://nexus.example.test/pay/return?code=NX-ABC123' });
+    expect(JSON.parse((only.mock.calls[0] as [string, RequestInit])[1].body as string).link_meta).toEqual({ return_url: 'https://nexus.example.test/pay/return?code=NX-ABC123' });
+  });
+
   it('uses the production host when configured for production', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(respond(200, { link_url: 'https://pay.test/x' }));
     await clientWith(fetchImpl, { ...SANDBOX, environment: 'production', baseUrl: 'https://api.cashfree.com/pg' }).createLink(input);

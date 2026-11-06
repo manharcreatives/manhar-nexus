@@ -8,10 +8,10 @@ import { PasswordService } from '../iam/password.service';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutoProvisionService, isAutoEligiblePayment } from './auto-provision.service';
-import type { ProvisionInput } from './provisioning.dto';
+import { TRANSIENT_FAILURE_MESSAGE, type ProvisionInput } from './provisioning.dto';
 
 export const CLAIM_TTL_MS = 72 * 3_600_000;
-/** Wrong guesses allowed per reference code per window before it answers 404 to everything for a while. */
+/** Wrong guesses allowed per (reference code, caller IP) per window before that caller gets 404 for a while. */
 const MAX_FAILURES = 5;
 const FAILURE_WINDOW_MS = 3_600_000;
 
@@ -26,7 +26,8 @@ export const claimIssueSchema = z
       .trim()
       .toUpperCase()
       .regex(/^[A-Z0-9][A-Z0-9-]{3,31}$/),
-    email: z.string().trim().toLowerCase().email().max(254),
+    /** Last four digits of the mobile number on the request: the payer secret alone never releases a link. */
+    phoneLast4: z.string().trim().regex(/^[0-9]{4}$/),
     payerSecret: z.string().min(16).max(200),
   })
   .strict();
@@ -40,7 +41,7 @@ export const claimRedeemSchema = z
   .strict();
 export type ClaimRedeemDto = z.infer<typeof claimRedeemSchema>;
 
-export type ClaimIssueAnswer = { status: 'ready'; token: string; expiresAt: Date } | { status: 'pending' };
+export type ClaimIssueAnswer = { status: 'ready'; token: string; expiresAt: Date } | { status: 'pending' } | { status: 'manual' };
 
 const sha256hex = (v: string): string => createHash('sha256').update(v).digest('hex');
 const digest = (v: string): Buffer => createHash('sha256').update(v).digest();
@@ -83,28 +84,33 @@ export class ClaimService {
     return { token, expiresAt };
   }
 
-  /** The payer's browser asks for the owner's link. Needs code + email + the secret from the "Pay now" response. */
-  async issueForPayer(dto: ClaimIssueDto, now = new Date()): Promise<ClaimIssueAnswer> {
-    if (this.blocked(dto.referenceCode, now)) throw new NotFoundError(CLAIM_NOT_FOUND);
+  /** The payer's browser asks for the owner's link. Needs code + phone last 4 + the secret from the "Pay now" response. */
+  async issueForPayer(dto: ClaimIssueDto, ip = 'unknown', now = new Date()): Promise<ClaimIssueAnswer> {
+    const key = `${dto.referenceCode}|${ip}`;
+    if (this.blocked(key, now)) throw new NotFoundError(CLAIM_NOT_FOUND);
     const reg = await this.prisma.registrationRequest.findUnique({ where: { referenceCode: dto.referenceCode } });
-    const emailOk = timingSafeEqual(digest(dto.email), digest(reg?.email ?? ''));
+    const phoneOk = timingSafeEqual(digest(dto.phoneLast4), digest((reg?.phone ?? '').replace(/D/g, '').slice(-4)));
     const payments = reg ? await this.prisma.registrationPayment.findMany({ where: { registrationId: reg.id } }) : [];
     const given = digest(dto.payerSecret);
     // Look at every row (no early exit) so timing does not reveal how many payments exist.
     let secretOk = false;
     for (const p of payments) secretOk = sameHash(given, p.payerSecretHash) || secretOk;
-    if (!reg || !emailOk || !secretOk) {
-      this.fail(dto.referenceCode, now);
+    if (!reg || !phoneOk || !secretOk) {
+      this.fail(key, now);
       throw new NotFoundError(CLAIM_NOT_FOUND);
     }
 
-    // Proof is good. Not paid in full yet, or the account is still being made: ask again shortly.
-    if (!payments.some((p) => isAutoEligiblePayment(p))) return { status: 'pending' };
+    // Proof is good. Nothing paid yet: ask again shortly. Money arrived but it is not an automatic case (typed amount,
+    // Many Doors, amount mismatch): a person finishes it, so say so instead of leaving the payer waiting.
+    if (!payments.some((p) => p.status === 'PAID')) return { status: 'pending' };
+    if (!payments.some((p) => isAutoEligiblePayment(p))) return { status: 'manual' };
     let job = await this.prisma.registrationProvisioning.findUnique({ where: { registrationId: reg.id } });
     if (job?.status !== 'DONE') {
       await this.auto.autoProvision(reg.id, now);
       job = await this.prisma.registrationProvisioning.findUnique({ where: { registrationId: reg.id } });
     }
+    // Failed for a clear reason (say, the email already has an account): waiting will not help, staff finish it.
+    if (job?.status === 'FAILED' && job.lastError && job.lastError !== TRANSIENT_FAILURE_MESSAGE) return { status: 'manual' };
     if (job?.status !== 'DONE' || !job.businessId) return { status: 'pending' };
 
     const owner = await this.ownerOf(job.businessId, job.input as unknown as ProvisionInput);
@@ -132,7 +138,8 @@ export class ClaimService {
     const rec = await this.prisma.credentialToken.findUnique({ where: { tokenHash } });
     if (!rec || rec.usedAt || rec.revokedAt || rec.expiresAt.getTime() <= now.getTime()) throw new NotFoundError(CLAIM_LINK_INVALID);
     const user = await this.prisma.user.findUnique({ where: { id: rec.userId } });
-    if (!user || user.status !== 'ACTIVE' || !user.businessId) throw new NotFoundError(CLAIM_LINK_INVALID);
+    // Once the owner has signed in, an old link would be a password reset for a live account: staff handle that.
+    if (!user || user.status !== 'ACTIVE' || !user.businessId || user.lastLoginAt) throw new NotFoundError(CLAIM_LINK_INVALID);
     const businessId = user.businessId;
     const passwordHash = await this.passwords.hash(dto.password);
 
@@ -167,19 +174,19 @@ export class ClaimService {
     return this.prisma.user.findFirst({ where: { businessId, email } });
   }
 
-  private blocked(code: string, now: Date): boolean {
-    const f = this.failures.get(code);
+  private blocked(key: string, now: Date): boolean {
+    const f = this.failures.get(key);
     if (!f) return false;
     if (f.resetAt <= now.getTime()) {
-      this.failures.delete(code);
+      this.failures.delete(key);
       return false;
     }
     return f.count >= MAX_FAILURES;
   }
 
-  private fail(code: string, now: Date): void {
-    const f = this.failures.get(code);
-    if (!f || f.resetAt <= now.getTime()) this.failures.set(code, { count: 1, resetAt: now.getTime() + FAILURE_WINDOW_MS });
+  private fail(key: string, now: Date): void {
+    const f = this.failures.get(key);
+    if (!f || f.resetAt <= now.getTime()) this.failures.set(key, { count: 1, resetAt: now.getTime() + FAILURE_WINDOW_MS });
     else f.count += 1;
     if (this.failures.size > 5000) this.failures.clear();
   }

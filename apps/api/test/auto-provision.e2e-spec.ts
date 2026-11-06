@@ -7,6 +7,7 @@ import { applyHttpDefaults } from '../src/app.factory';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AutoProvisionService } from '../src/provisioning/auto-provision.service';
 import { BillingRecordService, paidUntilFor } from '../src/provisioning/billing-record.service';
+import { ClaimService } from '../src/provisioning/claim.service';
 import { CONSENT_VERSIONS } from '../src/registration/registration.dto';
 import { generateReferenceCode } from '../src/registration/registration.util';
 
@@ -209,12 +210,14 @@ describe('Auto-provisioning after payment (e2e)', () => {
 
   describe("the owner's one-time set-password link", () => {
     const SECRET = 'payer-secret-for-e2e-0123456789abcdef';
-    const issue = (referenceCode: string, email: string, payerSecret: string) => request(http()).post('/public/claim/issue').send({ referenceCode, email, payerSecret });
+    // The seeded leads have the mobile +919714571522, so the proof digits are 1522.
+    const PHONE4 = '1522';
+    const issue = (referenceCode: string, phoneLast4: string, payerSecret: string) => request(http()).post('/public/claim/issue').send({ referenceCode, phoneLast4, payerSecret });
     const redeem = (token: string, password: string) => request(http()).post('/public/claim/redeem').send({ token, password });
 
     it('hands the link only to the payer, sets the password once, and the link dies', async () => {
       const lead = await createLead({ payment: { payerSecret: SECRET } });
-      const res = await issue(lead.referenceCode, lead.email, SECRET);
+      const res = await issue(lead.referenceCode, PHONE4, SECRET);
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('ready'); // the request itself triggered the provisioning it was waiting for
       expect(typeof res.body.token).toBe('string');
@@ -243,21 +246,21 @@ describe('Auto-provisioning after payment (e2e)', () => {
       expect((await redeem(res.body.token as string, 'Another-Password-1!')).status).toBe(404);
       // And once the owner has signed in, the payer can no longer fetch a link for the live account.
       await prisma.user.updateMany({ where: { email: lead.email }, data: { lastLoginAt: new Date() } });
-      expect((await issue(lead.referenceCode, lead.email, SECRET)).status).toBe(404);
+      expect((await issue(lead.referenceCode, PHONE4, SECRET)).status).toBe(404);
     });
 
     it('answers "pending" before the payment is complete, and the identical 404 for every wrong proof', async () => {
       const unpaid = await createLead({ payment: { status: 'CREATED', paidAmountPaise: null, payerSecret: SECRET } });
-      const pending = await issue(unpaid.referenceCode, unpaid.email, SECRET);
+      const pending = await issue(unpaid.referenceCode, PHONE4, SECRET);
       expect(pending.status).toBe(200);
       expect(pending.body).toEqual({ status: 'pending' });
       expect(await businessOf(unpaid.id)).toBeNull();
 
       const paid = await createLead({ payment: { payerSecret: SECRET } });
       const wrong = [
-        await issue(paid.referenceCode, paid.email, 'a-different-secret-0123456789abcdef'),
-        await issue(paid.referenceCode, 'someone-else@example.test', SECRET),
-        await issue('NX-ZZZZZZ', paid.email, SECRET),
+        await issue(paid.referenceCode, PHONE4, 'a-different-secret-0123456789abcdef'),
+        await issue(paid.referenceCode, '0000', SECRET),
+        await issue('NX-ZZZZZZ', PHONE4, SECRET),
       ];
       for (const r of wrong) expect(r.status).toBe(404);
       expect(new Set(wrong.map((r) => JSON.stringify(r.body.error ?? r.body))).size).toBe(1);
@@ -267,18 +270,62 @@ describe('Auto-provisioning after payment (e2e)', () => {
 
     it('a payment without a secret (staff link) can never release a link to the public page', async () => {
       const lead = await createLead({ payment: { source: 'STAFF' } });
-      expect((await issue(lead.referenceCode, lead.email, SECRET)).status).toBe(404);
+      expect((await issue(lead.referenceCode, PHONE4, SECRET)).status).toBe(404);
     });
 
     it('stops answering for a code after five wrong guesses, even with the right secret', async () => {
       const lead = await createLead({ payment: { payerSecret: SECRET } });
-      for (let i = 0; i < 5; i++) expect((await issue(lead.referenceCode, lead.email, `wrong-secret-number-${i}-0123456789`)).status).toBe(404);
-      expect((await issue(lead.referenceCode, lead.email, SECRET)).status).toBe(404);
+      for (let i = 0; i < 5; i++) expect((await issue(lead.referenceCode, PHONE4, `wrong-secret-number-${i}-0123456789`)).status).toBe(404);
+      expect((await issue(lead.referenceCode, PHONE4, SECRET)).status).toBe(404);
+    });
+
+    it('the payer secret alone is not enough: the last 4 digits of the registered mobile must match, and email is not accepted', async () => {
+      const lead = await createLead({ payment: { payerSecret: SECRET } });
+      expect((await issue(lead.referenceCode, '0000', SECRET)).status).toBe(404);
+      expect(await businessOf(lead.id)).toBeNull();
+      const withEmail = await request(http()).post('/public/claim/issue').send({ referenceCode: lead.referenceCode, email: lead.email, payerSecret: SECRET });
+      expect(withEmail.status).toBe(400);
+      expect((await request(http()).post('/public/claim/issue').send({ referenceCode: lead.referenceCode, phoneLast4: '152', payerSecret: SECRET })).status).toBe(400);
+      expect((await issue(lead.referenceCode, PHONE4, SECRET)).body.status).toBe('ready');
+    });
+
+    it('answers "manual" (not "pending") when money arrived but a person must finish it: typed amount, wrong amount, failed job', async () => {
+      const typed = await createLead({ payment: { payerSecret: SECRET, planKey: null } });
+      expect((await issue(typed.referenceCode, PHONE4, SECRET)).body).toEqual({ status: 'manual' });
+      const mismatch = await createLead({ payment: { payerSecret: SECRET, paidAmountPaise: 100 } });
+      expect((await issue(mismatch.referenceCode, PHONE4, SECRET)).body).toEqual({ status: 'manual' });
+      expect(await businessOf(typed.id)).toBeNull();
+      expect(await businessOf(mismatch.id)).toBeNull();
+
+      // A job that failed for a clear reason (the owner's email already has an account elsewhere) is manual too.
+      const taken = await createLead({ payment: { payerSecret: SECRET } });
+      const other = await createLead({ payment: { payerSecret: SECRET } });
+      await auto.autoProvision(other.id);
+      await prisma.registrationRequest.update({ where: { id: taken.id }, data: { email: other.email } });
+      const res = await issue(taken.referenceCode, PHONE4, SECRET);
+      expect(res.body).toEqual({ status: 'manual' });
+    });
+
+    it('wrong guesses are counted per code and caller, so one bad caller does not use up the code for everyone', async () => {
+      const lead = await createLead({ payment: { payerSecret: SECRET } });
+      const svc = app.get(ClaimService);
+      const body = { referenceCode: lead.referenceCode, phoneLast4: PHONE4 };
+      for (let i = 0; i < 5; i++) await svc.issueForPayer({ ...body, payerSecret: `wrong-secret-number-${i}-0123456789` }, '203.0.113.9').catch(() => undefined);
+      await expect(svc.issueForPayer({ ...body, payerSecret: SECRET }, '203.0.113.9')).rejects.toThrow();
+      const fine = await svc.issueForPayer({ ...body, payerSecret: SECRET }, '198.51.100.7');
+      expect(fine.status).toBe('ready');
+    });
+
+    it('an unused link stops working once the owner has signed in (a staff reset must not be undone by an old link)', async () => {
+      const lead = await createLead({ payment: { payerSecret: SECRET } });
+      const token = (await issue(lead.referenceCode, PHONE4, SECRET)).body.token as string;
+      await prisma.user.updateMany({ where: { email: lead.email }, data: { lastLoginAt: new Date() } });
+      expect((await redeem(token, 'Late-Password-1!')).status).toBe(404);
     });
 
     it('a newer link revokes the older one; an expired link is refused', async () => {
       const lead = await createLead({ payment: { payerSecret: SECRET } });
-      const first = (await issue(lead.referenceCode, lead.email, SECRET)).body.token as string;
+      const first = (await issue(lead.referenceCode, PHONE4, SECRET)).body.token as string;
       const second = await pPost(`/internal/registrations/${lead.id}/claim-link`);
       expect(second.status).toBe(200);
       expect(typeof second.body.token).toBe('string');
@@ -290,7 +337,7 @@ describe('Auto-provisioning after payment (e2e)', () => {
 
     it('two simultaneous redeems of the same link: exactly one wins', async () => {
       const lead = await createLead({ payment: { payerSecret: SECRET } });
-      const token = (await issue(lead.referenceCode, lead.email, SECRET)).body.token as string;
+      const token = (await issue(lead.referenceCode, PHONE4, SECRET)).body.token as string;
       const results = await Promise.all([redeem(token, 'Winner-Password-1!'), redeem(token, 'Loser-Password-2!')]);
       expect(results.map((r) => r.status).sort()).toEqual([200, 404]);
     });
@@ -347,6 +394,19 @@ describe('Auto-provisioning after payment (e2e)', () => {
         ]),
       );
       expect((await request(http()).get('/internal/provisioning/attention')).status).toBe(401);
+    });
+
+    it('flags money on a request marked spam or rejected, and on a converted request with no restaurant behind it', async () => {
+      const spam = await createLead({ status: 'SPAM' });
+      const converted = await createLead();
+      await prisma.registrationRequest.update({ where: { id: converted.id }, data: { status: 'CONVERTED', businessId: null } });
+      const res = await pGet('/internal/provisioning/attention');
+      expect(res.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ registrationId: spam.id, reason: 'PAID_ON_CLOSED_REQUEST' }),
+          expect.objectContaining({ registrationId: converted.id, reason: 'PAID_ON_CLOSED_REQUEST' }),
+        ]),
+      );
     });
   });
 

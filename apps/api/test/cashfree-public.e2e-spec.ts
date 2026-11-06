@@ -116,6 +116,9 @@ describe('Customer "Pay now" (e2e)', () => {
     expect(res.body.outcome).toBe('link');
     expect(res.body.link).toMatchObject({ linkUrl: 'https://payments-test.cashfree.com/links/cust', amountPaise: 1_149_320 });
     expect(Object.keys(res.body.link as object).sort()).toEqual(['amountPaise', 'breakdown', 'expiresAt', 'linkUrl', 'payerSecret', 'purpose']);
+    // CONTRACT: the secret is returned inside `link` and also at the top level of the body (the web reads the top level).
+    expect(Object.keys(res.body as object).sort()).toEqual(['link', 'outcome', 'payerSecret']);
+    expect(res.body.payerSecret).toBe(res.body.link.payerSecret);
     const row = await prisma.registrationPayment.findFirstOrThrow({ where: { registrationId: lead.id } });
     expect(row).toMatchObject({ source: 'CUSTOMER', planKey: 'floor', amountPaise: 1_149_320, status: 'CREATED' });
     // Only the hash of the payer secret is stored; asking again never returns the secret.
@@ -125,9 +128,25 @@ describe('Customer "Pay now" (e2e)', () => {
     expect(JSON.stringify(row)).not.toContain(secret);
     const again = await payLink(who(lead));
     expect(again.body.link.payerSecret).toBeUndefined();
+    expect(again.body.payerSecret).toBeUndefined();
     expect((await status(who(lead))).body).toEqual({ paid: false });
     const sent = JSON.parse((cashfreeFetch.mock.calls[0] as [string, RequestInit])[1].body as string) as { link_amount: number };
     expect(sent.link_amount).toBe(11_493.2);
+  });
+
+  it('sends the owner back to our page after paying: link_meta.return_url carries the reference code (customer links only)', async () => {
+    const previous = process.env.QR_PUBLIC_BASE_URL;
+    process.env.QR_PUBLIC_BASE_URL = 'https://nexus.example.test/';
+    try {
+      const lead = await createLead({ planKey: 'counter', billingCycle: 'monthly' });
+      stubLink();
+      expect((await payLink(who(lead))).status).toBe(200);
+      const sent = JSON.parse((cashfreeFetch.mock.calls[0] as [string, RequestInit])[1].body as string) as { link_meta?: { return_url?: string } };
+      expect(sent.link_meta?.return_url).toBe(`https://nexus.example.test/pay/return?code=${lead.referenceCode}`);
+    } finally {
+      if (previous === undefined) delete process.env.QR_PUBLIC_BASE_URL;
+      else process.env.QR_PUBLIC_BASE_URL = previous;
+    }
   });
 
   it('a browser cannot choose the price: extra fields are refused (400) and nothing is created', async () => {

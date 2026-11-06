@@ -22,14 +22,14 @@ password with a one-time link. No email provider is needed. Staff only step in f
 
 | Who | Endpoint | Purpose |
 |---|---|---|
-| Public | `POST /public/claim/issue` `{referenceCode,email,payerSecret}` | The payer's browser asks for the owner link. Answers `{status:'ready',token,expiresAt}` or `{status:'pending'}`. Every wrong proof is the same 404. |
+| Public | `POST /public/claim/issue` `{referenceCode,phoneLast4,payerSecret}` | The payer's browser asks for the owner link. `phoneLast4` = last 4 digits of the mobile on the request (the secret alone never releases a link). Answers `{status:'ready',token,expiresAt}`, `{status:'pending'}` (still processing) or `{status:'manual'}` (money arrived but a person finishes it). Every wrong proof is the same 404. Limit 120/hour per IP. |
 | Public | `POST /public/claim/redeem` `{token,password}` | Sets the password (min 8) and clears `mustChangePassword`. Answers `{email,businessName}`. Works once. |
 | Staff | `POST /internal/registrations/:id/claim-link` | A fresh link to send on WhatsApp. Only after the account exists and before the owner has signed in. |
-| Cron | `GET /internal/cron/provision` | Vercel Cron, every 5 minutes. Finishes paid-but-not-created registrations and crashed runs. |
+| Cron | `GET /internal/cron/provision` | Vercel Cron once a day (Hobby allows no more) plus `.github/workflows/provision-cron.yml` every 10 minutes. Finishes paid-but-not-created registrations and crashed runs. |
 | Staff | `GET /internal/provisioning/attention` | What needs a person: failed jobs, paid but not created, amount mismatches. |
 
 The `payerSecret` is returned once by "Pay now" (only its hash is kept). Whoever holds it is the person who started the
-payment; the reference code and email alone never release a link.
+payment and the last 4 digits of the registered mobile; the reference code and email alone never release a link.
 
 ## Environment
 
@@ -52,7 +52,20 @@ payment; the reference code and email alone never release a link.
 
 ## Known limits
 
-- The per-code guess counter (5 per hour) lives in memory of one serverless instance; the 256-bit payer secret and the
+- The guess counter (5 per hour per code and caller IP) lives in memory of one serverless instance; the 256-bit payer secret and the
   per-IP throttle are what really stop guessing.
 - An owner email nobody verified: the account is bound to the email on the registration form. Confirm the contact on the
   first call.
+
+## Cron schedule and GitHub secrets
+
+`vercel.json` runs the route daily at 03:00 UTC. For a faster safety net the GitHub workflow `provision-cron` calls it every
+10 minutes. Add two repository secrets (Settings > Secrets and variables > Actions): `APP_URL` (production origin, no
+trailing slash) and `CRON_SECRET` (same value as on Vercel). If either is missing the job skips cleanly. The route is
+idempotent, so overlapping with the Vercel cron is harmless.
+
+## Return page after paying
+
+CUSTOMER payment links are created with `link_meta.return_url = ${QR_PUBLIC_BASE_URL}/pay/return?code=<referenceCode>`
+(sandbox accepts and echoes it; what Cashfree appends to the redirect after a real payment is not verified). Without
+`QR_PUBLIC_BASE_URL` no return URL is sent.

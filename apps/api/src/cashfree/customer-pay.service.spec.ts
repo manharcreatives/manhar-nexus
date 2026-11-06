@@ -118,6 +118,8 @@ describe('CustomerPayService.pay', () => {
         expiresAt: ROW.expiresAt,
         payerSecret: secret,
       },
+      // Also at the top level: the web reads it there (a contract; both places stay).
+      payerSecret: secret,
     });
     expect(JSON.stringify(answer)).not.toMatch(/reg-1|pay-1|NX-ABC123|asha@/);
   });

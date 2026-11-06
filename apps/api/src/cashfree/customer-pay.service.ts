@@ -66,7 +66,8 @@ export class CustomerPayService {
       const created = await this.payments.createLink(CUSTOMER_ACTOR, reg.id, {}, now, 'CUSTOMER', createHash('sha256').update(payerSecret).digest('hex'));
       logger.child({ registrationId: reg.id, source: 'CUSTOMER' }).info('customer started a payment');
       const row = await this.prisma.registrationPayment.findUniqueOrThrow({ where: { id: created.id } });
-      return { outcome: 'link', link: { ...this.linkView(row), payerSecret } };
+      // Returned twice on purpose: inside `link` (the original contract) and at the top level (what the web reads).
+      return { outcome: 'link', link: { ...this.linkView(row), payerSecret }, payerSecret };
     } catch (err) {
       // Belt and braces if the lock was ever bypassed: hand back the link that exists instead of failing.
       if (err instanceof ConflictError) {

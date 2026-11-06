@@ -11,6 +11,8 @@ export interface CreateLinkInput {
   /** `phone` is a 10-digit Indian mobile number. */
   customer: { name: string; email: string; phone: string };
   expiresAt: Date;
+  /** Where Cashfree sends the payer after paying (link_meta.return_url, accepted by the sandbox). */
+  returnUrl?: string;
 }
 
 export interface CashfreeLink {
@@ -86,7 +88,9 @@ export class CashfreeClient {
       link_expiry_time: input.expiresAt.toISOString(),
       link_notify: { send_email: true, send_sms: false },
       link_auto_reminders: false,
-      ...(config.webhookUrl ? { link_meta: { notify_url: config.webhookUrl } } : {}),
+      ...(config.webhookUrl || input.returnUrl
+        ? { link_meta: { ...(config.webhookUrl ? { notify_url: config.webhookUrl } : {}), ...(input.returnUrl ? { return_url: input.returnUrl } : {}) } }
+        : {}),
     };
     const json = await this.call(config, 'POST', '/links', body);
     return this.toLink(json, input.linkId);

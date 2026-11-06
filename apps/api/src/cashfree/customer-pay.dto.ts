@@ -32,7 +32,8 @@ export interface CustomerLinkView {
 }
 
 export type CustomerPayAnswer =
-  | { outcome: 'link'; link: CustomerLinkView }
+  /** `payerSecret` (also inside `link`) is present only on the response that created the link. */
+  | { outcome: 'link'; link: CustomerLinkView; payerSecret?: string }
   /** Already paid: nothing more to pay. */
   | { outcome: 'paid' }
   /** Many Doors, "not sure", or a request staff are already handling: a person will quote and send the link. */
