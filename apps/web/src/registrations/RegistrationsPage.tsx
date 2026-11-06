@@ -195,10 +195,17 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                       <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-white/[0.04] px-3 py-2 text-sm">
                         <span>
                           ₹{formatRupees(p.amountPaise)} · {new Date(p.createdAt).toLocaleDateString()}
+                          {p.planKey ? ` · ${p.planKey} ${p.billingCycle ?? ''}`.trimEnd() : ''}
+                          {p.overrideReason ? ` · ${t('registrations.payment.typedChip', { reason: p.overrideReason })}` : ''}
+                          {p.status === 'AMOUNT_MISMATCH' ? (
+                            <span className="mt-1 block text-xs text-muted">
+                              {t('registrations.payment.mismatchHint', { paid: formatRupees(p.paidAmountPaise ?? 0), expected: formatRupees(p.amountPaise) })}
+                            </span>
+                          ) : null}
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           <StatusPill tone={PAYMENT_TONE[p.status]}>{t(`registrations.payment.status.${p.status}`)}</StatusPill>
-                          {p.status !== 'PAID' ? (
+                          {p.status === 'CREATED' || p.status === 'AMOUNT_MISMATCH' ? (
                             <button type="button" className="underline disabled:opacity-50" disabled={busyId === r.id} onClick={() => void checkPayment(r, p.id)}>
                               {t('registrations.payment.check')}
                             </button>

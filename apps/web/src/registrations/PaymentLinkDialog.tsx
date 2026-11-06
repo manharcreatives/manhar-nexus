@@ -209,6 +209,9 @@ export function PaymentLinkDialog({
                       <dd className="tabular-nums">{l.amountPaise < 0 ? `−₹${formatRupees(-l.amountPaise)}` : `₹${formatRupees(l.amountPaise)}`}</dd>
                     </div>
                   ))}
+                  {!quote.launchPackCharged && (quote.foundingApplied || PLAN_PRICES[quote.planKey as PricedPlanKey].includesLaunchPack) ? (
+                    <p className="text-xs text-muted">{t('registrations.payment.launchPackIncluded')}</p>
+                  ) : null}
                   <div className="flex justify-between gap-4 border-t border-white/10 pt-1 font-medium">
                     <dt>{t('registrations.payment.total')}</dt>
                     <dd className="tabular-nums">₹{formatRupees(quote.totalPaise)}</dd>
