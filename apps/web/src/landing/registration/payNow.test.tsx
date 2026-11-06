@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchPaid, fetchPayAvailable, PAY_COPY, requestPayLink } from './payNow';
+import { fetchPaid, fetchPayAvailable, PAY_COPY, priceLine, requestPayLink } from './payNow';
 import { RegistrationTicket } from './Ticket';
 
 const reply = (status: number, body?: unknown): Response =>
@@ -60,6 +60,34 @@ function ticket(fetchImpl: ReturnType<typeof vi.fn>, over: { planKey?: string; e
     </MemoryRouter>,
   );
 }
+
+describe('priceLine: the price shown before Pay now', () => {
+  const IN = new Date('2026-12-01T10:00:00+05:30');
+  const AFTER = new Date('2027-03-01T10:00:00+05:30');
+  it('matches the server quote, incl. GST, with the Founding offer only inside its window', () => {
+    expect(priceLine('floor', 'yearly', IN)).toBe('Floor, yearly (Founding offer): ₹11,493.20 incl. 18% GST');
+    expect(priceLine('floor', 'yearly', AFTER)).toBe('Floor, yearly: ₹15,328.20 incl. 18% GST');
+    expect(priceLine('counter', 'monthly', IN)).toBe('Counter, monthly: ₹706.82 incl. 18% GST');
+  });
+  it('shows nothing for plans without a fixed price or an unknown plan', () => {
+    expect(priceLine('many-doors', 'yearly', IN)).toBeNull();
+    expect(priceLine('not-sure', 'yearly', IN)).toBeNull();
+    expect(priceLine(undefined, 'yearly', IN)).toBeNull();
+  });
+});
+
+describe('RegistrationTicket: price before Pay now', () => {
+  it('shows the plan price above the button when online payment is on', async () => {
+    const f = vi.fn().mockResolvedValue(reply(200, { customerPay: true }));
+    render(
+      <MemoryRouter>
+        <RegistrationTicket contactName="A" restaurantName="R" referenceCode="NX-7K2Q9M" begin="pay-and-start" email="a@b.co" planKey="counter" billingCycle="monthly" payOptions={opts(f)} onReset={() => undefined} />
+      </MemoryRouter>,
+    );
+    expect((await screen.findByTestId('pay-price')).textContent).toContain('Counter, monthly');
+    expect(screen.getByTestId('pay-price').textContent).toContain('incl. 18% GST');
+  });
+});
 
 describe('RegistrationTicket: Pay now', () => {
   it('shows no Pay now while the server says it is off, and keeps the pay-later promise path', async () => {

@@ -4,7 +4,7 @@ import { buildWhatsAppUrl, registrationSuccess, type BeginMode } from '../conten
 import { copyText } from '../sectionsC/clipboard';
 import { Copy, MessageCircle } from '../sectionsC/icons';
 import { nextSteps } from './nextSteps';
-import { fetchPayAvailable, fetchPaid, PAY_COPY, PAYABLE_PLANS, requestPayLink } from './payNow';
+import { fetchPayAvailable, fetchPaid, PAY_COPY, PAYABLE_PLANS, priceLine, requestPayLink } from './payNow';
 import type { SubmitOptions } from './submit';
 
 export interface TicketProps {
@@ -15,6 +15,7 @@ export interface TicketProps {
   /** The email they registered with: with the reference code it proves the request is theirs when paying. */
   email?: string;
   planKey?: string;
+  billingCycle?: string;
   /** Same network options as the form (tests inject fetch). */
   payOptions?: SubmitOptions;
   onReset: () => void;
@@ -24,13 +25,15 @@ export interface TicketProps {
  * Confirmation, styled as a kitchen ticket with a stamp. The stamp says RECEIVED, never PAID: the API only
  * confirms that the request was stored; no money has moved.
  */
-export function RegistrationTicket({ contactName, restaurantName, referenceCode, begin, email, planKey, payOptions, onReset }: TicketProps) {
+export function RegistrationTicket({ contactName, restaurantName, referenceCode, begin, email, planKey, billingCycle, payOptions, onReset }: TicketProps) {
   const success = registrationSuccess(contactName, referenceCode);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [copied, setCopied] = useState<'idle' | 'done' | 'failed'>('idle');
   const steps = nextSteps(begin);
   const who = { referenceCode, email: (email ?? '').trim().toLowerCase() };
   const payable = who.email !== '' && PAYABLE_PLANS.includes(planKey ?? '');
+  // Computed once at registration time (the server judges the Founding offer by the same date).
+  const [price] = useState(() => priceLine(planKey, billingCycle));
   const [payAvailable, setPayAvailable] = useState(false);
   const [payState, setPayState] = useState<'idle' | 'busy' | 'checking' | 'paid' | 'notYet' | 'contactUs' | 'failed'>('idle');
 
@@ -115,6 +118,11 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
       </div>
       {payable && payAvailable ? (
         <div className="lp-ticket__pay" data-testid="pay-now">
+          {payState !== 'paid' && price ? (
+            <p className="lp-ticket__price" data-testid="pay-price">
+              {price}
+            </p>
+          ) : null}
           {payState !== 'paid' ? (
             <Button variant="primary" onClick={() => void onPay()} disabled={payState === 'busy'}>
               {payState === 'busy' ? PAY_COPY.busy : PAY_COPY.button}

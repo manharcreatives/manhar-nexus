@@ -1,3 +1,4 @@
+import { quotePlan } from '@nexus/shared';
 import { apiBase, REQUEST_TIMEOUT_MS, type SubmitOptions } from './submit';
 
 /** Public owner-payment endpoints (apps/api: behind CUSTOMER_PAY_ENABLED, unauthenticated, throttled per IP). */
@@ -18,6 +19,22 @@ export const PAY_COPY = {
   alreadyPaid: 'This request is already paid. We will message you about your account.',
   failed: 'We could not open the payment just now. No problem, we will message you a payment link.',
 } as const;
+
+/**
+ * The price the owner will see on the payment page, shown BEFORE they click: the same quote the server makes (same
+ * catalog, Founding judged at the registration date). `null` for plans without a fixed price.
+ */
+export function priceLine(planKey: string | undefined, cycle: string | undefined, at: Date = new Date()): string | null {
+  if (!planKey || !PAYABLE_PLANS.includes(planKey)) return null;
+  try {
+    const q = quotePlan({ planKey, cycle: cycle === 'monthly' ? 'monthly' : 'yearly', offerDate: at });
+    const rupees = q.totalPaise / 100;
+    const amount = rupees.toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(rupees) ? 0 : 2, maximumFractionDigits: 2 });
+    return `${q.planName}, ${q.cycle}${q.foundingApplied ? ' (Founding offer)' : ''}: ₹${amount} incl. ${q.gstPercent}% GST`;
+  } catch {
+    return null;
+  }
+}
 
 export interface PayLink {
   readonly linkUrl: string;

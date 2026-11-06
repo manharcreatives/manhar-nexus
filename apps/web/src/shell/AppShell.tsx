@@ -10,6 +10,7 @@ import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { ConnectionIndicator } from '../realtime/LiveBadge';
 import { GuestOrdersNavBadge } from '../qr/GuestBadges';
 import { GuestOrderProvider } from '../qr/GuestOrderProvider';
+import { NewRequestsNavBadge } from '../registrations/NewRequestsNavBadge';
 import { PageHeader } from '../ui/PageHeader';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { KeyCombo, Kbd } from '../ui/Kbd';
@@ -174,6 +175,7 @@ export function AppShell() {
                     <Icon className="size-[1.125rem]" />
                     {t(labelKey)}
                     {path === '/guest-orders' && <GuestOrdersNavBadge />}
+                    {path === '/registrations' && <NewRequestsNavBadge />}
                   </NavLink>
                 </li>
               ))}

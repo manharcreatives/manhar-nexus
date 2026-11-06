@@ -22,7 +22,7 @@ export const HOW: HowContent = {
       number: '02',
       id: 'pay',
       title: 'Pay',
-      body: 'A secure payment link via Cashfree: UPI, card or net banking. GST invoice by email.',
+      body: 'A secure payment link via Cashfree: UPI, card or net banking. An invoice or receipt by email.',
       time: 'Same day',
       icon: 'CreditCard',
     },

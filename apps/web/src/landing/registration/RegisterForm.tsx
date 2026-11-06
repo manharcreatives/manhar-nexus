@@ -240,6 +240,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
             begin={state.begin}
             email={state.email}
             planKey={intent.plan}
+            billingCycle={intent.cycle}
             payOptions={submitOptions}
             onReset={reset}
           />

@@ -131,7 +131,7 @@ export const BILLING: LegalDocument = {
       heading: '2. Prices and GST',
       blocks: [
         lp(
-          'Prices on our website are in ₹ and exclude GST (18%). GST is added at checkout and shown on your tax invoice. Provide your GSTIN at registration (or later, within [the same month]) to receive an invoice with it [CA TO CONFIRM INVOICE RULES]. We issue a tax invoice for every payment, emailed to your registered address. [If Manhar Creatives is not yet GST-registered, replace with: “Prices are inclusive of any applicable taxes” — OWNER/CA DECISION.]',
+          'Prices on our website are in ₹ and exclude GST (18%). GST is added at checkout and shown in the payment breakdown. After each payment we send you an invoice or receipt for it. We will issue GST tax invoices with your GSTIN once our GST registration is in place; you can give us your GSTIN at registration or later [CA TO CONFIRM INVOICE RULES]. [If Manhar Creatives is not yet GST-registered, replace with: “Prices are inclusive of any applicable taxes” — OWNER/CA DECISION.]',
         ),
       ],
     },
@@ -204,7 +204,7 @@ export const BILLING: LegalDocument = {
       heading: '6. Invoices, receipts and GSTIN',
       blocks: [
         lp(
-          'Tax invoices are generated for each payment and emailed. To correct a GSTIN or business name, tell us within [the same month]; we cannot always re-issue invoices after returns are filed.',
+          'We send an invoice or receipt for each payment. We will issue GST tax invoices once our GST registration is in place. To correct a GSTIN or business name, tell us within [the same month]; we cannot always re-issue invoices after returns are filed.',
         ),
       ],
     },

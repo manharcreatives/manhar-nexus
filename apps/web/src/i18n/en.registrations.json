@@ -2,6 +2,7 @@
   "registrations": {
     "title": "Registrations",
     "subtitle": "Requests from the website. Check the details, then create the restaurant account in one step.",
+    "nav": { "badge": "{{count}} new requests" },
     "filterLabel": "Request status",
     "filter": {
       "open": "Open",

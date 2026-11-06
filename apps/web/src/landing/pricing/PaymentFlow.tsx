@@ -31,8 +31,8 @@ export function PaymentFlow() {
       <p className="lp-extra__lede">{PRICING.flowTitle}. Nothing is charged on this page.</p>
       <ol className="lp-flow__steps">
         {PRICING.flow.map((step) => {
-          // INTEGRATION POINT: createCheckout(referenceCode) -> Cashfree payment link URL
-          // Until that exists, step 02 is fulfilled by a person sending a Cashfree payment link after review.
+          // Step 02 is a Cashfree payment link: staff send one after review, or the owner can pay from the
+          // registration thank-you screen when CUSTOMER_PAY_ENABLED is on (see registration/payNow.ts).
           const isPay = step.number === '02';
           return (
             <li key={step.number} className="lp-flow__step" data-integration={isPay ? 'cashfree-subscription' : undefined}>
