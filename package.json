@@ -32,8 +32,5 @@
     "eslint-plugin-jsx-a11y": "6.10.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
-  },
-  "overrides": {
-    "multer": "2.5.0"
   }
 }
