@@ -1,6 +1,7 @@
 // @ts-check
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 export default tseslint.config(
   { ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/*.cjs'] },
@@ -11,6 +12,16 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'warn',
+    },
+  },
+  {
+    // Accessibility lint for the web app (recommended rules). Findings that need design decisions are warnings.
+    files: ['apps/web/src/**/*.tsx'],
+    ...jsxA11y.flatConfigs.recommended,
+    rules: {
+      ...Object.fromEntries(Object.entries(jsxA11y.flatConfigs.recommended.rules ?? {}).map(([k, v]) => [k, Array.isArray(v) ? ['warn', ...v.slice(1)] : 'warn'])),
+      // Deprecated rule that wants BOTH nesting and htmlFor; a label with htmlFor is correct.
+      'jsx-a11y/label-has-for': 'off',
     },
   },
   {

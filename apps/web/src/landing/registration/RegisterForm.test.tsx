@@ -125,13 +125,14 @@ describe('RegisterForm: simplified fields', () => {
 });
 
 describe('RegisterForm: validation', () => {
-  it('shows an error summary, focuses it, marks fields invalid and does not call the API', () => {
+  it('shows an error summary, focuses the first invalid field, marks fields invalid and does not call the API', () => {
     const fetchImpl = vi.fn();
     setup(fetchImpl);
     submit();
     const summary = screen.getByRole('alert');
     expect(summary.textContent).toMatch(/6 things need your attention/);
-    expect(document.activeElement).toBe(summary);
+    // Focus lands on the first field to fix (the restaurant name), not on a box above the form.
+    expect(document.activeElement).toBe(field(/^Restaurant name/));
     const email = field(/^Email/);
     expect(email.getAttribute('aria-invalid')).toBe('true');
     const describedBy = email.getAttribute('aria-describedby') ?? '';

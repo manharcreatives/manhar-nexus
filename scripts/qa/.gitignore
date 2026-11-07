@@ -2,3 +2,4 @@ node_modules/
 out/
 out2/
 .env.local
+out3/

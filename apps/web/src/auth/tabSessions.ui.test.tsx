@@ -55,6 +55,14 @@ const menuButton = (name: string) => screen.findByRole('button', { name: new Reg
 const loginCall = () => server.calls.find((c) => c.path === '/auth/login')!;
 
 describe('sign-in screen and per-tab sessions (UI)', () => {
+  it('offers a WhatsApp help link for a forgotten password, prefilled with the typed email', async () => {
+    render(<App />);
+    const link = (await screen.findByRole('link', { name: 'Forgot your password? WhatsApp us' })) as HTMLAnchorElement;
+    expect(link.href).toContain('https://wa.me/');
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'asha@example.com' } });
+    expect(decodeURIComponent((screen.getByRole('link', { name: 'Forgot your password? WhatsApp us' }) as HTMLAnchorElement).href)).toContain('asha@example.com');
+  });
+
   it('offers "keep me signed in" ticked by default, and a normal sign-in is the device session as before', async () => {
     render(<App />);
     const box = (await screen.findByRole('checkbox', { name: /Keep me signed in/ })) as HTMLInputElement;

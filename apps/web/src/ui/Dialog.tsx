@@ -57,8 +57,9 @@ export function Dialog({ open, onClose, title, children, footer, className, clos
             <h2 className="rule-tick pb-3 text-[1.375rem] leading-tight font-semibold">{title}</h2>
           </div>
           <div className="px-6 pt-4 pb-6">{children}</div>
+          {/* The footer is sticky: on a phone a long form scrolls inside the dialog, and Save must stay in view. */}
           {footer && (
-            <div className="flex flex-wrap items-center justify-end gap-2 rounded-b-panel border-t border-white/[0.07] bg-white/[0.02] px-6 py-4">{footer}</div>
+            <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 rounded-b-panel border-t border-white/[0.07] bg-surface px-6 py-4">{footer}</div>
           )}
         </div>
       )}

@@ -489,3 +489,39 @@
     transition: none;
   }
 }
+
+/* Owner flow polish: icon and text on one line, Pay now as the one big action, the "pick up where you left off" banner. */
+.lp-ticket .lp-btn__label,
+.lp-fallback .lp-btn__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.lp-ticket__pay > .lp-btn--block {
+  flex-basis: 100%;
+}
+.lp-resume {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--w2-line-2);
+  border-radius: 0.875rem;
+  background: var(--w2-sunken);
+}
+.lp-resume__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--w2-ink);
+}
+.lp-resume__body {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--w2-muted);
+}
+.lp-resume__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supportWhatsAppUrl } from '../landing/registration/claim';
 import { validateConfirm, validatePassword } from '../people/helpers';
 import { PasswordFields } from '../people/PasswordFields';
+import { Wordmark } from '../brand/Wordmark';
 import { Button } from '../ui/Button';
 import { claimTokenFromHash } from './path';
 
@@ -86,10 +87,13 @@ export default function ClaimApp() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-paper px-4 py-6 text-ink">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-5 bg-paper px-4 py-6 text-ink">
+      <a href="/" aria-label={t('claim.home')} className="inline-flex min-h-11 items-center">
+        <Wordmark size="md" />
+      </a>
       <section className="nx-glass w-[min(30rem,100%)] space-y-4 rounded-panel p-6" aria-labelledby="claim-title">
         <h1 id="claim-title" className="text-2xl font-semibold">
-          {t('claim.title')}
+          {view.kind === 'done' ? t('claim.doneTitle') : t('claim.title')}
         </h1>
 
         {view.kind === 'form' ? (

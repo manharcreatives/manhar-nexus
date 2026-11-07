@@ -414,9 +414,20 @@ export function MenuSetupPage() {
 
   const taxList = taxes.data ?? [];
 
+  const noActiveTax = taxes.data !== null && taxes.data !== undefined && !taxes.data.some((x) => x.isActive);
+
   return (
     <>
       {header}
+      {noActiveTax ? (
+        <div role="alert" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-warn/40 bg-warn/10 px-4 py-3" data-testid="tax-banner">
+          <div className="min-w-0">
+            <p className="font-semibold">{t('setupTax.title')}</p>
+            <p className="text-sm text-muted">{t('setupTax.body')}</p>
+          </div>
+          <Button onClick={() => setDlg({ kind: 'tax' })}>{t('setupTax.action')}</Button>
+        </div>
+      ) : null}
       {categories.length === 0 ? (
         <EmptyState
           title={t('setup.menu.emptyTitle')}

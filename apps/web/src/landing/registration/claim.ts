@@ -31,6 +31,10 @@ export const CLAIM_COPY = {
   retry: 'Check again',
   whatsapp: 'Message us on WhatsApp',
   paymentReceived: 'Payment received. Thank you!',
+  resumeTitle: (code: string) => `Request ${code} received`,
+  resumeBody: 'If you already paid, check your payment to open your restaurant. If not, we will message you a payment link.',
+  resumeCheck: 'Check payment',
+  resumeDismiss: 'Dismiss',
 } as const;
 
 const storageKey = (referenceCode: string): string => `nx.payer.${referenceCode}`;
@@ -57,6 +61,40 @@ export function recallPayerSecret(referenceCode: string): string | null {
   try {
     const value = window.localStorage.getItem(storageKey(referenceCode));
     return value && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The most recent reference code (and when), so a visitor who pressed Back from the payment page can pick up again. */
+const LAST_REF_KEY = 'nx.lastref';
+const LAST_REF_TTL_MS = 48 * 60 * 60 * 1000;
+
+/** Remember only the reference code and the time: no name, email or phone is stored. */
+export function rememberLastReference(referenceCode: string, now: number = Date.now()): void {
+  try {
+    window.localStorage.setItem(LAST_REF_KEY, JSON.stringify({ c: referenceCode, t: now }));
+  } catch {
+    /* blocked storage: the visitor simply sees the normal form */
+  }
+}
+
+export function clearLastReference(): void {
+  try {
+    window.localStorage.removeItem(LAST_REF_KEY);
+  } catch {
+    /* nothing to clear */
+  }
+}
+
+/** The remembered reference code if it is recent (48 hours), else null. */
+export function recallLastReference(now: number = Date.now()): string | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_REF_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as { c?: unknown; t?: unknown };
+    if (typeof v.c !== 'string' || typeof v.t !== 'number' || now - v.t > LAST_REF_TTL_MS || !/^[A-Za-z0-9-]{4,32}$/.test(v.c)) return null;
+    return v.c;
   } catch {
     return null;
   }

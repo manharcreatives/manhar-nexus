@@ -137,7 +137,7 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
             </p>
           ) : null}
           {payState !== 'paid' ? (
-            <Button variant="primary" onClick={() => void onPay()} disabled={payState === 'busy'}>
+            <Button variant="primary" size="lg" block onClick={() => void onPay()} disabled={payState === 'busy'}>
               {payState === 'busy' ? PAY_COPY.busy : PAY_COPY.button}
             </Button>
           ) : null}
@@ -185,7 +185,7 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
         </div>
       ) : null}
       <div className="lp-ticket__actions">
-        <Button href={buildWhatsAppUrl({ restaurantName, contactName }, referenceCode)} external variant="primary">
+        <Button href={buildWhatsAppUrl({ restaurantName, contactName }, referenceCode)} external variant={payable && payAvailable ? 'secondary' : 'primary'}>
           <Icon icon={MessageCircle} size={18} /> Message us on WhatsApp
           <span className="lp-visually-hidden"> (opens in a new tab)</span>
         </Button>

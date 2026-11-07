@@ -1,24 +1,47 @@
-import type { ComponentType } from 'react';
-import { ModuleCenter } from '../modules/ModuleCenter';
-import { ConfigCenter } from '../config/ConfigCenter';
-import { ReportsPage } from '../reports/ReportsPage';
-import { ActivityPage } from '../activity/ActivityPage';
-import { CommercialPage } from '../commercial/CommercialPage';
-import { OnboardingPage } from '../onboarding/OnboardingPage';
-import { RegistrationsPage } from '../registrations/RegistrationsPage';
-import { TablesPage } from '../restaurant/TablesPage';
-import { KitchenPage } from '../restaurant/KitchenPage';
-import { CostsPage } from '../costs/CostsPage';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { HomePage } from '../home/HomePage';
-import { BillsPage } from '../bills/BillsPage';
-import { PeoplePage } from '../people/PeoplePage';
-import { ProfilePage } from '../profile/ProfilePage';
-import { FloorSetupPage } from '../setup/FloorSetupPage';
-import { MenuSetupPage } from '../setup/MenuSetupPage';
 import { QrCode, ScanLine } from '../qr/icons';
 import { GuestOrdersRoute, TableQrRoute } from '../qr/lazy';
+import { Skeleton } from '../ui/states';
 import * as Icons from '../ui/icons';
 import type { Access } from './access';
+
+/**
+ * Every page except Home loads on demand, so the first screen after sign-in downloads only what it shows. A page is a
+ * named export of its module; the wrapper adds the loading skeleton.
+ */
+function page(load: () => Promise<{ default: ComponentType }>): ComponentType {
+  const Lazy = lazy(load);
+  return function LazyPage() {
+    return (
+      <Suspense
+        fallback={
+          <div role="status" aria-busy="true" className="space-y-4">
+            <Skeleton className="h-12 w-64" />
+            <Skeleton className="h-64" />
+          </div>
+        }
+      >
+        <Lazy />
+      </Suspense>
+    );
+  };
+}
+const ModuleCenter = page(() => import('../modules/ModuleCenter').then((m) => ({ default: m.ModuleCenter })));
+const ConfigCenter = page(() => import('../config/ConfigCenter').then((m) => ({ default: m.ConfigCenter })));
+const ReportsPage = page(() => import('../reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+const ActivityPage = page(() => import('../activity/ActivityPage').then((m) => ({ default: m.ActivityPage })));
+const CommercialPage = page(() => import('../commercial/CommercialPage').then((m) => ({ default: m.CommercialPage })));
+const OnboardingPage = page(() => import('../onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })));
+const RegistrationsPage = page(() => import('../registrations/RegistrationsPage').then((m) => ({ default: m.RegistrationsPage })));
+const TablesPage = page(() => import('../restaurant/TablesPage').then((m) => ({ default: m.TablesPage })));
+const KitchenPage = page(() => import('../restaurant/KitchenPage').then((m) => ({ default: m.KitchenPage })));
+const CostsPage = page(() => import('../costs/CostsPage').then((m) => ({ default: m.CostsPage })));
+const BillsPage = page(() => import('../bills/BillsPage').then((m) => ({ default: m.BillsPage })));
+const PeoplePage = page(() => import('../people/PeoplePage').then((m) => ({ default: m.PeoplePage })));
+const ProfilePage = page(() => import('../profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
+const FloorSetupPage = page(() => import('../setup/FloorSetupPage').then((m) => ({ default: m.FloorSetupPage })));
+const MenuSetupPage = page(() => import('../setup/MenuSetupPage').then((m) => ({ default: m.MenuSetupPage })));
 
 export type PageGroup = 'main' | 'restaurant' | 'operations' | 'platform';
 

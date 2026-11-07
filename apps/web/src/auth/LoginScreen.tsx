@@ -7,6 +7,7 @@ import { brand } from '../lib/brand';
 import { LedgerFigure } from '../ui/LedgerFigure';
 import { Stamp } from '../ui/Stamp';
 import { Button } from '../ui/Button';
+import { supportWhatsAppUrl } from '../lib/support';
 import { Checkbox } from '../ui/Checkbox';
 import { Field } from '../ui/Field';
 import * as Icons from '../ui/icons';
@@ -184,6 +185,14 @@ export function LoginScreen({ notice }: { notice?: string | null }) {
             <Button type="submit" size="lg" loading={submitting} className="w-full">
               {submitting ? t('auth.signingIn') : t('auth.signIn')}
             </Button>
+            <a
+              href={supportWhatsAppUrl(email.trim() ? t('support.forgotText', { email: email.trim() }) : t('support.forgotTextNoEmail'))}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 items-center justify-center text-sm text-muted underline hover:text-ink"
+            >
+              {t('support.forgot')}
+            </a>
           </form>
         </div>
       </main>

@@ -197,4 +197,58 @@ describe('/pay/return', () => {
     }
     await waitFor(() => expect(window.localStorage.getItem('nx.payer.NX-7K2Q9M')).toBeNull());
   });
+
+  it("after five wrong tries it shows the other-device state (not an empty form) and a sign-in link", async () => {
+    rememberPayerSecret("NX-7K2Q9M", "secret-1");
+    open("?code=NX-7K2Q9M");
+    fetchMock.mockResolvedValue(reply(404));
+    render(<PayReturnApp />);
+    await enter("0000");
+    await screen.findByText(/did not match/);
+    for (let i = 0; i < 4; i++) {
+      fireEvent.click(screen.getByRole("button", { name: /Continue|Try these digits/ }));
+      await waitFor(() => expect(issueCalls()).toHaveLength(i + 2));
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    expect(await screen.findByText(/can no longer try again/)).toBeTruthy();
+    expect(screen.queryByLabelText("Last 4 digits of your mobile number")).toBeNull();
+    expect(document.querySelector("a[href^=\"https://wa.me/\"]")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/login");
+  });
+
+  it("has the brand header and always offers a way to sign in", () => {
+    open("?code=NX-7K2Q9M");
+    render(<PayReturnApp />);
+    expect(screen.getByRole("link", { name: "Manhar Nexus home" }).getAttribute("href")).toBe("/");
+    expect(screen.getByText("Already set your password?")).toBeTruthy();
+  });
+
+  it("hides the last-4 instruction once the link is ready", async () => {
+    rememberPayerSecret("NX-7K2Q9M", "secret-1");
+    open("?code=NX-7K2Q9M");
+    fetchMock.mockResolvedValue(reply(200, { status: "ready", token: TOKEN, expiresAt: "2099-01-01T00:00:00Z" }));
+    render(<PayReturnApp />);
+    await enter("1522");
+    await screen.findByRole("link", { name: "Set your password" });
+    expect(screen.queryByText(/Enter the last 4 digits of the mobile number/)).toBeNull();
+  });
+
+  it("says there is a connection problem after three failed calls in a row, and keeps trying", async () => {
+    vi.useFakeTimers();
+    rememberPayerSecret("NX-7K2Q9M", "secret-1");
+    open("?code=NX-7K2Q9M");
+    fetchMock.mockResolvedValue(reply(500));
+    render(<PayReturnApp />);
+    fireEvent.change(screen.getByLabelText("Last 4 digits of your mobile number"), { target: { value: "1522" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(claimDelay(i + 1) + 5);
+      });
+    }
+    expect(screen.getByText("Connection problem, retrying…")).toBeTruthy();
+    vi.useRealTimers();
+  });
 });

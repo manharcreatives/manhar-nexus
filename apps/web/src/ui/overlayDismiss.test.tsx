@@ -234,3 +234,16 @@ describe('useOutsideDismiss (popovers and menus)', () => {
     expect(screen.queryByTestId('popover')).toBeNull();
   });
 });
+
+describe('Dialog footer', () => {
+  it('is sticky, so Save stays in view when a long form scrolls inside the dialog on a phone', () => {
+    render(
+      <Dialog open onClose={() => undefined} title="Long form" footer={<button type="button">Save</button>}>
+        <p>body</p>
+      </Dialog>,
+    );
+    const footer = screen.getByRole('button', { name: 'Save' }).parentElement as HTMLElement;
+    expect(footer.className).toContain('sticky');
+    expect(footer.className).toContain('bottom-0');
+  });
+});

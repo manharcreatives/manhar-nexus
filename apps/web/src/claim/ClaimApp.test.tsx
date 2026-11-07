@@ -69,6 +69,8 @@ describe('ClaimApp: the owner chooses a password', () => {
     render(<ClaimApp />);
     await fill('GoodPassword123');
     expect(await screen.findByText('Your account for Ananda Cafe is ready.')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Password set' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Manhar Nexus home' }).getAttribute('href')).toBe('/');
     expect(screen.getByText(/asha@example.com/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Go to sign in' }).getAttribute('href')).toBe('/login');
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];

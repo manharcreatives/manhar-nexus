@@ -283,7 +283,7 @@ export function SessionPanel({
         className="w-[min(40rem,calc(100vw-1rem))]!"
         footer={
           caps.canManageSessions || caps.canCheckout || caps.canManageOrders ? (
-          <>
+          <div className="grid w-full grid-cols-2 gap-2 max-sm:[&>*]:w-full sm:flex sm:flex-wrap sm:justify-end" data-testid="session-actions">
             {caps.canManageSessions && (
               <Button variant="secondary" size="lg" disabled={hasActiveOrders || closer.busy} onClick={() => setShowClose(true)}>
                 {t('restaurant.session.closeSession')}
@@ -304,11 +304,11 @@ export function SessionPanel({
               }}
             />
             {caps.canManageOrders && (
-              <Button size="lg" data-autofocus onClick={() => setShowOrder(true)}>
+              <Button size="lg" data-autofocus className="max-sm:order-first max-sm:col-span-2" onClick={() => setShowOrder(true)}>
                 {t('restaurant.session.newOrder')}
               </Button>
             )}
-          </>
+          </div>
           ) : undefined
         }
       >

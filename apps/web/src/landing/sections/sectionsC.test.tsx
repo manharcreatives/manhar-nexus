@@ -808,7 +808,7 @@ describe('source hygiene for the sections-C files', () => {
     expect(claim?.text).not.toMatch(/sessionStorage|indexedDB|document\.cookie/);
     const calls = claim?.text.match(/localStorage\.(get|set)Item\([^)]*\)/g) ?? [];
     expect(calls.length).toBeGreaterThan(0);
-    expect(calls.every((c) => c.includes('storageKey(referenceCode)'))).toBe(true);
+    expect(calls.every((c) => c.includes('storageKey(referenceCode)') || c.includes('LAST_REF_KEY'))).toBe(true);
   });
 
   it('keeps every file under the 700-line budget', () => {

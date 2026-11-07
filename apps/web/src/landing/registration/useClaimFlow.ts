@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CLAIM_MAX_POLLS, claimDelay, clearPayerSecret, issueClaim, recallPayerSecret } from './claim';
+import { CLAIM_MAX_POLLS, claimDelay, clearLastReference, clearPayerSecret, issueClaim, recallPayerSecret } from './claim';
 
 /** After this many "not for you" answers the secret is dropped: a fifth wrong try will not turn right. */
 const MAX_UNKNOWN = 5;
@@ -7,7 +7,7 @@ import type { SubmitOptions } from './submit';
 
 export type ClaimFlow =
   | { readonly state: 'idle' }
-  | { readonly state: 'pending'; readonly paid: boolean }
+  | { readonly state: 'pending'; readonly paid: boolean; /** Three calls in a row failed (network or server): say so while we keep trying. */ readonly trouble?: boolean }
   | { readonly state: 'ready'; readonly token: string }
   /** A person is finishing the account by hand. */
   | { readonly state: 'manual' }
@@ -27,6 +27,7 @@ export function useClaimFlow(who: { referenceCode: string; phoneLast4: string },
   const [flow, setFlow] = useState<ClaimFlow>({ state: 'idle' });
   const run = useRef(0);
   const unknowns = useRef(0);
+  const failures = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef({ who, options });
   latest.current = { who, options };
@@ -51,9 +52,11 @@ export function useClaimFlow(who: { referenceCode: string; phoneLast4: string },
       const { who: now, options: opts } = latest.current;
       const result = await issueClaim(now, secret, opts);
       if (run.current !== mine) return;
+      failures.current = result.kind === 'failed' ? failures.current + 1 : 0;
       if (result.kind === 'ready') {
         // The token is in hand: the secret has done its job and is removed from this browser.
         clearPayerSecret(w.referenceCode);
+        clearLastReference();
         return setFlow({ state: 'ready', token: result.token });
       }
       if (result.kind === 'manual') return setFlow({ state: 'manual' });
@@ -65,9 +68,10 @@ export function useClaimFlow(who: { referenceCode: string; phoneLast4: string },
       }
       if (result.kind === 'rateLimited') return setFlow({ state: 'rateLimited' });
       if (attempts >= CLAIM_MAX_POLLS) return setFlow({ state: 'timedOut' });
-      setFlow({ state: 'pending', paid: result.kind === 'pending' && result.paid });
+      setFlow({ state: 'pending', paid: result.kind === 'pending' && result.paid, trouble: failures.current >= 3 });
       timer.current = setTimeout(() => void tick(), claimDelay(attempts));
     };
+    failures.current = 0;
     setFlow({ state: 'pending', paid: false });
     void tick();
   }, [stop]);

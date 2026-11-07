@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { recallPayerSecret, setPasswordHref, supportWhatsAppUrl } from '../landing/registration/claim';
 import { useClaimFlow } from '../landing/registration/useClaimFlow';
+import { Wordmark } from '../brand/Wordmark';
 import { Button } from '../ui/Button';
 import { referenceCodeFromSearch } from './path';
 
@@ -17,10 +18,13 @@ const LINK_SECONDARY = 'inline-flex min-h-11 items-center justify-center rounded
 export default function PayReturnApp() {
   const { t } = useTranslation();
   const code = useMemo(() => (typeof window === 'undefined' ? null : referenceCodeFromSearch(window.location.search)), []);
-  const hasSecret = useMemo(() => (code ? recallPayerSecret(code) !== null : false), [code]);
   const [digits, setDigits] = useState('');
   const [asked, setAsked] = useState(false);
   const { flow, start } = useClaimFlow({ referenceCode: code ?? '', phoneLast4: digits });
+  // Read on every render: five wrong tries wipe the secret, and then this browser must show the other-device state.
+  const secretKept = code ? recallPayerSecret(code) !== null : false;
+  // Without the secret the other-device message shows, unless the flow already moved on (ready clears the secret on purpose).
+  const hasSecret = secretKept || !(flow.state === 'idle' || flow.state === 'unknown' || flow.state === 'noSecret');
 
   useEffect(() => {
     document.title = t('payReturn.pageTitle');
@@ -47,7 +51,10 @@ export default function PayReturnApp() {
   const showForm = hasSecret && flow.state !== 'ready';
 
   return (
-    <main className="grid min-h-screen place-items-center bg-paper px-4 py-6 text-ink">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-5 bg-paper px-4 py-6 text-ink">
+      <a href="/" aria-label={t('claim.home')} className="inline-flex min-h-11 items-center">
+        <Wordmark size="md" />
+      </a>
       <section className="nx-glass w-[min(30rem,100%)] space-y-4 rounded-panel p-6" aria-labelledby="return-title">
         <h1 id="return-title" className="text-2xl font-semibold">
           {t('payReturn.title')}
@@ -62,14 +69,14 @@ export default function PayReturnApp() {
           </div>
         ) : !hasSecret ? (
           <div className="space-y-4" role="status">
-            <p>{t('payReturn.otherDevice', { code })}</p>
+            <p>{flow.state === 'unknown' ? t('payReturn.wiped', { code }) : t('payReturn.otherDevice', { code })}</p>
             <a className={LINK_SECONDARY} href={whatsapp} target="_blank" rel="noopener noreferrer">
               {t('payReturn.whatsapp')}
             </a>
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted">{t('payReturn.intro', { code })}</p>
+            {flow.state !== 'ready' ? <p className="text-sm text-muted">{t('payReturn.intro', { code })}</p> : null}
 
             {showForm ? (
               <form onSubmit={submit} noValidate className="space-y-3">
@@ -111,6 +118,7 @@ export default function PayReturnApp() {
               {waiting ? (
                 <>
                   <p>{t('payReturn.pending')}</p>
+                  {flow.trouble ? <p className="text-sm text-bad">{t('payReturn.trouble')}</p> : null}
                   <p className="text-sm text-muted">{t('payReturn.keepOpen')}</p>
                 </>
               ) : null}
@@ -139,6 +147,12 @@ export default function PayReturnApp() {
             ) : null}
           </div>
         )}
+        <p className="text-sm text-muted">
+          {t('payReturn.signInHint')}{' '}
+          <a href="/login" className="inline-flex min-h-11 items-center underline">
+            {t('payReturn.signInLink')}
+          </a>
+        </p>
       </section>
     </main>
   );

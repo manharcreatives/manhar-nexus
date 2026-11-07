@@ -48,7 +48,7 @@ export const STRINGS: Record<TourLang, TourStrings> = {
     },
     welcome: {
       title: (name) => (name ? `Hi ${name}, I’m Manhar Bot!` : 'Hi, I’m Manhar Bot!'),
-      body: 'I’ll show you around in about a minute. Look at the menu on the left. I’ll light up each part as we go.',
+      body: 'I’ll show you around in about a minute. I’ll light up each part of the menu as we go.',
     },
     finish: {
       title: 'You’re all set!',

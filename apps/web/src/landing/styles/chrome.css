@@ -550,3 +550,19 @@
     word-break: break-all;
   }
 }
+
+/* Touch targets: links a thumb must hit are at least 44px high on phones and tablets. */
+@media (pointer: coarse), (max-width: 767px) {
+  .lp-footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+  .lp-header__signin,
+  .lp-header a[href="/"],
+  .lp-header__bar > a:first-child {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}

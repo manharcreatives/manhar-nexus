@@ -8,9 +8,12 @@ const key = (userId: string): string => `nexus.tour.v1:${userId}`;
 
 export type TourOutcome = 'done' | 'skipped';
 
+/** Device-wide memory too: a staff member who answered once should not be asked again on every account or login. */
+const DEVICE_KEY = 'nexus.tour.device.v1';
+
 export function readOutcome(userId: string): TourOutcome | null {
   try {
-    const v = window.localStorage.getItem(key(userId));
+    const v = window.localStorage.getItem(key(userId)) ?? window.localStorage.getItem(DEVICE_KEY);
     return v === 'done' || v === 'skipped' ? v : null;
   } catch {
     return null;
@@ -20,6 +23,7 @@ export function readOutcome(userId: string): TourOutcome | null {
 export function writeOutcome(userId: string, outcome: TourOutcome): void {
   try {
     window.localStorage.setItem(key(userId), outcome);
+    window.localStorage.setItem(DEVICE_KEY, outcome);
   } catch {
     /* storage unavailable: the tour will be offered again, which is acceptable */
   }

@@ -15,6 +15,20 @@ export default defineConfig({
       '@nexus/shared': sharedSource,
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Stable vendor chunks: the app code changes every release, the libraries do not, so returning visitors
+        // keep them cached and each page chunk stays small.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|@remix-run)[\\/]/.test(id)) return 'vendor-react';
+          if (/[\\/]node_modules[\\/](i18next|react-i18next)[\\/]/.test(id)) return 'vendor-i18n';
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

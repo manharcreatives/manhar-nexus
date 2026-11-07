@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         ref={layer}
         aria-hidden
         {...{ popover: 'manual' }}
-        className="pointer-events-none fixed inset-x-0 top-auto bottom-4 z-50 m-0 flex h-auto w-full max-w-none flex-col items-center gap-2 overflow-visible border-0 bg-transparent p-0 px-4"
+        className="pointer-events-none fixed inset-x-0 top-4 bottom-auto z-50 sm:top-auto sm:bottom-4 m-0 flex h-auto w-full max-w-none flex-col items-center gap-2 overflow-visible border-0 bg-transparent p-0 px-4"
       >
         {items.map((i) => (
           <div

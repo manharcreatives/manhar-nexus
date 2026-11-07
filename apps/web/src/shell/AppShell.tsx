@@ -24,6 +24,7 @@ import { PAGES, PAGE_GROUPS } from './pages';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { ShortcutHelp } from './ShortcutHelp';
 import { TourGuide } from '../tour/TourGuide';
+import { supportWhatsAppUrl } from '../lib/support';
 import { modKeyLabel, type ShortcutBinding } from './shortcuts';
 import { UserMenu } from './UserMenu';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
@@ -259,6 +260,15 @@ export function AppShell() {
             <Icons.Rocket className="size-4" aria-hidden />
             {t('shell.tour.replay')}
           </button>
+          <a
+            href={supportWhatsAppUrl(t('support.helpTextWithEmail', { email: user?.email ?? '' }))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-11 items-center gap-2 rounded-control px-3 text-left text-sm text-muted hover:bg-white/[0.05] hover:text-ink"
+          >
+            <Icons.MessageCircle className="size-4" aria-hidden />
+            {t('support.help')}
+          </a>
           <p className="hidden items-center gap-1.5 border-t border-line px-3 pt-4 text-xs text-muted lg:flex">
             <Kbd>?</Kbd>
             {t('shell.help.title')}

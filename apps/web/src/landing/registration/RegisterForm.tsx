@@ -27,7 +27,8 @@ import { emitBuddy, setBuddyProgress } from './buddy/store';
 import { Field } from './Field';
 import { FallbackActions } from './FallbackActions';
 import { submitRegistration, type SubmitFailureKind, type SubmitOptions } from './submit';
-import { rememberPayerSecret } from './claim';
+import { rememberLastReference, rememberPayerSecret } from './claim';
+import { ResumeBanner } from './ResumeBanner';
 import { RegistrationTicket } from './Ticket';
 import { fieldId, formatMobileDisplay, orderedErrors, sanitizeOutlets, sanitizePhoneInput, validateField } from './validation';
 
@@ -120,7 +121,12 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
   }, [intent.begin]);
 
   useEffect(() => {
-    if (summaryTick > 0) summaryRef.current?.focus();
+    if (summaryTick === 0) return;
+    // Land on the first field that needs fixing (the summary above still lists them all); fall back to the summary.
+    const first = orderedErrors(errors)[0];
+    const field = first ? document.getElementById(fieldId(first.name)) : null;
+    (field ?? summaryRef.current)?.focus();
+    // Only a new submit attempt moves focus, so `errors` is deliberately not a dependency.
   }, [summaryTick]);
 
   const values: RegistrationFormValues = useMemo(
@@ -196,6 +202,7 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
     if (result.ok) {
       // The payer secret is handed out once, here, to the browser that submitted the form (never by Pay now).
       if (result.payerSecret) rememberPayerSecret(result.referenceCode, result.payerSecret);
+      rememberLastReference(result.referenceCode);
       setReference(result.referenceCode);
       setPhase('success');
       emitBuddy({ type: 'success', referenceCode: result.referenceCode });
@@ -250,6 +257,8 @@ export function RegisterForm({ submitOptions }: RegisterFormProps) {
           />
         ) : null}
       </div>
+
+      {phase === 'editing' ? <ResumeBanner /> : null}
 
       {phase !== 'success' ? (
         <form

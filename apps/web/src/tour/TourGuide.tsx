@@ -95,7 +95,7 @@ export function TourGuide({ userId, displayName, visiblePaths, onNavOpen, replay
   // First visit: ask after the dashboard has had a moment to paint.
   useEffect(() => {
     if (!enabled || readOutcome(userId) !== null) return;
-    const id = window.setTimeout(() => setPhase((p) => (p === 'closed' ? 'lang' : p)), 700);
+    const id = window.setTimeout(() => setPhase((p) => (p === 'closed' ? (readLang() ? 'ask' : 'lang') : p)), 700);
     return () => window.clearTimeout(id);
   }, [enabled, userId]);
 

@@ -1,0 +1,35 @@
+{
+  "payReturn": {
+    "trouble": "Connection problem, retrying…",
+    "signInHint": "Already set your password?",
+    "signInLink": "Sign in",
+    "noSecretTitle": "Open this on the phone where you paid",
+    "wiped": "We could not match those details, and this browser can no longer try again. Open this page on the device where you paid, or message us on WhatsApp with your reference {{code}}."
+  },
+  "claim": {
+    "doneTitle": "Password set",
+    "home": "Manhar Nexus home"
+  },
+  "support": {
+    "help": "Help on WhatsApp",
+    "helpHint": "Message us on WhatsApp",
+    "forgot": "Forgot your password? WhatsApp us",
+    "forgotText": "Hello, I forgot my Manhar Nexus password. My email is {{email}}.",
+    "forgotTextNoEmail": "Hello, I forgot my Manhar Nexus password and need help signing in.",
+    "helpText": "Hello, I need help with Manhar Nexus.",
+    "helpTextWithEmail": "Hello, I need help with Manhar Nexus. My sign-in email is {{email}}."
+  },
+  "setupTax": {
+    "title": "Add your tax (GST) so bills are correct",
+    "body": "Until you add a tax rate, every dish is billed without tax.",
+    "action": "Add tax"
+  },
+  "landingResume": {
+    "title": "Request {{code}} received",
+    "body": "Your payment is not confirmed yet. Continue your payment, or check if it already went through.",
+    "check": "Check payment",
+    "dismiss": "Dismiss",
+    "paid": "Payment received. Set your password to open your restaurant.",
+    "setPassword": "Set your password"
+  }
+}

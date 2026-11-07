@@ -93,6 +93,14 @@ describe('AppShell header', () => {
     expect(window.localStorage.getItem('nexus.workLocation.v1:u-1')).toBe('l-2');
   });
 
+  it('has a Help on WhatsApp link in the sidebar and the account menu, from the one shared support config', async () => {
+    await renderShell();
+    const side = (await screen.findAllByRole('link', { name: 'Help on WhatsApp' }))[0] as HTMLAnchorElement;
+    expect(side.href).toContain('https://wa.me/');
+    expect(side.target).toBe('_blank');
+    expect(side.rel).toContain('noopener');
+  });
+
   it('shows no switcher (and no chevron) when the business has a single location', async () => {
     locations = [allLocations[0]];
     render(<App />);

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { APP_VERSION } from '@nexus/shared';
 import type { AuthUser } from '../auth/AuthContext';
 import { cn } from '../lib/cn';
+import { supportWhatsAppUrl } from '../lib/support';
 import * as Icons from '../ui/icons';
 import { Kbd } from '../ui/Kbd';
 import { EnvBadge } from './EnvBadge';
@@ -72,6 +73,14 @@ export function UserMenu({ user, onOpenPalette, onOpenShortcuts, onChangePasswor
         </span>
       ),
       run: onOpenShortcuts,
+    },
+    {
+      id: 'support',
+      label: t('support.help'),
+      icon: <Icons.MessageCircle className="size-4" aria-hidden />,
+      run: () => {
+        window.open(supportWhatsAppUrl(t('support.helpTextWithEmail', { email: user.email })), '_blank', 'noopener,noreferrer');
+      },
     },
     {
       id: 'password',
