@@ -8,6 +8,7 @@ import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutoProvisionService } from '../provisioning/auto-provision.service';
 import { BillingRecordService } from '../provisioning/billing-record.service';
+import { publicBaseUrl } from '../provisioning/runtime-config';
 import { afterResponse } from './after-response';
 import { CashfreeClient } from './cashfree.client';
 import { PaymentsNotConfiguredError } from './cashfree.errors';
@@ -128,7 +129,7 @@ export class SubscriptionService {
     const firstChargeAt = paid?.paidAt ? addMonth(paid.paidAt) : new Date(now.getTime() + DAY_MS);
     const subscriptionId = `${reg.referenceCode}-ap-${randomBytes(4).toString('hex')}`;
     const authToken = randomBytes(24).toString('base64url');
-    const publicBase = process.env.QR_PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
+    const publicBase = publicBaseUrl();
     const sub = await this.cashfree.createSubscription({
       subscriptionId,
       planName: `Nexus ${quote.planName} monthly`,

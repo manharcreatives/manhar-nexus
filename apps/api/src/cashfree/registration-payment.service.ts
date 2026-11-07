@@ -7,6 +7,7 @@ import type { ActorContext } from '../common/tenant-scope';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutoProvisionService } from '../provisioning/auto-provision.service';
+import { publicBaseUrl } from '../provisioning/runtime-config';
 import { afterResponse } from './after-response';
 import { CashfreeClient } from './cashfree.client';
 import type { BreakdownLine, CreatePaymentLinkDto, PaymentLinkView } from './cashfree.dto';
@@ -185,7 +186,7 @@ export class RegistrationPaymentService {
 
   /** Where Cashfree sends the owner after paying; nothing when the public base URL is not configured. */
   private returnUrlFor(referenceCode: string): { returnUrl?: string } {
-    const base = process.env.QR_PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
+    const base = publicBaseUrl();
     return base ? { returnUrl: `${base}/pay/return?code=${encodeURIComponent(referenceCode)}` } : {};
   }
 

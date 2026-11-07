@@ -129,6 +129,10 @@ export const updateRegistrationSchema = z
     internalNotes: z.string().trim().max(4000).nullable().optional(),
     /** Set together with status CONVERTED once the workspace exists. */
     businessId: z.string().uuid().nullable().optional(),
+    /** Fix a typo in the contact details. Allowed only until the restaurant account exists. */
+    contactName: text(2, 120).optional(),
+    email: z.string().trim().toLowerCase().email().max(254).optional(),
+    phone: phone.optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: 'at least one field is required' });

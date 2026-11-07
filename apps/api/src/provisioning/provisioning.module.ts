@@ -6,6 +6,7 @@ import { OnboardingModule } from '../onboarding/onboarding.module';
 import { AutoProvisionService } from './auto-provision.service';
 import { AttentionController } from './attention.controller';
 import { BillingRecordService } from './billing-record.service';
+import { BusinessUserResetController } from './business-user-reset.controller';
 import { ClaimPublicController, ClaimStaffController } from './claim.controller';
 import { ClaimService } from './claim.service';
 import { CronController } from './cron.controller';
@@ -18,7 +19,7 @@ import { RegistrationProvisioningService } from './registration-provisioning.ser
  */
 @Module({
   imports: [CoreModule, ModulesModule, OnboardingModule],
-  controllers: [RegistrationProvisioningController, ClaimPublicController, ClaimStaffController, CronController, AttentionController],
+  controllers: [RegistrationProvisioningController, ClaimPublicController, ClaimStaffController, BusinessUserResetController, CronController, AttentionController],
   providers: [RegistrationProvisioningService, AutoProvisionService, BillingRecordService, ClaimService, PasswordService],
   exports: [AutoProvisionService, BillingRecordService, ClaimService],
 })

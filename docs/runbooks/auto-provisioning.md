@@ -99,3 +99,23 @@ idempotent, so overlapping with the Vercel cron is harmless.
 CUSTOMER payment links are created with `link_meta.return_url = ${QR_PUBLIC_BASE_URL}/pay/return?code=<referenceCode>`
 (sandbox accepts and echoes it; what Cashfree appends to the redirect after a real payment is not verified). Without
 `QR_PUBLIC_BASE_URL` no return URL is sent.
+
+## Operator tools (support day to day)
+
+All of these are for platform staff (`platform-admin`); a business user gets 403.
+
+| Need | Call | Notes |
+| --- | --- | --- |
+| See a client's people, last sign-in, roles, lock state | `GET /internal/businesses/:id/users` | Never returns hashes or tokens. |
+| Owner forgot the password | `POST /internal/businesses/:id/users/:userId/reset-link` | Returns `{token, expiresAt}` once. Revokes the user's sessions and older unused links; the user must choose a new password. Works after the owner has signed in (the registration `claim-link` does not). Send `/set-password#t=<token>` on WhatsApp. |
+| Typo in a lead's name, email or phone | `PATCH /internal/registrations/:id` with `contactName`, `email`, `phone` | Only while no restaurant account exists (409 after: change the email under Clients > People). A waiting account job follows the correction. The phone's last four digits are the claim proof, so fix a wrong phone before the owner tries to claim. |
+| Client paid by UPI / bank transfer / cash | `POST /internal/registrations/:id/manual-payment` | Body: `planKey`, `cycle`, optional `launchPack`, `method` (UPI/BANK/CASH/OTHER), `reference`, optional `paidOn`. Amount is the server quote; a different `amountRupees` needs `overrideReason`. Creates a PAID payment (source MANUAL) and the account follows automatically. The same reference twice, or a second payment, answers 409. |
+| Payment flagged "amount does not match" | `POST /internal/registrations/:id/payments/:paymentId/accept` with `reason` | Check the payment in the Cashfree dashboard first (refund the difference, or agree it). Marks it PAID with the amount actually paid, keeps the reason and who accepted, and the account follows automatically. |
+
+Modules enabled by an automatic account follow the plan: Counter = core (restaurant, catalog, checkout) + reports;
+Floor and Pass add costs. The Alerts Center is part of the core app (there is no separate module key). Accounts that
+staff create by hand keep the wizard default (reports + costs).
+
+Manual payments and accepted mismatches happen before a business exists, so they are recorded in the structured log and
+on the payment row (`quote.manual`, `quote.accepted`), and the business activity history shows the account creation.
+`QR_PUBLIC_BASE_URL` and `CRON_SECRET` are read through `src/provisioning/runtime-config.ts`.

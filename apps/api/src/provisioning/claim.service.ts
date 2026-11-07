@@ -11,6 +11,8 @@ import { AutoProvisionService, isAutoEligiblePayment } from './auto-provision.se
 import { TRANSIENT_FAILURE_MESSAGE, type ProvisionInput } from './provisioning.dto';
 
 export const CLAIM_TTL_MS = 72 * 3_600_000;
+/** issuedBy prefix of a link that platform staff minted as a password reset (valid even after the user signed in). */
+export const RESET_ISSUER_PREFIX = 'reset:staff:';
 /** Wrong guesses allowed per (reference code, caller IP) per window before that caller gets 404 for a while. */
 const MAX_FAILURES = 5;
 const FAILURE_WINDOW_MS = 3_600_000;
@@ -91,6 +93,34 @@ export class ClaimService {
     return { token, expiresAt };
   }
 
+  /**
+   * Staff: a set-password link for ANY user of a business, including an owner who has already signed in (a forgotten
+   * password). The user's sessions are revoked and the user must choose a new password, so the old password stops working
+   * as soon as the link is issued. Older unused links stop working. The raw token is returned once; it is never stored.
+   */
+  async issueResetForStaff(actor: ActorContext, businessId: string, userId: string, now = new Date()): Promise<{ token: string; expiresAt: Date }> {
+    const user = await this.prisma.user.findFirst({ where: { id: userId, businessId, realm: 'BUSINESS' } });
+    if (!user) throw new NotFoundError('User not found');
+    if (user.status !== 'ACTIVE') throw new ConflictError('This user is not active. Reactivate the user first.');
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = sha256hex(token);
+    const expiresAt = new Date(now.getTime() + CLAIM_TTL_MS);
+    const issuedBy = `${RESET_ISSUER_PREFIX}${actor.id ?? actor.label}`;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.credentialToken.updateMany({ where: { userId, usedAt: null, revokedAt: null }, data: { revokedAt: now } });
+      await tx.credentialToken.create({ data: { userId, businessId, registrationId: null, tokenHash, expiresAt, issuedBy } });
+      await tx.user.update({ where: { id: userId }, data: { mustChangePassword: true, tokenVersion: { increment: 1 } } });
+      await tx.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now, revokedReason: 'password_reset_by_staff' } });
+      await this.audit.append(tx, { businessId, actor }, {
+        action: 'user.password_reset_link_issued',
+        resourceType: 'app_user',
+        resourceId: userId,
+        metadata: { issuedBy, tokenRef: tokenHash.slice(0, 8) },
+      });
+    });
+    return { token, expiresAt };
+  }
+
   /** The payer's browser asks for the owner's link. Needs code + phone last 4 + the secret from the registration response. */
   async issueForPayer(dto: ClaimIssueDto, ip = 'unknown', now = new Date()): Promise<ClaimIssueAnswer> {
     const key = `${dto.referenceCode}|${ip}`;
@@ -150,7 +180,9 @@ export class ClaimService {
     if (!rec || rec.usedAt || rec.revokedAt || rec.expiresAt.getTime() <= now.getTime()) throw new NotFoundError(CLAIM_LINK_INVALID);
     const user = await this.prisma.user.findUnique({ where: { id: rec.userId } });
     // Once the owner has signed in, an old link would be a password reset for a live account: staff handle that.
-    if (!user || user.status !== 'ACTIVE' || !user.businessId || user.lastLoginAt) throw new NotFoundError(CLAIM_LINK_INVALID);
+    // A link that staff issued as a password reset is honoured after sign-in; a payer/claim link is not.
+    const staffReset = rec.issuedBy.startsWith(RESET_ISSUER_PREFIX);
+    if (!user || user.status !== 'ACTIVE' || !user.businessId || (user.lastLoginAt && !staffReset)) throw new NotFoundError(CLAIM_LINK_INVALID);
     const businessId = user.businessId;
     const passwordHash = await this.passwords.hash(dto.password);
 

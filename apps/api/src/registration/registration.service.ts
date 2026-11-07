@@ -211,6 +211,18 @@ export class RegistrationService {
       if (!business) throw new NotFoundError('Business not found');
     }
 
+    // Contact details can be corrected only while there is no restaurant account: afterwards the owner's login email
+    // lives on the user (changed under Clients > People), and the claim proof depends on the stored phone.
+    const contactEdit = dto.contactName !== undefined || dto.email !== undefined || dto.phone !== undefined;
+    let jobToRetarget: { id: string; input: unknown } | null = null;
+    if (contactEdit) {
+      const job = await this.prisma.registrationProvisioning.findUnique({ where: { registrationId: id } });
+      if (existing.businessId || existing.status === 'CONVERTED' || job?.businessId) {
+        throw new ConflictError('The restaurant account already exists. Change the owner email under Clients > People instead.');
+      }
+      if (job && !job.completedSteps.includes('owner')) jobToRetarget = { id: job.id, input: job.input };
+    }
+
     // Compare-and-set on the status we validated against: two staff members racing
     // cannot both apply conflicting transitions.
     const res = await this.prisma.registrationRequest.updateMany({
@@ -220,11 +232,35 @@ export class RegistrationService {
         ...(dto.assignedTo !== undefined ? { assignedTo: dto.assignedTo } : {}),
         ...(dto.internalNotes !== undefined ? { internalNotes: dto.internalNotes } : {}),
         ...(dto.businessId !== undefined ? { businessId: dto.businessId } : {}),
+        ...(dto.contactName !== undefined ? { contactName: dto.contactName } : {}),
+        ...(dto.email !== undefined ? { email: dto.email } : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
         updatedAt: new Date(),
       },
     });
     if (res.count === 0) {
       throw new ConflictError('This request was changed by someone else. Reload and try again.');
+    }
+    if (jobToRetarget) {
+      // A queued or failed account job copied the old details; until the owner login exists it must follow the correction.
+      const input = jobToRetarget.input as Record<string, unknown>;
+      await this.prisma.registrationProvisioning.update({
+        where: { id: jobToRetarget.id },
+        data: {
+          input: {
+            ...input,
+            ...(dto.email !== undefined ? { ownerEmail: dto.email } : {}),
+            ...(dto.contactName !== undefined ? { ownerName: dto.contactName } : {}),
+          } as Prisma.InputJsonValue,
+        },
+      });
+    }
+    if (contactEdit) {
+      // No business exists yet, so the per-business activity history cannot hold this; the structured log is the record.
+      logger.child({ reference: existing.referenceCode, registrationId: id }).info(
+        { fields: ['contactName', 'email', 'phone'].filter((k) => (dto as Record<string, unknown>)[k] !== undefined) },
+        'registration contact details corrected by staff',
+      );
     }
     logger.child({ reference: existing.referenceCode, registrationId: id }).info(
       `registration updated${dto.status ? `: ${existing.status} -> ${dto.status}` : ''}`,

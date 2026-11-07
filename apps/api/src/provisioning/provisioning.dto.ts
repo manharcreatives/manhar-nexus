@@ -5,6 +5,15 @@ import { z } from 'zod';
 export const CORE_MODULES = ['restaurant', 'catalog', 'checkout'] as const;
 export const OPTIONAL_MODULES = ['reports', 'costs'] as const;
 
+/**
+ * The optional modules a paid plan includes on top of the core three (see the pricing page): Counter has the daily
+ * reports; Floor and Pass add Operating Costs. (The Alerts Center is part of the core app, not a separate module.)
+ */
+export function modulesForPlan(planKey: string | null | undefined): (typeof OPTIONAL_MODULES)[number][] {
+  if (planKey === 'floor' || planKey === 'pass') return ['reports', 'costs'];
+  return ['reports'];
+}
+
 export const provisionSchema = z
   .object({
     /** Defaults to the request's restaurant name. */

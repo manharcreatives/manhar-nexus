@@ -7,6 +7,7 @@
  *   CASHFREE_API_VERSION  x-api-version header (default 2025-01-01)
  *   CASHFREE_WEBHOOK_URL  public https URL Cashfree should call; default `${QR_PUBLIC_BASE_URL}/api/public/cashfree/webhook`
  */
+import { publicBaseUrl } from '../provisioning/runtime-config';
 export interface CashfreeConfig {
   clientId: string;
   clientSecret: string;
@@ -28,7 +29,7 @@ export function readCashfreeConfig(env: NodeJS.ProcessEnv = process.env): Cashfr
   if (!clientId || !clientSecret) return null;
   const environment = env.CASHFREE_ENV?.trim().toLowerCase() === 'production' ? 'production' : 'sandbox';
   const explicit = env.CASHFREE_WEBHOOK_URL?.trim();
-  const publicBase = env.QR_PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
+  const publicBase = publicBaseUrl(env);
   return {
     clientId,
     clientSecret,

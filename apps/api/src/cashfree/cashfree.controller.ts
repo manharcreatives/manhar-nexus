@@ -10,6 +10,8 @@ import { CashfreeClient } from './cashfree.client';
 import { createPaymentLinkSchema, type CreatePaymentLinkDto } from './cashfree.dto';
 import { parseLinkEvent, webhookEventType } from './cashfree.events';
 import { verifyWebhookSignature } from './cashfree.signature';
+import { acceptMismatchSchema, manualPaymentSchema, type AcceptMismatchDto, type ManualPaymentDto } from './manual-payment.dto';
+import { ManualPaymentService } from './manual-payment.service';
 import { RegistrationPaymentService } from './registration-payment.service';
 import { parseSubscriptionEvent, subscriptionEventType } from './subscription.events';
 import { SubscriptionService } from './subscription.service';
@@ -41,6 +43,36 @@ export class RegistrationPaymentController {
     @Body(zodBody(createPaymentLinkSchema)) dto: CreatePaymentLinkDto,
   ) {
     return this.payments.createLink(actor, id, dto);
+  }
+}
+
+/** Manhar staff: money that did not come through a Cashfree link (a transfer, cash) and mismatch resolution. */
+@Controller('internal/registrations/:id')
+export class RegistrationManualPaymentController {
+  constructor(private readonly manual: ManualPaymentService) {}
+
+  /** Record a UPI / bank / cash payment. Creates a PAID payment and starts the automatic account creation. */
+  @Post('manual-payment')
+  @RequirePermission('platform.registration.manage')
+  record(
+    @CurrentActor() actor: ActorContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(zodBody(manualPaymentSchema)) dto: ManualPaymentDto,
+  ) {
+    return this.manual.record(actor, id, dto);
+  }
+
+  /** Accept a payment flagged "amount does not match" as paid, with a reason. */
+  @Post('payments/:paymentId/accept')
+  @HttpCode(200)
+  @RequirePermission('platform.registration.manage')
+  accept(
+    @CurrentActor() actor: ActorContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('paymentId', ParseUUIDPipe) paymentId: string,
+    @Body(zodBody(acceptMismatchSchema)) dto: AcceptMismatchDto,
+  ) {
+    return this.manual.acceptMismatch(actor, id, paymentId, dto);
   }
 }
 

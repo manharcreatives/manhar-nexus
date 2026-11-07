@@ -4,7 +4,7 @@ import type { RegistrationPayment } from '@prisma/client';
 import type { ActorContext } from '../common/tenant-scope';
 import { logger } from '../logging/logger';
 import { PrismaService } from '../prisma/prisma.service';
-import { TRANSIENT_FAILURE_MESSAGE } from './provisioning.dto';
+import { TRANSIENT_FAILURE_MESSAGE, modulesForPlan } from './provisioning.dto';
 import { RegistrationProvisioningService } from './registration-provisioning.service';
 
 export const AUTO_ACTOR: ActorContext = { type: 'SYSTEM', label: 'auto-provision' };
@@ -18,8 +18,17 @@ export type AutoProvisionOutcome = 'created' | 'resumed' | 'failed' | 'skipped';
  * A payment is exactly what it claims only when Cashfree reported the full quoted amount for a fixed-price plan.
  * Typed (override) amounts, mismatches, Many Doors and "not sure" stay with a person.
  */
-export function isAutoEligiblePayment(p: Pick<RegistrationPayment, 'status' | 'paidAmountPaise' | 'amountPaise' | 'planKey'>): boolean {
-  return p.status === 'PAID' && p.paidAmountPaise !== null && p.paidAmountPaise === p.amountPaise && p.planKey !== null && isPricedPlan(p.planKey);
+export function isAutoEligiblePayment(p: Pick<RegistrationPayment, 'status' | 'paidAmountPaise' | 'amountPaise' | 'planKey'> & { quote?: unknown }): boolean {
+  if (p.status !== 'PAID' || p.planKey === null || !isPricedPlan(p.planKey)) return false;
+  // A mismatch that staff accepted (with a reason, audited) counts as the plan being paid for.
+  if (isAccepted(p.quote)) return p.paidAmountPaise !== null;
+  return p.paidAmountPaise !== null && p.paidAmountPaise === p.amountPaise;
+}
+
+/** True when staff accepted this payment as paid although its amount did not match the quote. */
+function isAccepted(quote: unknown): boolean {
+  const accepted = (quote as { accepted?: { reason?: unknown } } | null | undefined)?.accepted;
+  return typeof accepted?.reason === 'string' && accepted.reason.length > 0;
 }
 
 /**
@@ -39,12 +48,13 @@ export class AutoProvisionService {
       const reg = await this.prisma.registrationRequest.findUnique({ where: { id: registrationId } });
       if (!reg || !(OPEN_STATUSES as string[]).includes(reg.status)) return 'skipped';
       const payments = await this.prisma.registrationPayment.findMany({ where: { registrationId, status: 'PAID' } });
-      if (!payments.some(isAutoEligiblePayment)) return 'skipped';
+      const eligible = payments.find(isAutoEligiblePayment);
+      if (!eligible) return 'skipped';
 
       const job = await this.prisma.registrationProvisioning.findUnique({ where: { registrationId } });
       if (job?.status === 'DONE') return 'skipped';
 
-      const view = await this.provisioning.run(AUTO_ACTOR, registrationId, { commercialStatus: 'ACTIVE' }, now, { auto: true });
+      const view = await this.provisioning.run(AUTO_ACTOR, registrationId, { commercialStatus: 'ACTIVE', extraModules: modulesForPlan(eligible.planKey) }, now, { auto: true });
       if (view.status === 'FAILED') {
         logger.child({ registrationId, step: view.failedStep }).warn('auto-provisioning stopped; staff attention needed');
         return 'failed';

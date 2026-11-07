@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ProvisioningModule } from '../provisioning/provisioning.module';
 import { CashfreeClient } from './cashfree.client';
-import { CashfreeWebhookController, RegistrationPaymentController } from './cashfree.controller';
+import { CashfreeWebhookController, RegistrationManualPaymentController, RegistrationPaymentController } from './cashfree.controller';
 import { CustomerPayController } from './customer-pay.controller';
 import { CustomerPayService } from './customer-pay.service';
+import { ManualPaymentService } from './manual-payment.service';
 import { RegistrationPaymentService } from './registration-payment.service';
 import { PublicSubscriptionController, RegistrationSubscriptionController } from './subscription.controller';
 import { SubscriptionService } from './subscription.service';
@@ -15,8 +16,8 @@ import { SubscriptionService } from './subscription.service';
  */
 @Module({
   imports: [ProvisioningModule],
-  controllers: [RegistrationPaymentController, CashfreeWebhookController, CustomerPayController, RegistrationSubscriptionController, PublicSubscriptionController],
-  providers: [CashfreeClient, RegistrationPaymentService, CustomerPayService, SubscriptionService],
+  controllers: [RegistrationPaymentController, RegistrationManualPaymentController, CashfreeWebhookController, CustomerPayController, RegistrationSubscriptionController, PublicSubscriptionController],
+  providers: [CashfreeClient, RegistrationPaymentService, ManualPaymentService, CustomerPayService, SubscriptionService],
   exports: [CashfreeClient, RegistrationPaymentService],
 })
 export class CashfreeModule {}
