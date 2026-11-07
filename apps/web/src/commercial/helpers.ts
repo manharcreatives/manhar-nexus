@@ -49,6 +49,11 @@ export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** "7 Nov 2026, 3:23 pm" (Indian date order, never the US month/day/year form). */
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
 export const KEY_PATTERN = /^[a-z0-9-]+$/;
 
 /**

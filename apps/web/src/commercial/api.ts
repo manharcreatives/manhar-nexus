@@ -299,3 +299,24 @@ export const listModuleOptions = async (businessId: string): Promise<ModuleOptio
   const rows = await api<ModuleOption[]>(`/internal/businesses/${businessId}/modules`);
   return rows.map((m) => ({ key: m.key, name: m.name, description: m.description }));
 };
+
+/** A sign-in account of a client, as support needs to see it. */
+export interface ClientUser {
+  id: string;
+  email: string;
+  name: string;
+  status: string;
+  lastLoginAt: string | null;
+  roles: string[];
+  failedLoginCount?: number;
+  lockedUntil?: string | null;
+}
+
+export function listClientUsers(businessId: string): Promise<ClientUser[]> {
+  return api<ClientUser[]>(`/internal/businesses/${businessId}/users`);
+}
+
+/** Makes a one-time set-password link for a user (signs them out everywhere, cancels earlier links). */
+export function createResetLink(businessId: string, userId: string): Promise<{ token: string; expiresAt: string }> {
+  return api(`/internal/businesses/${businessId}/users/${userId}/reset-link`, { method: 'POST', body: JSON.stringify({}) });
+}

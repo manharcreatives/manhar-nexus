@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
 import { Field } from '../ui/Field';
 import { Select } from '../ui/Select';
-import { createPaymentLink, formatRupees, isOpenLink, paymentMessage, whatsappUrl, type PaymentLink, type RegistrationRequest } from './api';
+import { createPaymentLink, formatRupees, isOpenLink, paymentMessage, planName, whatsappUrl, type PaymentLink, type RegistrationRequest } from './api';
 
 /** Errors the user can act on (not configured, Cashfree refused, already paid) are shown as the server wrote them. */
 function messageOf(err: unknown, fallback: string): string {
@@ -180,7 +180,7 @@ export function PaymentLinkDialog({
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <Select label={t('registrations.payment.planLabel')} value={planKey} onChange={(e) => setPlanKey(e.target.value as PricedPlanKey | '')}>
+                <Select label={t('registrations.payment.planLabel')} value={planKey} onChange={(e) => { setPlanKey(e.target.value as PricedPlanKey | ''); setError(null); }}>
                   <option value="">{t('registrations.payment.planChoose')}</option>
                   {PRICED_PLAN_KEYS.map((k) => (
                     <option key={k} value={k}>
@@ -196,7 +196,7 @@ export function PaymentLinkDialog({
                   ))}
                 </Select>
               </div>
-              {planKey === '' ? <p className="text-sm text-muted">{t('registrations.payment.pickPlanHint', { plan: request.planKey })}</p> : null}
+              {planKey === '' ? <p className="text-sm text-muted">{(planName(request.planKey) ? t('registrations.payment.pickPlanHint', { plan: planName(request.planKey) }) : t('registrations.payment.planNotChosenHint'))}</p> : null}
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={launchPack} onChange={(e) => setLaunchPack(e.target.checked)} />
                 {t('registrations.payment.launchPack')}

@@ -9,7 +9,7 @@ import { claimMessage, claimUrl, issueClaimLink, whatsappUrl, type ClaimLink, ty
  * WhatsApp. One link is made per visit and reused by both buttons, because making a new one cancels the old one.
  * The link is never shown on screen or logged; it only goes to the clipboard or into the WhatsApp message.
  */
-export function ClaimLinkButtons({ request }: { request: Pick<RegistrationRequest, 'id' | 'contactName' | 'restaurantName' | 'phone'> & Partial<Pick<RegistrationRequest, 'payments'>> }) {
+export function ClaimLinkButtons({ request, onIssued }: { onIssued?: () => void; request: Pick<RegistrationRequest, 'id' | 'contactName' | 'restaurantName' | 'phone'> & Partial<Pick<RegistrationRequest, 'payments'>> }) {
   const { t } = useTranslation();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -21,6 +21,7 @@ export function ClaimLinkButtons({ request }: { request: Pick<RegistrationReques
     try {
       const fresh = await issueClaimLink(request.id);
       setLink(fresh);
+      onIssued?.();
       return claimUrl(fresh.token);
     } catch {
       toast.show(t('registrations.claim.failed'));

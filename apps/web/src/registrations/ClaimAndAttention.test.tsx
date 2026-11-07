@@ -143,22 +143,21 @@ describe('Registrations: needs attention', () => {
     expect(screen.queryByText('Needs attention')).toBeNull();
   });
 
-  it('lists a failed account job with its safe reason, and Retry resumes it', async () => {
+  it('lists a failed account job with its safe reason, and Retry opens the account dialog (never a blind retry)', async () => {
     window.history.replaceState(null, '', '/registrations');
-    withRows('NEW');
+    withRows('NEW', { ...row, status: 'NEW', businessId: null, autoProvisioned: false });
     getAttention.mockResolvedValue({
       failedProvisioning: [{ registrationId: row.id, restaurantName: 'Ananda Cafe', lastError: 'That owner email already has an account.', currentStep: 'owner' }],
       paidNotConverted: [],
     });
-    provisionRegistration.mockResolvedValue({ status: 'DONE', steps: [], failedStep: null, error: null, businessId: 'b-1', ownerEmail: 'a@b.co' });
     renderPage();
     expect(await screen.findByText('The account for Ananda Cafe could not be created.')).toBeTruthy();
     expect(screen.getByText('That owner email already has an account.')).toBeTruthy();
     expect(screen.getByText('Stopped at: owner')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    await waitFor(() => expect(provisionRegistration).toHaveBeenCalledWith(row.id, {}));
+    expect(await screen.findByDisplayValue('asha@example.com')).toBeTruthy();
+    expect(provisionRegistration).not.toHaveBeenCalled();
   });
-
   it('a paid request with no account offers Create account, which opens the account dialog', async () => {
     window.history.replaceState(null, '', '/registrations');
     const paid = { ...row, status: 'QUALIFIED' as const, businessId: null, autoProvisioned: false, payments: [] };

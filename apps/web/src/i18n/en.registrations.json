@@ -75,7 +75,9 @@
       "lost": "Closed too early? Issue a new password (works until the owner signs in).",
       "reissue": "Issue a new password",
       "failedGeneric": "Could not create the account. Please try again.",
-      "alreadyDone": "The account already exists. Use the button below if the password was lost."
+      "alreadyDone": "The account already exists. Use the button below if the password was lost.",
+      "closeWarning": "The password will not be shown again. Copy it, or make a set-password link, before you close.",
+      "goBack": "Go back"
     },
     "prefillNote": "From website request {{ref}}. Details are filled in; check them, then create.",
     "moved": "Moved to {{status}}.",
@@ -180,7 +182,8 @@
         "duplicate": "Already up to date.",
         "amount-mismatch": "A payment came in, but the amount does not match. Check it in Cashfree.",
         "updated": "Updated."
-      }
+      },
+      "planNotChosenHint": "The owner did not choose a plan. Choose one above, or type an amount."
     },
     "autoCreated": "Account created automatically after payment.",
     "claim": {
@@ -201,7 +204,70 @@
       "create": "Create account",
       "retried": "Retried. Check the request below.",
       "retryFailed": "Retry did not finish. Open the request for details.",
-      "loadFailed": "Could not check for problems."
+      "loadFailed": "Could not check for problems.",
+      "mismatch": "{{name}} paid a different amount than the link. Check this payment in Cashfree, then accept it or refund it.",
+      "accept": "Accept as paid"
+    },
+    "plan": {
+      "notChosen": "Plan not chosen"
+    },
+    "offerCode": "Offer code: {{code}}",
+    "duplicate_one": "Same email or phone as {{count}} other request. Check before creating an account.",
+    "duplicate_other": "Same email or phone as {{count}} other requests. Check before creating an account.",
+    "undo": {
+      "done": "Updated {{name}}.",
+      "action": "Undo"
+    },
+    "confirm": {
+      "REJECTED": {
+        "title": "Reject {{name}}?",
+        "body": "The request moves to the Rejected tab. You can reopen it from there."
+      },
+      "SPAM": {
+        "title": "Mark {{name}} as spam?",
+        "body": "The request moves to the Spam tab. You can reopen it from there."
+      }
+    },
+    "edit": {
+      "open": "Edit details",
+      "title": "Edit contact details for {{name}}",
+      "intro": "Fix a typo in the name, email or mobile number. The last 4 digits of the mobile number are part of how the owner signs in after paying, so check them with the owner.",
+      "save": "Save",
+      "saved": "Details updated.",
+      "failed": "Could not save the details. Please try again.",
+      "phoneInvalid": "Enter a 10-digit mobile number."
+    },
+    "manual": {
+      "open": "Record payment",
+      "title": "Record a payment for {{name}}",
+      "intro": "Use this when the money arrived outside Cashfree (UPI, bank transfer or cash). It is saved as a paid payment and the restaurant account is created, exactly like an online payment.",
+      "expected": "Amount expected",
+      "methodLabel": "How they paid",
+      "method": {
+        "UPI": "UPI",
+        "BANK": "Bank transfer",
+        "CASH": "Cash",
+        "OTHER": "Other"
+      },
+      "paidOn": "Paid on",
+      "referenceLabel": "Reference",
+      "referenceHint": "UPI transaction id, bank reference or receipt number.",
+      "referenceInvalid": "Add the reference so the payment can be traced (at least 3 characters).",
+      "different": "The amount received is different from the price above",
+      "amountHint": "What you actually received, in rupees.",
+      "record": "Record payment",
+      "recorded": "Payment recorded for {{name}}.",
+      "failed": "Could not record the payment. Please try again."
+    },
+    "accept": {
+      "title": "Accept the payment for {{name}}",
+      "intro": "They paid ₹{{paid}} but the link was for ₹{{expected}}. Check the payment in Cashfree first. If you accept it, the request counts as paid and the account is created. If not, refund it in Cashfree.",
+      "reasonLabel": "Why are you accepting it?",
+      "reasonHint": "For example: agreed a discount on the phone. This is saved with the payment.",
+      "confirm": "Accept as paid",
+      "failed": "Could not accept the payment. Please try again.",
+      "done": "Payment accepted for {{name}}.",
+      "notFound": "No payment to accept was found on this request."
     }
   },
   "claim": {
@@ -241,6 +307,27 @@
         "yearly": "yearly"
       },
       "none": "No plan yet"
+    },
+    "people": {
+      "title": "People",
+      "empty": "No sign-in accounts yet.",
+      "email": "Email",
+      "status": "Status",
+      "lastLogin": "Last sign-in",
+      "never": "Never signed in",
+      "failed": "{{count}} failed sign-ins",
+      "locked": "Locked until {{date}}",
+      "reset": "Reset password link",
+      "loadFailed": "Could not load the people for this client.",
+      "confirmTitle": "Make a password link for {{name}}?",
+      "confirmBody": "This signs {{name}} out everywhere and cancels any earlier link. Only the new link will work, for 72 hours.",
+      "confirm": "Make link",
+      "ready": "The link is ready. It works once, for 72 hours.",
+      "copy": "Copy link",
+      "copied": "Link copied.",
+      "whatsapp": "WhatsApp the link",
+      "failedLink": "Could not make a link. Please try again.",
+      "message": "Hello {{name}}, here is your Manhar Nexus sign-in link: {{url}} (valid 72 hours). Open it to choose a new password."
     }
   },
   "payReturn": {

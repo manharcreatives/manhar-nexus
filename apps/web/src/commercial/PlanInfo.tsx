@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { StatusPill } from '../ui/StatusPill';
+import { formatDate } from './helpers';
 
 /** The billing facts the server copies onto a client when its registration was paid (all optional: older clients have none). */
 export interface BillingFacts {
@@ -25,7 +26,7 @@ export function PlanInfo({ client, now = Date.now(), compact = false }: { client
   const name = PLAN_NAME[client.planKey] ?? client.planKey;
   const cycle = client.billingCycle ? t(`commercial.plan.cycle.${client.billingCycle}`, { defaultValue: client.billingCycle }) : '';
   const overdue = client.paidUntil ? isPast(client.paidUntil, now) : false;
-  const date = client.paidUntil ? new Date(client.paidUntil).toLocaleDateString() : '';
+  const date = client.paidUntil ? formatDate(client.paidUntil) : '';
   return (
     <div className="space-y-1 text-sm">
       <div className="flex flex-wrap items-center gap-2">

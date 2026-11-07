@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PLAN_PRICES, PRICED_PLAN_KEYS, type PricedPlanKey } from '@nexus/shared';
+import { formatDate } from '../commercial/helpers';
 import { FormError } from '../commercial/Shared';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
@@ -114,7 +115,7 @@ export function AutopayDialog({ request, onClose }: { request: RegistrationReque
                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">{t(`registrations.autopay.status.${s.status}`, { defaultValue: s.status })}</span>
                   </div>
                   {s.lastChargeStatus ? (
-                    <p className="text-xs text-muted">{t('registrations.autopay.lastCharge', { status: t(`registrations.autopay.charge.${s.lastChargeStatus}`, { defaultValue: s.lastChargeStatus }), date: new Date(s.lastChargeAt ?? s.createdAt).toLocaleDateString() })}</p>
+                    <p className="text-xs text-muted">{t('registrations.autopay.lastCharge', { status: t(`registrations.autopay.charge.${s.lastChargeStatus}`, { defaultValue: s.lastChargeStatus }), date: formatDate(s.lastChargeAt ?? s.createdAt) })}</p>
                   ) : null}
                   {s.lastChargeStatus === 'AMOUNT_MISMATCH' ? <p className="text-xs text-amber-300">{t('registrations.autopay.mismatch')}</p> : null}
                   <div className="flex flex-wrap items-center gap-3">

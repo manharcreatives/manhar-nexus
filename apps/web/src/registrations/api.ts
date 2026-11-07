@@ -71,7 +71,7 @@ export function listRegistrations(params: { status?: RegistrationStatus; take?: 
 
 export function updateRegistration(
   id: string,
-  patch: { status?: RegistrationStatus; internalNotes?: string | null; businessId?: string | null },
+  patch: { status?: RegistrationStatus; internalNotes?: string | null; businessId?: string | null; contactName?: string; email?: string; phone?: string },
 ): Promise<RegistrationRequest> {
   return api<RegistrationRequest>(`/internal/registrations/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
 }
@@ -181,6 +181,8 @@ export interface Attention {
   paidNotConverted: { registrationId: string; restaurantName: string }[];
   /** Money received on a request marked spam or rejected: a person must decide (reopen it, or refund). */
   paidClosed?: { registrationId: string; restaurantName: string }[];
+  /** A payment whose amount did not match the link: a person checks Cashfree, then accepts it or refunds. */
+  mismatch?: { registrationId: string; restaurantName: string }[];
 }
 
 /** The API's list: one item per case, with a reason. */
@@ -190,8 +192,8 @@ interface AttentionApi {
 }
 
 /**
- * Maps the API list to the two groups the strip shows. AMOUNT_MISMATCH is not offered here (it must not offer to
- * create an account); the payment row itself carries the mismatch hint.
+ * Maps the API list to the groups the strip shows. A mismatch is its own group: it offers "Accept as paid" (with a
+ * reason) and never a Create button.
  */
 export async function getAttention(): Promise<Attention> {
   const res = await api<AttentionApi>('/internal/provisioning/attention');
@@ -201,5 +203,53 @@ export async function getAttention(): Promise<Attention> {
       .map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName, lastError: i.detail, currentStep: null })),
     paidNotConverted: res.items.filter((i) => i.reason === 'PAID_NOT_CREATED').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
     paidClosed: res.items.filter((i) => i.reason === 'PAID_ON_CLOSED_REQUEST').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
+    mismatch: res.items.filter((i) => i.reason === 'AMOUNT_MISMATCH').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
   };
+}
+
+export type ManualPaymentMethod = 'UPI' | 'BANK' | 'CASH' | 'OTHER';
+export const MANUAL_METHODS: readonly ManualPaymentMethod[] = ['UPI', 'BANK', 'CASH', 'OTHER'];
+
+export interface ManualPaymentBody {
+  planKey: string;
+  cycle: string;
+  launchPack?: boolean;
+  method: ManualPaymentMethod;
+  reference: string;
+  paidOn?: string;
+  amountRupees?: number;
+  overrideReason?: string;
+}
+
+/** Records money that arrived outside Cashfree (UPI, bank transfer, cash). The server prices it and starts the account. */
+export function recordManualPayment(registrationId: string, body: ManualPaymentBody): Promise<PaymentLink> {
+  return api<PaymentLink>(`/internal/registrations/${registrationId}/manual-payment`, { method: 'POST', body: JSON.stringify(body) });
+}
+
+/** Accepts a payment whose amount did not match the link, with a recorded reason (audited on the server). */
+export function acceptMismatchedPayment(registrationId: string, paymentId: string, reason: string): Promise<PaymentLink> {
+  return api<PaymentLink>(`/internal/registrations/${registrationId}/payments/${paymentId}/accept`, { method: 'POST', body: JSON.stringify({ reason }) });
+}
+
+const PLAN_NAMES: Record<string, string> = { counter: 'Counter', floor: 'Floor', pass: 'Pass', 'many-doors': 'Many Doors' };
+
+/** Human plan name for a stored key; null for "not sure" or an unknown key (shown as "Plan not chosen"). */
+export function planName(planKey: string): string | null {
+  return PLAN_NAMES[planKey] ?? null;
+}
+
+/** The offer-code tag the landing form appends to the message, e.g. "[Code: FOUNDING26]". */
+export function splitOfferCode(message: string | null): { text: string | null; code: string | null } {
+  if (!message) return { text: null, code: null };
+  const m = /\s*\[Code:\s*([A-Za-z0-9_-]+)\]\s*$/.exec(message);
+  if (!m) return { text: message, code: null };
+  const text = message.slice(0, m.index).trim();
+  return { text: text || null, code: m[1] ?? null };
+}
+
+/** Other requests that share this one's email or phone (a likely duplicate), from the loaded list. */
+export function duplicateCount(r: Pick<RegistrationRequest, 'id' | 'email' | 'phone'>, all: readonly Pick<RegistrationRequest, 'id' | 'email' | 'phone'>[]): number {
+  const email = r.email.trim().toLowerCase();
+  const phone = r.phone.replace(/\D/g, '').slice(-10);
+  return all.filter((o) => o.id !== r.id && (o.email.trim().toLowerCase() === email || (phone.length === 10 && o.phone.replace(/\D/g, '').slice(-10) === phone))).length;
 }

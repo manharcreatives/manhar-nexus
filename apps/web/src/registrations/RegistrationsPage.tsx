@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { errorMessage } from '../commercial/helpers';
+import { errorMessage, formatDate, formatDateTime } from '../commercial/helpers';
 import { ListSkeleton } from '../commercial/Shared';
+import { AcceptMismatchDialog } from './AcceptMismatchDialog';
 import { AttentionStrip } from './AttentionStrip';
+import { ConfirmDialog } from './ConfirmDialog';
+import { EditContactDialog } from './EditContactDialog';
+import { ManualPaymentDialog } from './ManualPaymentDialog';
 import { ClaimLinkButtons } from './ClaimLinkButtons';
 import { CreateAccountDialog } from './CreateAccountDialog';
 import { AutopayDialog } from './AutopayDialog';
@@ -15,14 +19,18 @@ import { EmptyState, ErrorState } from '../ui/states';
 import { useToast } from '../ui/Toast';
 import {
   NEXT_STATUSES,
+  duplicateCount,
   formatRupees,
   isOpenLink,
   isPaid,
   paymentMessage,
+  planName,
   refreshPaymentLink,
+  splitOfferCode,
   listRegistrations,
   updateRegistration,
   whatsappUrl,
+  type PaymentLink,
   type PaymentStatus,
   type RegistrationRequest,
   type RegistrationStatus,
@@ -56,13 +64,21 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   // A link from the Clients page (#reg-<id>) points at an account that already exists, so start on the converted tab.
   const [filter, setFilter] = useState<Filter>(() => (window.location.hash.startsWith('#reg-') ? 'CONVERTED' : 'open'));
   const [attentionKey, setAttentionKey] = useState(0);
-  const pendingCreate = useRef<string | null>(null);
+  const pendingAction = useRef<{ kind: 'create' | 'accept'; id: string } | null>(null);
   const [items, setItems] = useState<RegistrationRequest[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState<RegistrationRequest | null>(null);
   const [charging, setCharging] = useState<RegistrationRequest | null>(null);
   const [autopay, setAutopay] = useState<RegistrationRequest | null>(null);
+  const [editing, setEditing] = useState<RegistrationRequest | null>(null);
+  const [recording, setRecording] = useState<RegistrationRequest | null>(null);
+  const [accepting, setAccepting] = useState<{ request: RegistrationRequest; payment: PaymentLink } | null>(null);
+  const [confirmMove, setConfirmMove] = useState<{ r: RegistrationRequest; status: RegistrationStatus } | null>(null);
+  const [undo, setUndo] = useState<{ id: string; to: RegistrationStatus; name: string } | null>(null);
+
+  /** The attention strip re-checks after anything that can change what needs a person (every dialog close, every payment action). */
+  const bump = useCallback(() => setAttentionKey((k) => k + 1), []);
 
   const load = useCallback(async () => {
     setLoadFailed(false);
@@ -88,22 +104,29 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   // After a list load: open the account dialog asked for by the attention strip, and scroll to a #reg-<id> target.
   useEffect(() => {
     if (!items) return;
-    const wanted = pendingCreate.current;
+    const wanted = pendingAction.current;
     if (wanted) {
-      const hit = items.find((r) => r.id === wanted);
+      const hit = items.find((r) => r.id === wanted.id);
       if (hit) {
-        pendingCreate.current = null;
-        setCreating(hit);
+        pendingAction.current = null;
+        if (wanted.kind === 'create') setCreating(hit);
+        else openAccept(hit);
       }
     }
     const target = window.location.hash.startsWith('#reg-') ? document.getElementById(window.location.hash.slice(1)) : null;
     target?.scrollIntoView?.({ block: 'center' });
   }, [items]);
 
-  function createFromAttention(registrationId: string) {
+  function openAccept(r: RegistrationRequest) {
+    const payment = r.payments.find((p) => p.status === 'AMOUNT_MISMATCH');
+    if (payment) setAccepting({ request: r, payment });
+    else toast.show(t('registrations.accept.notFound'));
+  }
+
+  function fromAttention(kind: 'create' | 'accept', registrationId: string) {
     const hit = items?.find((r) => r.id === registrationId);
-    if (hit) return setCreating(hit);
-    pendingCreate.current = registrationId;
+    if (hit) return kind === 'create' ? setCreating(hit) : openAccept(hit);
+    pendingAction.current = { kind, id: registrationId };
     if (filter === 'open') void load();
     else setFilter('open');
   }
@@ -113,11 +136,28 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
     try {
       await updateRegistration(r.id, { status });
       toast.show(t('registrations.moved', { status: t(`registrations.status.${status}`) }));
+      // Undo goes back to where it was when the API allows it from the new status, otherwise to New.
+      setUndo({ id: r.id, to: NEXT_STATUSES[status].includes(r.status) ? r.status : 'NEW', name: r.restaurantName });
+      bump();
       await load();
     } catch (err) {
       toast.show(errorMessage(err, t('registrations.errors.update')));
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function undoMove() {
+    if (!undo) return;
+    const u = undo;
+    setUndo(null);
+    try {
+      await updateRegistration(u.id, { status: u.to });
+      toast.show(t('registrations.moved', { status: t(`registrations.status.${u.to}`) }));
+      bump();
+      await load();
+    } catch (err) {
+      toast.show(errorMessage(err, t('registrations.errors.update')));
     }
   }
 
@@ -128,6 +168,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
       const { outcome, payment } = await refreshPaymentLink(r.id, paymentId);
       const key = outcome === 'updated' && payment.status === 'PAID' ? 'paid' : outcome;
       toast.show(t(`registrations.payment.checked.${key}`));
+      bump();
       await load();
     } catch (err) {
       const e = err as { status?: number; message?: string } | null;
@@ -140,7 +181,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   /** The server created the workspace and marked the request converted in its last step. */
   function onAccountCreated(r: RegistrationRequest) {
     toast.show(t('registrations.converted', { name: r.restaurantName }));
-    setAttentionKey((k) => k + 1);
+    bump();
     void load();
   }
 
@@ -164,7 +205,21 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
         ]}
       />
 
-      <AttentionStrip onCreate={createFromAttention} onChanged={() => void load()} refreshKey={attentionKey} />
+      <AttentionStrip
+        onCreate={(id) => fromAttention('create', id)}
+        onRetry={(id) => fromAttention('create', id)}
+        onAccept={(id) => fromAttention('accept', id)}
+        refreshKey={attentionKey}
+      />
+
+      {undo ? (
+        <div role="status" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-white/10 bg-white/[0.05] px-3 py-2 text-sm">
+          <span>{t('registrations.undo.done', { name: undo.name })}</span>
+          <Button variant="secondary" onClick={() => void undoMove()}>
+            {t('registrations.undo.action')}
+          </Button>
+        </div>
+      ) : null}
 
       <div role="tabpanel">
         {loadFailed ? (
@@ -186,10 +241,15 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                   <div className="min-w-0">
                     <p className="truncate text-lg font-semibold">{r.restaurantName}</p>
                     <p className="text-sm text-muted">
-                      <span className="ticket-no">{r.referenceCode}</span> · {new Date(r.createdAt).toLocaleString()}
+                      <span className="ticket-no">{r.referenceCode}</span> · {formatDateTime(r.createdAt)}
                     </p>
                   </div>
-                  <StatusPill tone={TONE[r.status]}>{t(`registrations.status.${r.status}`)}</StatusPill>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill tone={planName(r.planKey) ? 'accent' : 'neutral'}>
+                      {planName(r.planKey) ? `${planName(r.planKey)} · ${t(`registrations.payment.cycle.${r.billingCycle}`, { defaultValue: r.billingCycle })}` : t('registrations.plan.notChosen')}
+                    </StatusPill>
+                    <StatusPill tone={TONE[r.status]}>{t(`registrations.status.${r.status}`)}</StatusPill>
+                  </div>
                 </div>
 
                 <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
@@ -218,8 +278,17 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                   </div>
                 </dl>
 
-                {r.message ? (
-                  <p className="mt-3 whitespace-pre-wrap rounded-control bg-white/[0.04] px-3 py-2 text-sm">{r.message}</p>
+                {(() => {
+                  const { text, code } = splitOfferCode(r.message);
+                  return (
+                    <>
+                      {text ? <p className="mt-3 whitespace-pre-wrap rounded-control bg-white/[0.04] px-3 py-2 text-sm">{text}</p> : null}
+                      {code ? <p className="mt-2 text-xs text-muted">{t('registrations.offerCode', { code })}</p> : null}
+                    </>
+                  );
+                })()}
+                {items && duplicateCount(r, items) > 0 ? (
+                  <p className="mt-2 text-xs text-warn">{t('registrations.duplicate', { count: duplicateCount(r, items) })}</p>
                 ) : null}
 
                 {r.payments.length > 0 ? (
@@ -227,7 +296,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                     {r.payments.map((p) => (
                       <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-white/[0.04] px-3 py-2 text-sm">
                         <span>
-                          ₹{formatRupees(p.amountPaise)} · {new Date(p.createdAt).toLocaleDateString()}
+                          ₹{formatRupees(p.amountPaise)} · {formatDate(p.createdAt)}
                           {p.planKey ? ` · ${p.planKey} ${p.billingCycle ?? ''}`.trimEnd() : ''}
                           {p.overrideReason ? ` · ${t('registrations.payment.typedChip', { reason: p.overrideReason })}` : ''}
                           {p.status === 'AMOUNT_MISMATCH' ? (
@@ -281,6 +350,11 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                       {t('registrations.autopay.open')}
                     </Button>
                   ) : null}
+                  {canCharge(r) ? (
+                    <Button variant="secondary" onClick={() => setRecording(r)} disabled={busyId === r.id}>
+                      {t('registrations.manual.open')}
+                    </Button>
+                  ) : null}
                   {canCreate(r) ? (
                     <Button variant={canCharge(r) ? 'secondary' : 'primary'} onClick={() => setCreating(r)} disabled={busyId === r.id}>
                       {t('registrations.createAccount')}
@@ -294,18 +368,23 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                   >
                     {t('registrations.whatsapp')}
                   </a>
+                  {r.status !== 'CONVERTED' && !r.businessId ? (
+                    <Button variant="ghost" onClick={() => setEditing(r)} disabled={busyId === r.id}>
+                      {t('registrations.edit.open')}
+                    </Button>
+                  ) : null}
                   {r.status === 'NEW' ? (
                     <Button variant="secondary" loading={busyId === r.id} onClick={() => void move(r, 'CONTACTED')}>
                       {t('registrations.markContacted')}
                     </Button>
                   ) : null}
                   {NEXT_STATUSES[r.status].includes('REJECTED') && r.status !== 'REJECTED' ? (
-                    <Button variant="ghost" loading={busyId === r.id} onClick={() => void move(r, 'REJECTED')}>
+                    <Button variant="ghost" loading={busyId === r.id} onClick={() => setConfirmMove({ r, status: 'REJECTED' })}>
                       {t('registrations.reject')}
                     </Button>
                   ) : null}
                   {NEXT_STATUSES[r.status].includes('SPAM') && r.status !== 'SPAM' ? (
-                    <Button variant="ghost" loading={busyId === r.id} onClick={() => void move(r, 'SPAM')}>
+                    <Button variant="ghost" loading={busyId === r.id} onClick={() => setConfirmMove({ r, status: 'SPAM' })}>
                       {t('registrations.spam')}
                     </Button>
                   ) : null}
@@ -330,21 +409,95 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
       {charging ? (
         <PaymentLinkDialog
           request={charging}
-          onClose={() => setCharging(null)}
+          onClose={() => {
+            setCharging(null);
+            bump();
+          }}
           onCreated={() => {
             toast.show(t('registrations.payment.created', { name: charging.restaurantName }));
+            bump();
             void load();
           }}
         />
       ) : null}
 
-      {autopay ? <AutopayDialog request={autopay} onClose={() => setAutopay(null)} /> : null}
+      {autopay ? (
+        <AutopayDialog
+          request={autopay}
+          onClose={() => {
+            setAutopay(null);
+            bump();
+          }}
+        />
+      ) : null}
+
+      {editing ? (
+        <EditContactDialog
+          request={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            toast.show(t('registrations.edit.saved'));
+            void load();
+          }}
+        />
+      ) : null}
+
+      {recording ? (
+        <ManualPaymentDialog
+          request={recording}
+          onClose={() => {
+            setRecording(null);
+            bump();
+          }}
+          onDone={() => {
+            toast.show(t('registrations.manual.recorded', { name: recording.restaurantName }));
+            setRecording(null);
+            bump();
+            void load();
+          }}
+        />
+      ) : null}
+
+      {accepting ? (
+        <AcceptMismatchDialog
+          request={accepting.request}
+          payment={accepting.payment}
+          onClose={() => {
+            setAccepting(null);
+            bump();
+          }}
+          onDone={() => {
+            toast.show(t('registrations.accept.done', { name: accepting.request.restaurantName }));
+            setAccepting(null);
+            bump();
+            void load();
+          }}
+        />
+      ) : null}
+
+      {confirmMove ? (
+        <ConfirmDialog
+          title={t(`registrations.confirm.${confirmMove.status}.title`, { name: confirmMove.r.restaurantName })}
+          body={t(`registrations.confirm.${confirmMove.status}.body`)}
+          confirmLabel={t(confirmMove.status === 'SPAM' ? 'registrations.spam' : 'registrations.reject')}
+          onClose={() => setConfirmMove(null)}
+          onConfirm={() => {
+            const m = confirmMove;
+            setConfirmMove(null);
+            void move(m.r, m.status);
+          }}
+        />
+      ) : null}
 
       {creating ? (
         <CreateAccountDialog
           request={creating}
           onDone={() => onAccountCreated(creating)}
-          onClose={() => setCreating(null)}
+          onClose={() => {
+            setCreating(null);
+            bump();
+          }}
           onOpenChecklist={onOpenOnboarding ? (businessId) => { setCreating(null); onOpenOnboarding(businessId); } : undefined}
         />
       ) : null}

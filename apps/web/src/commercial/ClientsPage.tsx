@@ -40,6 +40,7 @@ import {
   toMinorUnits,
 } from './helpers';
 import { FormError, ListSkeleton } from './Shared';
+import { PeopleBlock } from './PeopleBlock';
 import { PlanInfo } from './PlanInfo';
 
 const REQUEST_FORM = 'activation-request-form';
@@ -318,6 +319,8 @@ function ClientDetailView({ summary, onBack }: { summary: ClientSummary; onBack:
           </div>
         </div>
       </div>
+
+      <PeopleBlock businessId={detail.id} />
 
       <section aria-labelledby="act-h" className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">

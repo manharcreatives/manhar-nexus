@@ -9,11 +9,12 @@ import { Dialog } from '../ui/Dialog';
 import { Field } from '../ui/Field';
 import * as Icons from '../ui/icons';
 import { Spinner } from '../ui/Spinner';
+import { ClaimLinkButtons } from './ClaimLinkButtons';
 import { isPaid, provisionRegistration, type ProvisionBody, type ProvisionResult, type RegistrationRequest } from './api';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+function CopyButton({ value, label, onCopied }: { value: string; label: string; onCopied?: () => void }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   return (
@@ -23,6 +24,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       onClick={() => {
         void navigator.clipboard?.writeText(value).then(() => {
           setCopied(true);
+          onCopied?.();
           setTimeout(() => setCopied(false), 1800);
         });
       }}
@@ -61,6 +63,10 @@ export function CreateAccountDialog({
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ProvisionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The temporary password is shown once. Closing before it was copied (or a set-password link was made) asks first.
+  const [saved, setSaved] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [dialogKey, setDialogKey] = useState(0);
 
   const failed = result?.status === 'FAILED';
   const done = result?.status === 'DONE';
@@ -102,6 +108,19 @@ export function CreateAccountDialog({
     });
   }
 
+  const needsAck = done && !!result?.credentials && !saved;
+
+  /** Esc and the backdrop close a native dialog before React can stop it, so re-open it (new key) with the warning shown. */
+  function requestClose() {
+    if (busy) return;
+    if (needsAck) {
+      setConfirmClose(true);
+      setDialogKey((k) => k + 1);
+      return;
+    }
+    onClose();
+  }
+
   const stepLabel = (id: string) =>
     id.startsWith('module:') ? t('registrations.account.step.module', { name: t(`provision.module.${id.slice(7)}`) }) : t(`registrations.account.step.${id}`);
 
@@ -115,7 +134,7 @@ export function CreateAccountDialog({
     </>
   ) : done ? (
     <>
-      <Button variant="secondary" onClick={onClose}>{t('provision.done')}</Button>
+      <Button variant="secondary" onClick={requestClose}>{t('provision.done')}</Button>
       {result?.businessId && onOpenChecklist ? <Button onClick={() => onOpenChecklist(result.businessId as string)}>{t('provision.openChecklist')}</Button> : null}
     </>
   ) : busy ? null : (
@@ -131,8 +150,9 @@ export function CreateAccountDialog({
 
   return (
     <Dialog
+      key={dialogKey}
       open
-      onClose={() => !busy && onClose()}
+      onClose={requestClose}
       title={done ? t('registrations.account.readyTitle', { name: request.restaurantName }) : t('registrations.account.title', { name: request.restaurantName })}
       className="w-[min(38rem,calc(100vw-2rem))]"
       footer={footer}
@@ -168,11 +188,23 @@ export function CreateAccountDialog({
                   <dt className="eyebrow">{label}</dt>
                   <dd className="ticket-no mt-1 break-all text-base text-ink">{value}</dd>
                 </div>
-                <CopyButton value={value as string} label={`${t('provision.copy')} ${label}`} />
+                <CopyButton value={value as string} label={`${t('provision.copy')} ${label}`} onCopied={() => setSaved(true)} />
               </div>
             ))}
           </dl>
           <p className="rounded-control bg-warn/12 px-3 py-2 text-sm text-warn">{t('registrations.account.shownOnce')}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <ClaimLinkButtons request={request} onIssued={() => setSaved(true)} />
+          </div>
+          {confirmClose && needsAck ? (
+            <div role="alert" className="space-y-2 rounded-control border border-bad/40 bg-bad/10 p-3 text-sm">
+              <p>{t('registrations.account.closeWarning')}</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => setConfirmClose(false)}>{t('registrations.account.goBack')}</Button>
+                <Button variant="ghost" onClick={onClose}>{t('provision.closeAnyway')}</Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : done ? (
         <div className="space-y-4">
