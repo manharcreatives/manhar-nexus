@@ -360,6 +360,7 @@ export class OrderService extends TenantScopedRepository {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockAndRecheck(tx, scope, id, cancellable, 'cancel');
       // Cancel all non-terminal lines
       await tx.serviceRequestLine.updateMany({
         where: {
@@ -495,6 +496,25 @@ export class OrderService extends TenantScopedRepository {
     }
   }
 
+  /**
+   * Takes the row locks the kitchen and the order editor agree on (lines first), then re-reads the request inside the
+   * transaction and re-checks its status, so a concurrent edit or transition can never leave a half-applied order.
+   */
+  private async lockAndRecheck(
+    tx: Prisma.TransactionClient,
+    scope: TenantScope,
+    id: string,
+    allowed: ServiceRequestStatus[],
+    verb: string,
+  ): Promise<ServiceRequestWithLines> {
+    await tx.$queryRaw`SELECT id FROM service_request_line WHERE "serviceRequestId" = ${id}::uuid FOR UPDATE`;
+    const row = await tx.serviceRequest.findFirst({ where: this.scoped(scope, { id }), include: REQUEST_WITH_LINES });
+    if (!row) throw new NotFoundError('Service request not found', { id });
+    const owned = this.assertOwned(row, scope) as ServiceRequestWithLines;
+    this.assertStatus(owned, allowed, verb);
+    return owned;
+  }
+
   private async transitionRequest(
     scope: TenantScope,
     id: string,
@@ -529,6 +549,17 @@ export class OrderService extends TenantScopedRepository {
     const targetLineStatus = lineStatusMap[toStatus];
 
     return this.prisma.$transaction(async (tx) => {
+      // Lock the lines first (same order as OrderEditService), then re-check the status under the lock: an edit that
+      // committed a moment ago may have added a line or moved the request, and the pre-transaction read is stale.
+      const locked = await this.lockAndRecheck(tx, scope, id, [fromStatus], `transition to ${toStatus}`);
+      if (lineIds && lineIds.length > 0) {
+        const lockedIds = new Set(locked.lines.map((l) => l.id));
+        const invalid = lineIds.filter((lid) => !lockedIds.has(lid));
+        if (invalid.length > 0) {
+          throw new ValidationError('Line IDs do not belong to this service request', { invalid });
+        }
+      }
+
       // Transition matching lines
       await tx.serviceRequestLine.updateMany({
         where: {

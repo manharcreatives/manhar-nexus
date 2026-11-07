@@ -2025,6 +2025,7 @@ model RegistrationPayment {
   updatedAt       DateTime            @updatedAt @db.Timestamptz(6)
 
   @@index([registrationId, createdAt])
+  @@index([registrationId, status])
   @@map("registration_payment")
 }
 
@@ -2073,6 +2074,7 @@ model RegistrationProvisioning {
   createdAt      DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime            @updatedAt @db.Timestamptz(6)
 
+  @@index([status])
   @@map("registration_provisioning")
 }
 
@@ -2324,6 +2326,7 @@ model RegistrationSubscription {
   charges          RegistrationSubscriptionCharge[]
 
   @@index([registrationId, createdAt])
+  @@index([status])
   @@map("registration_subscription")
 }
 

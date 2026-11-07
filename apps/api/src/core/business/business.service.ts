@@ -98,6 +98,14 @@ export class BusinessService {
             taxId: dto.taxId === undefined ? undefined : dto.taxId,
           },
         });
+        // Suspending a business ends its people's live sessions right away (the guard also refuses them per request).
+        if (dto.status === 'SUSPENDED' && existing.status !== 'SUSPENDED') {
+          await tx.user.updateMany({ where: { businessId: id }, data: { tokenVersion: { increment: 1 } } });
+          await tx.session.updateMany({
+            where: { businessId: id, revokedAt: null },
+            data: { revokedAt: new Date(), revokedReason: 'business_suspended' },
+          });
+        }
         await this.audit.append(tx, { businessId: id, actor }, {
           action: 'business.updated',
           resourceType: 'business',

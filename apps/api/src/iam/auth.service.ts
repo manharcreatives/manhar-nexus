@@ -7,6 +7,7 @@ import { ForbiddenError, UnauthorizedError, ValidationError } from '../common/er
 import { PasswordService } from './password.service';
 import { TokenService, hashRefresh } from './token.service';
 import { selectSlotCookiesToDrop } from './session-cookie';
+import { assertBusinessNotPaused, isBusinessPaused } from './business-access';
 
 export interface AuthContext {
   ip?: string;
@@ -63,6 +64,16 @@ export class AuthService {
     if (user.status === 'SUSPENDED') {
       await this.record(user.businessId, email, 'suspended', ctx, user.id);
       throw new ForbiddenError('Account is suspended');
+    }
+    if (user.businessId) {
+      const business = await this.prisma.business.findUnique({
+        where: { id: user.businessId },
+        select: { status: true, commercialStatus: true },
+      });
+      if (isBusinessPaused(business)) {
+        await this.record(user.businessId, email, 'paused', ctx, user.id);
+        assertBusinessNotPaused(business);
+      }
     }
     if (user.status === 'PENDING') {
       await this.record(user.businessId, email, 'pending', ctx, user.id);

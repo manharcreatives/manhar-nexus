@@ -96,8 +96,16 @@ export class OrderEditService extends TenantScopedRepository {
 
     // 2. Pre-flight on a plain read: 404 / locked / stale before any pricing work.
     const request = await this.orders.findRequestOrThrow(scope, id);
-    assertEditable(request, await this.context(this.prisma, scope, request.sessionId), { id });
-    this.assertVersion(dto.expectedVersion, request);
+    try {
+      assertEditable(request, await this.context(this.prisma, scope, request.sessionId), { id });
+      this.assertVersion(dto.expectedVersion, request);
+    } catch (err) {
+      // Identical requests racing: the winner may have committed between step 1 and this read, which bumped the
+      // version. That is a replay of an applied key, not a conflict, so answer it exactly like step 1 would.
+      const applied = await this.findByKey(this.prisma, scope, dto.idempotencyKey);
+      if (applied) return this.replay(scope, id, applied);
+      throw err;
+    }
     const plan = planEdit(request.lines as EditableLine[], dto.ops);
     const notesChanged = dto.notes !== undefined && (dto.notes ?? null) !== (request.notes ?? null);
     if (plan.ops.length === 0 && !notesChanged) {

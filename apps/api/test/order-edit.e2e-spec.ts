@@ -439,7 +439,7 @@ describe('Order edit before the kitchen starts (e2e)', () => {
     });
 
     it('edit racing the kitchen "accept": never a 500, never a half-applied edit', async () => {
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 20; i++) {
         const s = await newSession();
         const o = await sentOrder(s, [{ catalogItemId: teaId, quantity: 1 }]);
         const [e, a] = await Promise.all([

@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { ForbiddenError, UnauthorizedError } from '../common/errors';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthorizationService } from './authorization.service';
+import { assertBusinessNotPaused } from './business-access';
 import { ALLOW_PASSWORD_CHANGE_PENDING, IS_PUBLIC, type AuthenticatedRequest, type Principal, actorOf } from './principal';
 import { TokenService } from './token.service';
 
@@ -41,7 +42,7 @@ export class JwtAuthGuard implements CanActivate {
     // One round-trip for session + its user (the per-request revocation check).
     const session = await this.prisma.session.findUnique({
       where: { id: claims.sid },
-      include: { user: true },
+      include: { user: { include: { business: { select: { status: true, commercialStatus: true } } } } },
     });
     if (
       !session ||
@@ -56,6 +57,9 @@ export class JwtAuthGuard implements CanActivate {
     if (!user || user.id !== claims.sub || user.status !== 'ACTIVE' || user.tokenVersion !== claims.tv) {
       throw new UnauthorizedError('Account is not active');
     }
+
+    // A paused client (suspended or churned) is locked out on the very next request, not at token expiry.
+    if (user.businessId) assertBusinessNotPaused(user.business);
 
     if (user.mustChangePassword) {
       const allowed = this.reflector.getAllAndOverride<boolean>(ALLOW_PASSWORD_CHANGE_PENDING, [

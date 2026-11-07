@@ -66,11 +66,33 @@ export class DomainExceptionFilter implements ExceptionFilter {
         requestId,
       };
     }
+    // The body parser (express) rejects before Nest sees the request and throws a plain error with a status and a type.
+    const parsed = this.bodyParserError(exception);
+    if (parsed) return { statusCode: parsed.status, error: { code: parsed.code, message: parsed.message }, requestId };
     return {
       statusCode: 500,
       error: { code: 'INTERNAL', message: 'Internal server error' },
       requestId,
     };
+  }
+
+  /** Oversized, unparseable or wrongly-encoded bodies are the sender's fault: 4xx with a generic message, no stack. */
+  private bodyParserError(exception: unknown): { status: number; code: string; message: string } | null {
+    const e = exception as { type?: unknown; status?: unknown; statusCode?: unknown } | null;
+    if (!e || typeof e !== 'object' || typeof e.type !== 'string') return null;
+    const status = typeof e.status === 'number' ? e.status : typeof e.statusCode === 'number' ? e.statusCode : 0;
+    switch (e.type) {
+      case 'entity.too.large':
+        return { status: 413, code: 'PAYLOAD_TOO_LARGE', message: 'The request is too large.' };
+      case 'entity.parse.failed':
+      case 'entity.verify.failed':
+        return { status: 400, code: 'BAD_REQUEST', message: 'The request body could not be read.' };
+      case 'encoding.unsupported':
+      case 'charset.unsupported':
+        return { status: 415, code: 'UNSUPPORTED_MEDIA_TYPE', message: 'Unsupported content encoding.' };
+      default:
+        return status >= 400 && status < 500 && e.type.startsWith('request.') ? { status, code: 'BAD_REQUEST', message: 'The request could not be read.' } : null;
+    }
   }
 
   private httpCode(status: number): string {
@@ -85,6 +107,8 @@ export class DomainExceptionFilter implements ExceptionFilter {
         return 'NOT_FOUND';
       case 409:
         return 'CONFLICT';
+      case 413:
+        return 'PAYLOAD_TOO_LARGE';
       default:
         return status >= 500 ? 'INTERNAL' : 'ERROR';
     }
