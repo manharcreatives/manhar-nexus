@@ -63,12 +63,12 @@ describe('Paused clients and request limits (e2e)', () => {
       const set = await as(platformToken).patch(`/internal/commercial/clients/${c.businessId}`, { commercialStatus });
       expect(set.status).toBe(200);
 
+      // The pause ended the old session at once (401); signing in again says why (403 paused).
       const live = await as(c.ownerToken).get('/admin/roles');
-      expect(live.status).toBe(403);
-      expect(live.body.error.message).toBe(PAUSED);
-      expect(live.body.error.details).toMatchObject({ reason: 'ACCOUNT_PAUSED' });
+      expect(live.status).toBe(401);
 
       const again = await login(c.ownerEmail, PW);
+      expect(again.body.error.details).toMatchObject({ reason: 'ACCOUNT_PAUSED' });
       expect(again.status).toBe(403);
       expect(again.body.error.message).toBe(PAUSED);
 
@@ -76,8 +76,11 @@ describe('Paused clients and request limits (e2e)', () => {
       expect((await as(platformToken).get(`/internal/commercial/clients/${c.businessId}`)).status).toBe(200);
 
       await as(platformToken).patch(`/internal/commercial/clients/${c.businessId}`, { commercialStatus: 'ACTIVE' }).expect(200);
-      expect((await as(c.ownerToken).get('/admin/roles')).status).toBe(200);
-      expect((await login(c.ownerEmail, PW)).status).toBe(200);
+      // Pausing ended the old sessions for good: the old token must not come back, but a fresh sign-in works.
+      expect((await as(c.ownerToken).get('/admin/roles')).status).toBe(401);
+      const fresh = await login(c.ownerEmail, PW);
+      expect(fresh.status).toBe(200);
+      expect((await as(fresh.body.accessToken as string).get('/admin/roles')).status).toBe(200);
     });
   }
 

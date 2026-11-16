@@ -392,6 +392,14 @@ describe('Restaurant V1 — Complete Service Journey (e2e)', () => {
       const r = await oPost(`/admin/checkout/invoices/${invoiceId}/finalise`);
       expect([400, 409, 422]).toContain(r.status);
     });
+
+    it('cannot close the table while the finalised bill is still unpaid', async () => {
+      const r = await oPost(`/admin/sessions/${sessionId}/close`);
+      expect(r.status).toBe(409);
+      expect(r.body.error.message).toContain('unpaid bill');
+      const session = await oGet(`/admin/sessions/${sessionId}`);
+      expect(session.body.status).toBe('OPEN');
+    });
   });
 
   // ── 8. PAYMENT ───────────────────────────────────────────────────────────────

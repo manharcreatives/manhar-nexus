@@ -153,6 +153,12 @@ export class SessionService extends TenantScopedRepository {
       });
     }
 
+    // A finalised bill that has not been paid or voided would drop out of every report once the table is closed.
+    const unpaid = await this.prisma.invoice.count({ where: { sessionId: id, status: 'FINALISED' } });
+    if (unpaid > 0) {
+      throw new ConflictError('This table has an unpaid bill. Take payment or void the bill first.', { unpaidInvoices: unpaid });
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const session = await tx.guestSession.update({
         where: { id },

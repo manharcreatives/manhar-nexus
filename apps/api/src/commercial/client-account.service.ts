@@ -70,17 +70,31 @@ export class ClientAccountService {
 
   async update(businessId: string, dto: UpdateClientAccountDto) {
     await this.findByIdOrThrow(businessId);
-    return this.prisma.business.update({
-      where: { id: businessId },
-      data: dto,
-      select: {
-        id: true,
-        name: true,
-        commercialStatus: true,
-        accountNotes: true,
-        assignedTo: true,
-        updatedAt: true,
-      },
+    const before = await this.prisma.business.findUnique({ where: { id: businessId }, select: { commercialStatus: true } });
+    const pausing =
+      (dto.commercialStatus === 'SUSPENDED' || dto.commercialStatus === 'CHURNED') && before?.commercialStatus !== dto.commercialStatus;
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.business.update({
+        where: { id: businessId },
+        data: dto,
+        select: {
+          id: true,
+          name: true,
+          commercialStatus: true,
+          accountNotes: true,
+          assignedTo: true,
+          updatedAt: true,
+        },
+      });
+      // Pausing a client ends its people's live sessions at once, so an old token cannot come back after reactivation.
+      if (pausing) {
+        await tx.user.updateMany({ where: { businessId }, data: { tokenVersion: { increment: 1 } } });
+        await tx.session.updateMany({
+          where: { businessId, revokedAt: null },
+          data: { revokedAt: new Date(), revokedReason: 'client_paused' },
+        });
+      }
+      return updated;
     });
   }
 
