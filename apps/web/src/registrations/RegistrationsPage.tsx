@@ -434,10 +434,14 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
       {editing ? (
         <EditContactDialog
           request={editing}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            bump();
+          }}
           onSaved={() => {
             setEditing(null);
             toast.show(t('registrations.edit.saved'));
+            bump();
             void load();
           }}
         />

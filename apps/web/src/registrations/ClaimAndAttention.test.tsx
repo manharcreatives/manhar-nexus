@@ -180,6 +180,19 @@ describe('Registrations: needs attention', () => {
     expect(strip.querySelector('button')).toBeNull();
   });
 
+  it('a long attention list shows five rows and a "Show N more" button', async () => {
+    window.history.replaceState(null, '', '/registrations');
+    withRows('NEW');
+    const many = Array.from({ length: 8 }, (_, i) => ({ registrationId: `r${i}`, restaurantName: `Cafe ${i}` }));
+    getAttention.mockResolvedValue({ failedProvisioning: [], paidNotConverted: [], paidClosed: many });
+    renderPage();
+    expect(await screen.findByText(/Cafe 0 paid, but/)).toBeTruthy();
+    expect(screen.queryByText(/Cafe 7 paid, but/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show 3 more' }));
+    expect(await screen.findByText(/Cafe 7 paid, but/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show fewer' })).toBeTruthy();
+  });
+
   it('a failed attention check does not break the page', async () => {
     getAttention.mockRejectedValue(new Error('down'));
     withRows('CONVERTED', row);

@@ -24,6 +24,7 @@ export function AttentionStrip({
 }) {
   const { t } = useTranslation();
   const [data, setData] = useState<Attention | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -41,11 +42,8 @@ export function AttentionStrip({
   const mismatch = data?.mismatch ?? [];
   if (!data || (data.failedProvisioning.length === 0 && data.paidNotConverted.length === 0 && closed.length === 0 && mismatch.length === 0)) return null;
 
-  return (
-    <section aria-label={t('registrations.attention.title')} className="mb-4 rounded-panel border border-bad/40 bg-bad/10 p-4">
-      <h2 className="text-base font-semibold">{t('registrations.attention.title')}</h2>
-      <ul className="mt-2 space-y-2 text-sm">
-        {data.failedProvisioning.map((f) => (
+  const rows = [
+        ...data.failedProvisioning.map((f) => (
           <li key={`f-${f.registrationId}`} className="flex flex-wrap items-center justify-between gap-2">
             <span>
               {t('registrations.attention.failed', { name: f.restaurantName })}
@@ -56,27 +54,37 @@ export function AttentionStrip({
               {t('registrations.attention.retry')}
             </Button>
           </li>
-        ))}
-        {mismatch.map((m) => (
+        )),
+        ...mismatch.map((m) => (
           <li key={`m-${m.registrationId}`} className="flex flex-wrap items-center justify-between gap-2">
             <span>{t('registrations.attention.mismatch', { name: m.restaurantName })}</span>
             <Button variant="secondary" onClick={() => onAccept(m.registrationId)}>
               {t('registrations.attention.accept')}
             </Button>
           </li>
-        ))}
-        {data.paidNotConverted.map((p) => (
+        )),
+        ...data.paidNotConverted.map((p) => (
           <li key={`p-${p.registrationId}`} className="flex flex-wrap items-center justify-between gap-2">
             <span>{t('registrations.attention.paid', { name: p.restaurantName })}</span>
             <Button variant="secondary" onClick={() => onCreate(p.registrationId)}>
               {t('registrations.attention.create')}
             </Button>
           </li>
-        ))}
-        {closed.map((c) => (
-          <li key={`c-${c.registrationId}`}>{t('registrations.attention.paidClosed', { name: c.restaurantName })}</li>
-        ))}
-      </ul>
+        )),
+        ...closed.map((c) => <li key={`c-${c.registrationId}`}>{t('registrations.attention.paidClosed', { name: c.restaurantName })}</li>),
+  ];
+  const LIMIT = 5;
+  const visible = showAll ? rows : rows.slice(0, LIMIT);
+
+  return (
+    <section aria-label={t('registrations.attention.title')} className="mb-4 rounded-panel border border-bad/40 bg-bad/10 p-4">
+      <h2 className="text-base font-semibold">{t('registrations.attention.title')}</h2>
+      <ul className="mt-2 space-y-2 text-sm">{visible}</ul>
+      {rows.length > LIMIT ? (
+        <button type="button" className="mt-2 min-h-11 text-sm underline" onClick={() => setShowAll((s) => !s)}>
+          {showAll ? t('registrations.attention.showLess') : t('registrations.attention.showMore', { count: rows.length - LIMIT })}
+        </button>
+      ) : null}
     </section>
   );
 }

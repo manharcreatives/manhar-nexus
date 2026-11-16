@@ -200,6 +200,8 @@
       "failedStep": "Stopped at: {{step}}",
       "paid": "{{name}} has paid but has no account yet.",
       "paidClosed": "{{name}} paid, but the request is marked spam or rejected. Decide whether to reopen it or refund the payment.",
+      "showMore": "Show {{count}} more",
+      "showLess": "Show fewer",
       "retry": "Retry",
       "create": "Create account",
       "retried": "Retried. Check the request below.",
