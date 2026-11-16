@@ -5,9 +5,14 @@ import { Spinner } from './Spinner';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'md' | 'lg';
 
+/**
+ * Hierarchy: primary = the one thing to do on this screen; secondary = everything else; ghost = quiet, in toolbars;
+ * danger = destructive (always behind a confirmation). Secondary carries a 20% border so it still reads as a button
+ * in a dim room, and brightens on hover.
+ */
 const variants: Record<Variant, string> = {
   primary: 'nx-primary text-on-accent font-semibold',
-  secondary: 'border border-white/10 bg-white/[0.04] text-ink hover:border-accent/40 hover:bg-white/[0.07]',
+  secondary: 'border border-white/20 bg-white/[0.05] text-ink hover:border-accent/50 hover:bg-white/[0.08]',
   ghost: 'text-ink hover:bg-white/[0.06]',
   danger: 'bg-bad/90 text-[#1a0606] font-semibold shadow-[inset_0_1px_0_rgb(255_255_255/0.2)] hover:bg-bad',
 };
@@ -30,7 +35,7 @@ export function Button({ variant = 'primary', size = 'md', loading, disabled, cl
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'nx-press inline-flex items-center justify-center gap-2 rounded-control font-medium transition-colors duration-(--duration-micro) disabled:cursor-not-allowed disabled:opacity-50',
+        'nx-press inline-flex items-center justify-center gap-2 rounded-control text-center font-medium transition-colors duration-(--duration-micro) disabled:cursor-not-allowed disabled:opacity-50',
         variants[variant],
         sizes[size],
         className,

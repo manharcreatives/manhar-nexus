@@ -1,5 +1,6 @@
 import { useId, type TextareaHTMLAttributes } from 'react';
 import { cn } from '../lib/cn';
+import { controlBox } from './controlBox';
 
 export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> {
   label: string;
@@ -16,15 +17,20 @@ export function Textarea({ label, error, className, ...rest }: TextareaProps) {
       <textarea
         id={id}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-err` : undefined}
         rows={3}
         {...rest}
         className={cn(
-          'w-full rounded-control border bg-white/[0.035] px-3 py-2 text-base',
-          error ? 'border-bad' : 'border-line hover:border-muted/70',
+          'w-full rounded-control border bg-white/[0.035] px-3 py-2 text-base text-ink placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-60',
+          controlBox(!!error),
           className,
         )}
       />
-      {error && <p className="text-sm text-bad">{error}</p>}
+      {error && (
+        <p id={`${id}-err`} className="text-sm text-bad">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

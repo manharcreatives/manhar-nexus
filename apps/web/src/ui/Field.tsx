@@ -1,5 +1,6 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
+import { controlBox } from './controlBox';
 
 export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
   label: string;
@@ -11,7 +12,8 @@ export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
 
 export function Field({ label, hint, error, adornment, className, ...rest }: FieldProps) {
   const id = useId();
-  const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
+  // An error replaces the hint visually, but the hint stays linked for screen readers when both exist.
+  const describedBy = [error ? `${id}-err` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-sm font-medium text-ink">
@@ -24,8 +26,8 @@ export function Field({ label, hint, error, adornment, className, ...rest }: Fie
           aria-describedby={describedBy}
           {...rest}
           className={cn(
-            'min-h-11 w-full rounded-control border bg-white/[0.035] px-3 text-base text-ink transition-colors duration-(--duration-micro) placeholder:text-muted/70',
-            error ? 'border-bad' : 'border-white/10 hover:border-white/25',
+            'min-h-11 w-full rounded-control border bg-white/[0.035] px-3 text-base text-ink transition-colors duration-(--duration-micro) placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-60',
+            controlBox(!!error),
             adornment ? 'pr-11' : '',
             className,
           )}

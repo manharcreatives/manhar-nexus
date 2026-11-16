@@ -16,6 +16,9 @@ export interface DialogProps {
 /**
  * Modal built on the native <dialog>: focus trap, Esc and return-focus come from the platform; backdrop
  * dismissal uses the shared pointer logic so a text selection that ends outside never closes it.
+ *
+ * On a phone a long form scrolls INSIDE the dialog while the title stays at the top and the footer (Save) stays at the
+ * bottom, clear of the home-indicator (safe-area inset). Height never exceeds the visible screen (100dvh).
  */
 export function Dialog({ open, onClose, title, children, footer, className, closeOnBackdrop = true }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -47,19 +50,23 @@ export function Dialog({ open, onClose, title, children, footer, className, clos
       onClose={onClose}
       {...backdrop}
       className={cn(
-        'nx-dialog m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto focus:outline-none w-[min(32rem,calc(100vw-2rem))] nx-pop rounded-panel p-0 text-ink',
+        'nx-dialog m-auto max-h-[calc(100dvh-1rem)] overflow-y-auto focus:outline-none w-[min(32rem,calc(100vw-1rem))] sm:max-h-[calc(100dvh-2rem)] sm:w-[min(32rem,calc(100vw-2rem))] nx-pop rounded-panel p-0 text-ink',
         className,
       )}
     >
       {open && (
         <div className="[--stub-bg:var(--color-surface)]">
-          <div className="px-6 pt-6">
-            <h2 className="rule-tick pb-3 text-[1.375rem] leading-tight font-semibold">{title}</h2>
+          <div className="sticky top-0 z-10 rounded-t-panel bg-surface px-4 pt-5 sm:px-6 sm:pt-6">
+            <h2 className="rule-tick pb-3 text-[1.375rem] leading-tight font-semibold break-words">
+              {title}
+            </h2>
           </div>
-          <div className="px-6 pt-4 pb-6">{children}</div>
+          <div className="px-4 pt-4 pb-6 sm:px-6">{children}</div>
           {/* The footer is sticky: on a phone a long form scrolls inside the dialog, and Save must stay in view. */}
           {footer && (
-            <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 rounded-b-panel border-t border-white/[0.07] bg-surface px-6 py-4">{footer}</div>
+            <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 rounded-b-panel border-t border-white/[0.12] bg-surface px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-14px_18px_-14px_rgb(0_0_0/0.6)] sm:px-6">
+              {footer}
+            </div>
           )}
         </div>
       )}
