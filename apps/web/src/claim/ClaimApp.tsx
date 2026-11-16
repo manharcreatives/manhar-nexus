@@ -8,7 +8,7 @@ import { Button } from '../ui/Button';
 import { claimTokenFromHash } from './path';
 
 /** Same base the staff app uses. Duplicated on purpose: the owner's page must not import the auth code. */
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000';
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (import.meta.env.DEV ? 'http://localhost:3000' : '/api');
 
 const LINK_PRIMARY = 'nx-primary inline-flex min-h-11 items-center justify-center rounded-control px-4 text-sm font-semibold text-on-accent';
 const LINK_SECONDARY = 'inline-flex min-h-11 items-center justify-center rounded-control border border-white/10 bg-white/[0.04] px-4 text-sm hover:border-accent/40';

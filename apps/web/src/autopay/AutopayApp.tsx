@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { autopayToken } from './path';
 
 /** Same base the staff app uses. Duplicated on purpose: the owner's page must not import the auth code. */
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000';
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (import.meta.env.DEV ? 'http://localhost:3000' : '/api');
 const SDK_URL = 'https://sdk.cashfree.com/js/v3/cashfree.js';
 
 type Answer =
