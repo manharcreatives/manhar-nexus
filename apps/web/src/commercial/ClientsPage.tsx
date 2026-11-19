@@ -37,8 +37,11 @@ import {
   COMMERCIAL_TONE,
   errorMessage,
   formatDate,
+  matchesQuery,
+  renewalState,
   toMinorUnits,
 } from './helpers';
+import { SearchBox } from './SearchBox';
 import { FormError, ListSkeleton } from './Shared';
 import { PeopleBlock } from './PeopleBlock';
 import { PlanInfo } from './PlanInfo';
@@ -56,6 +59,18 @@ export function ClientsPage() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [filterStatus, setFilterStatus] = useState<CommercialStatus | ''>('');
   const [selected, setSelected] = useState<ClientSummary | null>(null);
+  const [query, setQuery] = useState('');
+  const [renewalsOnly, setRenewalsOnly] = useState(false);
+
+  // Search (name, plan, type, status, assignee) and the renewals filter run on the loaded list; renewals are listed
+  // soonest-due first, so the one that needs a payment link first is on top.
+  const shown = useMemo(() => {
+    const rows = (clients ?? []).filter((c) => matchesQuery(query, [c.name, c.businessType.name, c.planKey, c.billingCycle, c.commercialStatus, c.assignedTo, c.slug]));
+    if (!renewalsOnly) return rows;
+    return rows
+      .filter((c) => c.commercialStatus !== 'CHURNED' && ['overdue', 'soon'].includes(renewalState(c.paidUntil)))
+      .sort((a, b) => Date.parse(a.paidUntil ?? '') - Date.parse(b.paidUntil ?? ''));
+  }, [clients, query, renewalsOnly]);
 
   const load = useCallback(async () => {
     setLoadFailed(false);
@@ -91,24 +106,34 @@ export function ClientsPage() {
             {t('commercial.clients.title')}
           </h2>
           <p className="text-sm text-muted" aria-live="polite">
-            {clients ? t('commercial.clients.count', { count: clients.length }) : t('commercial.loading')}
+            {clients ? t('commercial.clients.count', { count: shown.length }) : t('commercial.loading')}
           </p>
         </div>
-        <div className="w-full sm:w-56">
-          <Select
-            label={t('commercial.clients.filter')}
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as CommercialStatus | '')}
-          >
-            <option value="">{t('commercial.allStatuses')}</option>
-            {COMMERCIAL_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`commercial.status.${s}`)}
-              </option>
-            ))}
-          </Select>
+        <div className="flex w-full flex-wrap items-end gap-3 sm:w-auto">
+          <SearchBox
+            value={query}
+            onChange={setQuery}
+            label={t('commercial.clients.search.label')}
+            placeholder={t('commercial.clients.search.placeholder')}
+            clearLabel={t('commercial.clients.search.clear')}
+          />
+          <div className="w-full sm:w-56">
+            <Select
+              label={t('commercial.clients.filter')}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as CommercialStatus | '')}
+            >
+              <option value="">{t('commercial.allStatuses')}</option>
+              {COMMERCIAL_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {t(`commercial.status.${s}`)}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </div>
+      <Checkbox label={t('commercial.clients.renewalsOnly')} checked={renewalsOnly} onChange={(e) => setRenewalsOnly(e.target.checked)} />
 
       {loadFailed ? (
         <ErrorState
@@ -131,7 +156,44 @@ export function ClientsPage() {
             ) : undefined
           }
         />
+      ) : shown.length === 0 ? (
+        <EmptyState
+          title={t('commercial.clients.search.noneTitle')}
+          body={t('commercial.clients.search.none', { query })}
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setQuery('');
+                setRenewalsOnly(false);
+              }}
+            >
+              {t('commercial.clients.search.clear')}
+            </Button>
+          }
+        />
       ) : (
+        <>
+        {/* Phones get one card per client (a six-column table cannot be read on a 375px screen). */}
+        <ul className="space-y-3 md:hidden" aria-label={t('commercial.clients.title')}>
+          {shown.map((c) => (
+            <li key={c.id}>
+              <button type="button" onClick={() => setSelected(c)} className="nx-glass block w-full rounded-panel p-4 text-left">
+                <span className="flex flex-wrap items-start justify-between gap-2">
+                  <span className="min-w-0 text-base font-semibold text-accent-strong">{c.name}</span>
+                  <StatusPill tone={COMMERCIAL_TONE[c.commercialStatus]}>{t(`commercial.status.${c.commercialStatus}`)}</StatusPill>
+                </span>
+                <span className="mt-1 block text-sm text-muted">
+                  {c.businessType.name} · {t('commercial.clients.locationCount', { count: c._count.locations })}
+                </span>
+                <span className="mt-2 block">
+                  <PlanInfo client={c} compact />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden md:block">
         <Table aria-label={t('commercial.clients.title')}>
           <thead>
             <tr>
@@ -144,7 +206,7 @@ export function ClientsPage() {
             </tr>
           </thead>
           <tbody>
-            {clients.map((c) => (
+            {shown.map((c) => (
               <tr key={c.id} className="hover:bg-sunken/40">
                 <Td>
                   <button
@@ -170,6 +232,8 @@ export function ClientsPage() {
             ))}
           </tbody>
         </Table>
+        </div>
+        </>
       )}
     </section>
   );

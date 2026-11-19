@@ -177,12 +177,12 @@ export function claimMessage(r: Pick<RegistrationRequest, 'contactName' | 'resta
 
 /** Things that need a person: a failed account job, or money received but no account yet. */
 export interface Attention {
-  failedProvisioning: { registrationId: string; restaurantName: string; lastError: string | null; currentStep: string | null }[];
-  paidNotConverted: { registrationId: string; restaurantName: string }[];
+  failedProvisioning: { registrationId: string; restaurantName: string; lastError: string | null; currentStep: string | null; referenceCode?: string }[];
+  paidNotConverted: { registrationId: string; restaurantName: string; referenceCode?: string }[];
   /** Money received on a request marked spam or rejected: a person must decide (reopen it, or refund). */
-  paidClosed?: { registrationId: string; restaurantName: string }[];
+  paidClosed?: { registrationId: string; restaurantName: string; referenceCode?: string }[];
   /** A payment whose amount did not match the link: a person checks Cashfree, then accepts it or refunds. */
-  mismatch?: { registrationId: string; restaurantName: string }[];
+  mismatch?: { registrationId: string; restaurantName: string; referenceCode?: string }[];
 }
 
 /** The API's list: one item per case, with a reason. */
@@ -197,13 +197,14 @@ interface AttentionApi {
  */
 export async function getAttention(): Promise<Attention> {
   const res = await api<AttentionApi>('/internal/provisioning/attention');
+  const ref = (i: AttentionApi['items'][number]) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName, referenceCode: i.referenceCode });
   return {
     failedProvisioning: res.items
       .filter((i) => i.reason === 'PROVISIONING_FAILED')
-      .map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName, lastError: i.detail, currentStep: null })),
-    paidNotConverted: res.items.filter((i) => i.reason === 'PAID_NOT_CREATED').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
-    paidClosed: res.items.filter((i) => i.reason === 'PAID_ON_CLOSED_REQUEST').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
-    mismatch: res.items.filter((i) => i.reason === 'AMOUNT_MISMATCH').map((i) => ({ registrationId: i.registrationId, restaurantName: i.restaurantName })),
+      .map((i) => ({ ...ref(i), lastError: i.detail, currentStep: null })),
+    paidNotConverted: res.items.filter((i) => i.reason === 'PAID_NOT_CREATED').map(ref),
+    paidClosed: res.items.filter((i) => i.reason === 'PAID_ON_CLOSED_REQUEST').map(ref),
+    mismatch: res.items.filter((i) => i.reason === 'AMOUNT_MISMATCH').map(ref),
   };
 }
 

@@ -221,9 +221,18 @@ export function PaymentLinkDialog({
             </>
           )}
 
-          <button type="button" className="text-sm text-accent underline" onClick={() => setManual((m) => !m)}>
+          <button type="button" className="inline-flex min-h-11 items-center text-sm text-accent underline" onClick={() => setManual((m) => !m)}>
             {manual ? t('registrations.payment.usePlan') : t('registrations.payment.typeAmount')}
           </button>
+          {/* The last thing read before pressing Create: who gets the link and how much it is for. */}
+          <p className="rounded-control bg-white/[0.04] px-3 py-2 text-sm" data-testid="link-recipient">
+            {t('registrations.payment.recipient', {
+              name: request.contactName,
+              email: request.email,
+              phone: request.phone,
+              amount: manual ? (parseRupees(amount) !== null ? formatRupees(Math.round((parseRupees(amount) as number) * 100)) : '—') : quote ? formatRupees(quote.totalPaise) : '—',
+            })}
+          </p>
           <FormError message={error} />
         </form>
       )}

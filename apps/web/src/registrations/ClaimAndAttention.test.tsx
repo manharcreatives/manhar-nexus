@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import '../i18n';
 import { PlanInfo, registrationHref } from '../commercial/PlanInfo';
@@ -166,7 +166,7 @@ describe('Registrations: needs attention', () => {
     renderPage();
     expect(await screen.findByText('Ananda Cafe has paid but has no account yet.')).toBeTruthy();
     const strip = screen.getByRole('region', { name: 'Needs attention' });
-    fireEvent.click(strip.querySelector('button') as HTMLButtonElement);
+    fireEvent.click(within(strip).getByRole('button', { name: 'Create account' }));
     expect(await screen.findByDisplayValue('Ananda Cafe')).toBeTruthy();
   });
 
@@ -177,7 +177,7 @@ describe('Registrations: needs attention', () => {
     renderPage();
     expect(await screen.findByText(/Ananda Cafe paid, but the request is marked spam or rejected/)).toBeTruthy();
     const strip = screen.getByRole('region', { name: 'Needs attention' });
-    expect(strip.querySelector('button')).toBeNull();
+    expect(within(strip).queryByRole('button', { name: /Create|Accept|Retry/ })).toBeNull();
   });
 
   it('a long attention list shows five rows and a "Show N more" button', async () => {

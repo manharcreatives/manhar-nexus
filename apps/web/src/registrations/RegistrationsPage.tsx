@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { errorMessage, formatDate, formatDateTime } from '../commercial/helpers';
+import { errorMessage, formatDate, formatDateTime, matchesQuery, relativeAge } from '../commercial/helpers';
+import { SearchBox } from '../commercial/SearchBox';
 import { ListSkeleton } from '../commercial/Shared';
+import { MoreItem, MoreMenu } from './MoreMenu';
 import { AcceptMismatchDialog } from './AcceptMismatchDialog';
 import { AttentionStrip } from './AttentionStrip';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -57,6 +59,20 @@ const PAYMENT_TONE: Record<PaymentStatus, 'info' | 'ok' | 'neutral' | 'bad' | 'w
   AMOUNT_MISMATCH: 'bad',
 };
 
+/**
+ * How urgently a request needs a person: 0 = money arrived, no account yet; 1 = a wrong amount was paid;
+ * 2 = a new request nobody has touched; 3 = everything else that is still open.
+ */
+export function priorityOf(r: RegistrationRequest): 0 | 1 | 2 | 3 {
+  if (r.status !== 'CONVERTED' && isPaid(r)) return 0;
+  if (r.payments.some((p) => p.status === 'AMOUNT_MISMATCH')) return 1;
+  if (r.status === 'NEW') return 2;
+  return 3;
+}
+
+const BAR: Record<0 | 1 | 2 | 3, string | null> = { 0: 'bg-accent', 1: 'bg-bad', 2: 'bg-info', 3: null };
+const DAY_MS = 86_400_000;
+
 /** Landing-page requests: the platform admin reads the details and creates the restaurant account in one click. */
 export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (businessId: string) => void }) {
   const { t } = useTranslation();
@@ -64,7 +80,10 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
   // A link from the Clients page (#reg-<id>) points at an account that already exists, so start on the converted tab.
   const [filter, setFilter] = useState<Filter>(() => (window.location.hash.startsWith('#reg-') ? 'CONVERTED' : 'open'));
   const [attentionKey, setAttentionKey] = useState(0);
-  const pendingAction = useRef<{ kind: 'create' | 'accept'; id: string } | null>(null);
+  const pendingAction = useRef<{ kind: 'create' | 'accept' | 'view'; id: string } | null>(null);
+  const [query, setQuery] = useState('');
+  const [counts, setCounts] = useState<Record<Filter, number> | null>(null);
+  const [flashId, setFlashId] = useState<string | null>(null);
   const [items, setItems] = useState<RegistrationRequest[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -87,7 +106,8 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
       if (filter === 'open') {
         const pages = await Promise.all(OPEN.map((status) => listRegistrations({ status })));
         const all = pages.flatMap((p) => p.items);
-        all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        // Triage order: money waiting on an account first, then wrong amounts, then new requests, longest waiting first.
+        all.sort((a, b) => priorityOf(a) - priorityOf(b) || a.createdAt.localeCompare(b.createdAt));
         setItems(all);
       } else {
         setItems((await listRegistrations({ status: filter })).items);
@@ -101,7 +121,21 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
     void load();
   }, [load]);
 
-  // After a list load: open the account dialog asked for by the attention strip, and scroll to a #reg-<id> target.
+  // Tab counts: how many requests wait in each tab, refreshed whenever something that can change them happens.
+  useEffect(() => {
+    let live = true;
+    const statuses: RegistrationStatus[] = [...OPEN, 'CONVERTED', 'REJECTED', 'SPAM'];
+    void Promise.all(statuses.map((status) => listRegistrations({ status, take: 1 }).then((p) => p.total)))
+      .then((n) => {
+        if (live) setCounts({ open: (n[0] ?? 0) + (n[1] ?? 0) + (n[2] ?? 0), CONVERTED: n[3] ?? 0, REJECTED: n[4] ?? 0, SPAM: n[5] ?? 0 });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [attentionKey]);
+
+  // After a list load: open the dialog the attention strip asked for, or scroll to the request it points at.
   useEffect(() => {
     if (!items) return;
     const wanted = pendingAction.current;
@@ -110,7 +144,8 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
       if (hit) {
         pendingAction.current = null;
         if (wanted.kind === 'create') setCreating(hit);
-        else openAccept(hit);
+        else if (wanted.kind === 'accept') openAccept(hit);
+        else flashRequest(hit.id);
       }
     }
     const target = window.location.hash.startsWith('#reg-') ? document.getElementById(window.location.hash.slice(1)) : null;
@@ -123,9 +158,23 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
     else toast.show(t('registrations.accept.notFound'));
   }
 
-  function fromAttention(kind: 'create' | 'accept', registrationId: string) {
+  /** Scroll to a request card and ring it for a moment, so "View" in the strip lands somewhere obvious. */
+  function flashRequest(id: string) {
+    setQuery('');
+    setFlashId(id);
+    window.setTimeout(() => {
+      document.getElementById(`reg-${id}`)?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    }, 50);
+    window.setTimeout(() => setFlashId((cur) => (cur === id ? null : cur)), 3000);
+  }
+
+  function fromAttention(kind: 'create' | 'accept' | 'view', registrationId: string) {
     const hit = items?.find((r) => r.id === registrationId);
-    if (hit) return kind === 'create' ? setCreating(hit) : openAccept(hit);
+    if (hit) {
+      if (kind === 'create') return setCreating(hit);
+      if (kind === 'accept') return openAccept(hit);
+      return flashRequest(hit.id);
+    }
     pendingAction.current = { kind, id: registrationId };
     if (filter === 'open') void load();
     else setFilter('open');
@@ -185,6 +234,12 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
     void load();
   }
 
+  const tabLabel = (key: Filter) => (counts ? `${t(`registrations.filter.${key}`)} · ${counts[key]}` : t(`registrations.filter.${key}`));
+  const visible = (items ?? []).filter((r) =>
+    matchesQuery(query, [r.restaurantName, r.contactName, r.email, r.phone, r.referenceCode, r.city, r.planKey]),
+  );
+  const now = Date.now();
+
   const canCreate = (r: RegistrationRequest) => r.status !== 'CONVERTED' && r.status !== 'SPAM';
   /** A payment link makes sense for a live lead that has not paid yet. */
   const canCharge = (r: RegistrationRequest) => ['NEW', 'CONTACTED', 'QUALIFIED'].includes(r.status) && !isPaid(r);
@@ -198,10 +253,10 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
         active={filter}
         onChange={(k) => setFilter(k as Filter)}
         items={[
-          { key: 'open', label: t('registrations.filter.open') },
-          { key: 'CONVERTED', label: t('registrations.filter.CONVERTED') },
-          { key: 'REJECTED', label: t('registrations.filter.REJECTED') },
-          { key: 'SPAM', label: t('registrations.filter.SPAM') },
+          { key: 'open', label: tabLabel('open') },
+          { key: 'CONVERTED', label: tabLabel('CONVERTED') },
+          { key: 'REJECTED', label: tabLabel('REJECTED') },
+          { key: 'SPAM', label: tabLabel('SPAM') },
         ]}
       />
 
@@ -209,8 +264,20 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
         onCreate={(id) => fromAttention('create', id)}
         onRetry={(id) => fromAttention('create', id)}
         onAccept={(id) => fromAttention('accept', id)}
+        onView={(id) => fromAttention('view', id)}
         refreshKey={attentionKey}
       />
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <SearchBox
+          value={query}
+          onChange={setQuery}
+          label={t('registrations.search.label')}
+          placeholder={t('registrations.search.placeholder')}
+          clearLabel={t('registrations.search.clear')}
+        />
+        {filter === 'open' && items && items.length > 1 ? <p className="text-xs text-muted">{t('registrations.sortNote')}</p> : null}
+      </div>
 
       {undo ? (
         <div role="status" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-white/10 bg-white/[0.05] px-3 py-2 text-sm">
@@ -233,16 +300,39 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
           <ListSkeleton label={t('registrations.loading')} />
         ) : items.length === 0 ? (
           <EmptyState title={t('registrations.emptyTitle')} body={t('registrations.empty')} />
+        ) : visible.length === 0 ? (
+          <EmptyState
+            title={t('registrations.search.noneTitle')}
+            body={t('registrations.search.none', { query })}
+            action={
+              <Button variant="secondary" onClick={() => setQuery('')}>
+                {t('registrations.search.clear')}
+              </Button>
+            }
+          />
         ) : (
           <ul className="space-y-3">
-            {items.map((r) => (
-              <li key={r.id} id={`reg-${r.id}`} className="nx-glass rounded-panel p-4">
+            {visible.map((r) => {
+              const priority = filter === 'open' ? priorityOf(r) : 3;
+              const age = relativeAge(r.createdAt, now);
+              const stale = (r.status === 'NEW' || r.status === 'CONTACTED') && now - Date.parse(r.createdAt) > DAY_MS;
+              const bar = BAR[priority];
+              return (
+              <li
+                key={r.id}
+                id={`reg-${r.id}`}
+                className={`nx-glass relative rounded-panel p-4 transition-shadow ${flashId === r.id ? 'ring-2 ring-accent' : ''}`}
+              >
+                {bar ? <span aria-hidden className={`absolute inset-y-0 left-0 w-1 rounded-l-panel ${bar}`} /> : null}
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-lg font-semibold">{r.restaurantName}</p>
                     <p className="text-sm text-muted">
-                      <span className="ticket-no">{r.referenceCode}</span> · {formatDateTime(r.createdAt)}
+                      <span className="ticket-no">{r.referenceCode}</span> · {formatDateTime(r.createdAt)} ·{' '}
+                      <span className={stale ? 'text-warn' : ''}>{t(`registrations.age.${age.key}`, { count: age.count })}</span>
                     </p>
+                    {priority === 0 ? <p className="mt-1 text-sm font-medium text-accent-strong">{t('registrations.priority.paid')}</p> : null}
+                    {priority === 1 ? <p className="mt-1 text-sm font-medium text-bad">{t('registrations.priority.mismatch')}</p> : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusPill tone={planName(r.planKey) ? 'accent' : 'neutral'}>
@@ -297,7 +387,7 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                       <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-white/[0.04] px-3 py-2 text-sm">
                         <span>
                           ₹{formatRupees(p.amountPaise)} · {formatDate(p.createdAt)}
-                          {p.planKey ? ` · ${p.planKey} ${p.billingCycle ?? ''}`.trimEnd() : ''}
+                          {p.planKey ? ` · ${planName(p.planKey) ?? p.planKey}${p.billingCycle ? ` ${t(`registrations.payment.cycle.${p.billingCycle}`, { defaultValue: p.billingCycle })}` : ''}` : ''}
                           {p.overrideReason ? ` · ${t('registrations.payment.typedChip', { reason: p.overrideReason })}` : ''}
                           {p.status === 'AMOUNT_MISMATCH' ? (
                             <span className="mt-1 block text-xs text-muted">
@@ -307,18 +397,23 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           <StatusPill tone={PAYMENT_TONE[p.status]}>{t(`registrations.payment.status.${p.status}`)}</StatusPill>
+                          {p.status === 'AMOUNT_MISMATCH' ? (
+                            <Button variant="secondary" onClick={() => setAccepting({ request: r, payment: p })} disabled={busyId === r.id}>
+                              {t('registrations.attention.accept')}
+                            </Button>
+                          ) : null}
                           {p.status === 'CREATED' || p.status === 'AMOUNT_MISMATCH' ? (
-                            <button type="button" className="underline disabled:opacity-50" disabled={busyId === r.id} onClick={() => void checkPayment(r, p.id)}>
+                            <button type="button" className="inline-flex min-h-11 items-center underline disabled:opacity-50" disabled={busyId === r.id} onClick={() => void checkPayment(r, p.id)}>
                               {t('registrations.payment.check')}
                             </button>
                           ) : null}
                           {isOpenLink(p) ? (
                             <>
-                              <a className="underline" href={p.linkUrl} target="_blank" rel="noopener noreferrer">
+                              <a className="inline-flex min-h-11 items-center underline" href={p.linkUrl} target="_blank" rel="noopener noreferrer">
                                 {t('registrations.payment.open')}
                               </a>
                               <a
-                                className="underline"
+                                className="inline-flex min-h-11 items-center underline"
                                 href={whatsappUrl(r.phone, paymentMessage(r, p))}
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -345,16 +440,6 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                       {t(r.payments.length > 0 ? 'registrations.payment.sendAnother' : 'registrations.payment.send')}
                     </Button>
                   ) : null}
-                  {!['CONVERTED', 'SPAM', 'REJECTED'].includes(r.status) ? (
-                    <Button variant="secondary" onClick={() => setAutopay(r)} disabled={busyId === r.id}>
-                      {t('registrations.autopay.open')}
-                    </Button>
-                  ) : null}
-                  {canCharge(r) ? (
-                    <Button variant="secondary" onClick={() => setRecording(r)} disabled={busyId === r.id}>
-                      {t('registrations.manual.open')}
-                    </Button>
-                  ) : null}
                   {canCreate(r) ? (
                     <Button variant={canCharge(r) ? 'secondary' : 'primary'} onClick={() => setCreating(r)} disabled={busyId === r.id}>
                       {t('registrations.createAccount')}
@@ -368,26 +453,29 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                   >
                     {t('registrations.whatsapp')}
                   </a>
-                  {r.status !== 'CONVERTED' && !r.businessId ? (
-                    <Button variant="ghost" onClick={() => setEditing(r)} disabled={busyId === r.id}>
-                      {t('registrations.edit.open')}
-                    </Button>
-                  ) : null}
                   {r.status === 'NEW' ? (
                     <Button variant="secondary" loading={busyId === r.id} onClick={() => void move(r, 'CONTACTED')}>
                       {t('registrations.markContacted')}
                     </Button>
                   ) : null}
-                  {NEXT_STATUSES[r.status].includes('REJECTED') && r.status !== 'REJECTED' ? (
-                    <Button variant="ghost" loading={busyId === r.id} onClick={() => setConfirmMove({ r, status: 'REJECTED' })}>
-                      {t('registrations.reject')}
-                    </Button>
-                  ) : null}
-                  {NEXT_STATUSES[r.status].includes('SPAM') && r.status !== 'SPAM' ? (
-                    <Button variant="ghost" loading={busyId === r.id} onClick={() => setConfirmMove({ r, status: 'SPAM' })}>
-                      {t('registrations.spam')}
-                    </Button>
-                  ) : null}
+                  {(() => {
+                    // The rarely used actions live in one menu so the one or two that matter now stand out.
+                    const showAutopay = !['CONVERTED', 'SPAM', 'REJECTED'].includes(r.status);
+                    const showRecord = canCharge(r);
+                    const showEdit = r.status !== 'CONVERTED' && !r.businessId;
+                    const showReject = NEXT_STATUSES[r.status].includes('REJECTED') && r.status !== 'REJECTED';
+                    const showSpam = NEXT_STATUSES[r.status].includes('SPAM') && r.status !== 'SPAM';
+                    if (!showAutopay && !showRecord && !showEdit && !showReject && !showSpam) return null;
+                    return (
+                      <MoreMenu label={t('registrations.more')}>
+                        {showAutopay ? <MoreItem onClick={() => setAutopay(r)} disabled={busyId === r.id}>{t('registrations.autopay.open')}</MoreItem> : null}
+                        {showRecord ? <MoreItem onClick={() => setRecording(r)} disabled={busyId === r.id}>{t('registrations.manual.open')}</MoreItem> : null}
+                        {showEdit ? <MoreItem onClick={() => setEditing(r)} disabled={busyId === r.id}>{t('registrations.edit.open')}</MoreItem> : null}
+                        {showReject ? <MoreItem onClick={() => setConfirmMove({ r, status: 'REJECTED' })} disabled={busyId === r.id}>{t('registrations.reject')}</MoreItem> : null}
+                        {showSpam ? <MoreItem onClick={() => setConfirmMove({ r, status: 'SPAM' })} disabled={busyId === r.id}>{t('registrations.spam')}</MoreItem> : null}
+                      </MoreMenu>
+                    );
+                  })()}
                   {r.status === 'REJECTED' || r.status === 'SPAM' ? (
                     <Button variant="secondary" loading={busyId === r.id} onClick={() => void move(r, 'NEW')}>
                       {t('registrations.reopen')}
@@ -401,7 +489,8 @@ export function RegistrationsPage({ onOpenOnboarding }: { onOpenOnboarding?: (bu
                   ) : null}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

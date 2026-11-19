@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { StatusPill } from '../ui/StatusPill';
-import { formatDate } from './helpers';
+import { daysUntil, formatDate, renewalState } from './helpers';
 
 /** The billing facts the server copies onto a client when its registration was paid (all optional: older clients have none). */
 export interface BillingFacts {
@@ -27,6 +27,19 @@ export function PlanInfo({ client, now = Date.now(), compact = false }: { client
   const cycle = client.billingCycle ? t(`commercial.plan.cycle.${client.billingCycle}`, { defaultValue: client.billingCycle }) : '';
   const overdue = client.paidUntil ? isPast(client.paidUntil, now) : false;
   const date = client.paidUntil ? formatDate(client.paidUntil) : '';
+  const state = renewalState(client.paidUntil, now);
+  const days = daysUntil(client.paidUntil, now);
+  // "Renews in 6 days" / "Paid until passed 3 days ago" beside the date, so a renewal is visible without doing the maths.
+  const hint =
+    days === null
+      ? ''
+      : state === 'overdue'
+        ? t('commercial.clients.renewal.overdue', { count: Math.abs(days) })
+        : state === 'soon'
+          ? days === 0
+            ? t('commercial.clients.renewal.today')
+            : t('commercial.clients.renewal.soon', { count: days })
+          : '';
   return (
     <div className="space-y-1 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -35,8 +48,9 @@ export function PlanInfo({ client, now = Date.now(), compact = false }: { client
           <span className="text-xs text-muted">{t(`commercial.plan.source.${client.billingSource}`, { defaultValue: client.billingSource })}</span>
         ) : null}
       </div>
-      <p className={overdue ? 'text-bad' : 'text-muted'}>
+      <p className={overdue ? 'text-bad' : state === 'soon' ? 'text-warn' : 'text-muted'}>
         {client.paidUntil ? (overdue ? t('commercial.plan.overdue', { date }) : t('commercial.plan.paidUntil', { date })) : t('commercial.plan.notPaid')}
+        {hint ? <span className="block text-xs">{hint}</span> : null}
       </p>
       {!compact && client.registrationId ? (
         <a className="text-xs underline" href={registrationHref(client.registrationId)}>

@@ -20,6 +20,26 @@
       "none": "No module requests are waiting.",
       "waiting": "Module requests waiting for: {{names}}",
       "partial": "Checked the first {{count}} clients that have requests."
+    },
+    "needs": {
+      "title": "Needs you now",
+      "allClear": "Nothing is waiting on you right now. New requests and payments will show up here.",
+      "open": "Open",
+      "newRequests_one": "{{count}} new request",
+      "newRequests_other": "{{count}} new requests",
+      "paidNoAccount_one": "{{count}} paid, no account yet",
+      "paidNoAccount_other": "{{count}} paid, no account yet",
+      "mismatch_one": "{{count}} wrong amount paid",
+      "mismatch_other": "{{count}} wrong amounts paid",
+      "failed_one": "{{count}} account could not be created",
+      "failed_other": "{{count}} accounts could not be created",
+      "closedPaid_one": "{{count}} paid on a closed request",
+      "closedPaid_other": "{{count}} paid on closed requests",
+      "renewalsOverdue_one": "{{count}} client is past its paid-until date",
+      "renewalsOverdue_other": "{{count}} clients are past their paid-until date",
+      "renewalsSoon_one": "{{count}} renewal due in 14 days",
+      "renewalsSoon_other": "{{count}} renewals due in 14 days",
+      "loadError": "Could not check what needs you. Try again."
     }
   },
   "commercial": {
@@ -109,7 +129,22 @@
       "typeToConfirm": "To confirm, type",
       "deleteConfirmationLabel": "Confirmation phrase",
       "deletePermanently": "Permanently delete restaurant",
-      "deleted": "Restaurant deleted."
+      "deleted": "Restaurant deleted.",
+      "search": {
+        "label": "Search clients",
+        "placeholder": "Search name, plan or type",
+        "clear": "Clear search",
+        "noneTitle": "No clients match",
+        "none": "No client matches “{{query}}”. Check the spelling, or clear the search."
+      },
+      "renewalsOnly": "Renewals due or overdue",
+      "renewal": {
+        "overdue_one": "Paid until passed {{count}} day ago",
+        "overdue_other": "Paid until passed {{count}} days ago",
+        "soon_one": "Renews in {{count}} day",
+        "soon_other": "Renews in {{count}} days",
+        "today": "Renews today"
+      }
     },
     "activation": {
       "title": "Module activation requests",
@@ -301,15 +336,42 @@
       "required": "Choose a client to continue."
     },
     "steps": {
-      "BUSINESS_CREATED": { "label": "Business created", "description": "The client workspace exists with its business type and basic details." },
-      "LOCATION_ADDED": { "label": "Location added", "description": "At least one active location is set up." },
-      "MODULES_SELECTED": { "label": "Modules activated", "description": "The modules the client bought are active." },
-      "BRANDING_SET": { "label": "Branding set", "description": "Logo, accent colour and invoice name are configured." },
-      "CONFIGURATION_DONE": { "label": "Settings configured", "description": "Key operating settings and alert rules are in place." },
-      "USERS_PROVISIONED": { "label": "Team accounts created", "description": "The owner and staff have accounts with the right roles." },
-      "DEVICES_CONFIGURED": { "label": "Devices set up", "description": "Printers and print agents are connected, where the client uses them." },
-      "VALIDATED": { "label": "Tested", "description": "Test transactions have been completed successfully." },
-      "COMPLETED": { "label": "Go live", "description": "Hand the workspace over to the client. This marks onboarding as finished." }
+      "BUSINESS_CREATED": {
+        "label": "Business created",
+        "description": "The client workspace exists with its business type and basic details."
+      },
+      "LOCATION_ADDED": {
+        "label": "Location added",
+        "description": "At least one active location is set up."
+      },
+      "MODULES_SELECTED": {
+        "label": "Modules activated",
+        "description": "The modules the client bought are active."
+      },
+      "BRANDING_SET": {
+        "label": "Branding set",
+        "description": "Logo, accent colour and invoice name are configured."
+      },
+      "CONFIGURATION_DONE": {
+        "label": "Settings configured",
+        "description": "Key operating settings and alert rules are in place."
+      },
+      "USERS_PROVISIONED": {
+        "label": "Team accounts created",
+        "description": "The owner and staff have accounts with the right roles."
+      },
+      "DEVICES_CONFIGURED": {
+        "label": "Devices set up",
+        "description": "Printers and print agents are connected, where the client uses them."
+      },
+      "VALIDATED": {
+        "label": "Tested",
+        "description": "Test transactions have been completed successfully."
+      },
+      "COMPLETED": {
+        "label": "Go live",
+        "description": "Hand the workspace over to the client. This marks onboarding as finished."
+      }
     },
     "checks": {
       "hasLocation": "At least one active location",

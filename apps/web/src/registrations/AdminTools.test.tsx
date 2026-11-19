@@ -78,6 +78,12 @@ function renderPage() {
   );
 }
 
+/** The rarely used actions live under one More actions button: open it, then choose one. */
+async function chooseMore(name: string) {
+  fireEvent.click(await screen.findByRole('button', { name: 'More actions' }));
+  fireEvent.click(await screen.findByRole('button', { name }));
+}
+
 function withRows(...rows: RegistrationRequest[]) {
   listRegistrations.mockImplementation(({ status }: { status: string }) =>
     Promise.resolve({ items: status === 'NEW' ? rows : [], total: rows.length, skip: 0, take: 100 }),
@@ -157,7 +163,7 @@ describe('request card', () => {
     withRows(base);
     updateRegistration.mockResolvedValue({ ...base, status: 'REJECTED' });
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Reject' }));
+    await chooseMore('Reject');
     expect(updateRegistration).not.toHaveBeenCalled();
     expect(await screen.findByText('Reject Ananda Cafe?')).toBeTruthy();
     const confirm = screen.getAllByRole('button', { name: 'Reject' }).at(-1) as HTMLButtonElement;
@@ -173,7 +179,7 @@ describe('edit contact details', () => {
     withRows(base);
     updateRegistration.mockResolvedValue({ ...base, phone: '+919714571599' });
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }));
+    await chooseMore('Edit details');
     fireEvent.change(await screen.findByDisplayValue('+919714571522'), { target: { value: '+919714571599' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(updateRegistration).toHaveBeenCalledWith(base.id, { phone: '+919714571599' }));
@@ -182,7 +188,7 @@ describe('edit contact details', () => {
   it('rejects a bad email or short phone without calling the API', async () => {
     withRows(base);
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }));
+    await chooseMore('Edit details');
     fireEvent.change(await screen.findByDisplayValue('asha@example.com'), { target: { value: 'nope' } });
     fireEvent.change(screen.getByDisplayValue('+919714571522'), { target: { value: '123' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -206,13 +212,17 @@ describe('record a manual payment', () => {
     withRows(base);
     recordManualPayment.mockResolvedValue({ ...mismatch, status: 'PAID' });
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Record payment' }));
+    await chooseMore('Record payment');
     expect(await screen.findByText('₹11,493.20')).toBeTruthy();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Record payment' }).at(-1) as HTMLButtonElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
     expect(await screen.findByText(/Add the reference/)).toBeTruthy();
     expect(recordManualPayment).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText(/^Reference/), { target: { value: 'UTR123456' } });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Record payment' }).at(-1) as HTMLButtonElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
+    // Money is read back once first: who, how much, how, and what happens next. Nothing is sent yet.
+    expect(await screen.findByText(/creates the restaurant account for asha@example.com/)).toBeTruthy();
+    expect(recordManualPayment).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, record this payment' }));
     await waitFor(() => expect(recordManualPayment).toHaveBeenCalledTimes(1));
     const body = recordManualPayment.mock.calls[0]?.[1] as Record<string, unknown>;
     expect(body).toMatchObject({ planKey: 'floor', cycle: 'yearly', method: 'UPI', reference: 'UTR123456', launchPack: false });
@@ -222,11 +232,11 @@ describe('record a manual payment', () => {
   it('a different amount needs a reason', async () => {
     withRows(base);
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Record payment' }));
+    await chooseMore('Record payment');
     fireEvent.change(await screen.findByLabelText(/^Reference/), { target: { value: 'UTR123456' } });
     fireEvent.click(screen.getByLabelText(/amount received is different/));
     fireEvent.change(await screen.findByLabelText(/Amount \(₹\)/), { target: { value: '9000' } });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Record payment' }).at(-1) as HTMLButtonElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
     expect(await screen.findByText(/Write a short reason/)).toBeTruthy();
     expect(recordManualPayment).not.toHaveBeenCalled();
   });
@@ -241,7 +251,7 @@ describe('needs attention', () => {
     const strip = await screen.findByRole('region', { name: 'Needs attention' });
     expect(strip.textContent).toContain('paid a different amount than the link');
     expect(strip.textContent).not.toContain('Create account');
-    fireEvent.click(screen.getByRole('button', { name: 'Accept as paid' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Accept as paid' })[0] as HTMLButtonElement);
     expect(await screen.findByText(/They paid ₹100 but the link was for ₹11,493.20/)).toBeTruthy();
     fireEvent.click(screen.getAllByRole('button', { name: 'Accept as paid' }).at(-1) as HTMLButtonElement);
     expect(await screen.findByText(/Write a short reason/)).toBeTruthy();

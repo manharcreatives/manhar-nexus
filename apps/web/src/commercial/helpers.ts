@@ -54,6 +54,53 @@ export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** How long ago, in words an operator scans quickly: "just now", "5 min ago", "3 h ago", "2 days ago". */
+export function relativeAge(iso: string, now: number = Date.now()): { key: 'now' | 'minutes' | 'hours' | 'days'; count: number } {
+  const ms = Math.max(0, now - Date.parse(iso));
+  if (ms < MINUTE) return { key: 'now', count: 0 };
+  if (ms < HOUR) return { key: 'minutes', count: Math.floor(ms / MINUTE) };
+  if (ms < DAY) return { key: 'hours', count: Math.floor(ms / HOUR) };
+  return { key: 'days', count: Math.floor(ms / DAY) };
+}
+
+/** Days until the client's paid-until date: negative when it has passed, null when no date is known. */
+export function daysUntil(iso: string | null | undefined, now: number = Date.now()): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  return Math.ceil((t - now) / DAY);
+}
+
+/** A paid-until date within this many days (or already past) puts the client on the renewals list. */
+export const RENEWAL_WINDOW_DAYS = 14;
+
+export type RenewalState = 'overdue' | 'soon' | 'ok' | 'unknown';
+
+export function renewalState(paidUntil: string | null | undefined, now: number = Date.now()): RenewalState {
+  const d = daysUntil(paidUntil, now);
+  if (d === null) return 'unknown';
+  if (d < 0) return 'overdue';
+  return d <= RENEWAL_WINDOW_DAYS ? 'soon' : 'ok';
+}
+
+/** True when every word typed appears somewhere in the haystack parts (case-insensitive, digits-only phone match too). */
+export function matchesQuery(query: string, parts: ReadonlyArray<string | null | undefined>): boolean {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const hay = parts.filter((p): p is string => !!p).join(' ').toLowerCase();
+  const digits = hay.replace(/\D/g, '');
+  return words.every((w) => {
+    if (hay.includes(w)) return true;
+    // A phone typed with dashes, brackets or a +: compare digits only.
+    const typedDigits = w.replace(/\D/g, '');
+    return /^[\d+\-().]+$/.test(w) && typedDigits.length >= 3 && digits.includes(typedDigits);
+  });
+}
+
 export const KEY_PATTERN = /^[a-z0-9-]+$/;
 
 /**

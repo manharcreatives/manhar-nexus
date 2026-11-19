@@ -10,6 +10,7 @@ import * as Icons from '../ui/icons';
 import { COMMERCIAL_ORDER, clientsByStatus, isOpenActivation, onboardingInProgress } from './derive';
 import { useWidget, type WidgetState } from './useWidget';
 import { InlineError } from './InlineError';
+import { NeedsYouNow } from './NeedsYouNow';
 
 const PAGE = 200;
 const MAX_PAGES = 5;
@@ -105,6 +106,7 @@ export function PlatformHome() {
 
   return (
     <div className="grid grid-cols-1 gap-x-14 gap-y-12 lg:grid-cols-12">
+      <NeedsYouNow clients={clients} />
       <Block
         id="ph-clients"
         title={t('platformHome.clients.title')}
