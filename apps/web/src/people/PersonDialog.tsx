@@ -305,7 +305,7 @@ export function PersonDialog({ person, selfId, viewer, roles, held, locations, o
           <dt className="text-muted">{t('people.detail.lastSeen')}</dt>
           <dd>{lastSeenText(t, current.lastLoginAt)}</dd>
           <dt className="text-muted">{t('people.detail.added')}</dt>
-          <dd>{new Date(current.createdAt).toLocaleDateString()}</dd>
+          <dd>{new Date(current.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</dd>
         </dl>
         {current.lockedUntil && (
           <p className="text-sm text-warn">

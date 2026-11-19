@@ -81,7 +81,7 @@ function ModuleCard({
           <p className="mt-1 max-w-prose text-sm text-muted">{mod.description}</p>
           {mod.status === 'ACTIVE' && mod.activatedAt && (
             <p className="mt-1 text-xs text-muted">
-              {t('modules.activeSince', { date: new Date(mod.activatedAt).toLocaleDateString(i18n.language) })}
+              {t('modules.activeSince', { date: new Date(mod.activatedAt).toLocaleDateString(i18n.language === 'en' ? 'en-IN' : i18n.language, { day: 'numeric', month: 'short', year: 'numeric' }) })}
             </p>
           )}
 

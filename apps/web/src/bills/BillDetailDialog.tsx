@@ -35,7 +35,7 @@ interface Props {
 
 type Mode = { kind: 'view' } | { kind: 'refund'; paymentId: string; confirming: boolean } | { kind: 'void'; confirming: boolean };
 
-const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '');
+const fmtTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '');
 
 const DETAIL_TOPICS = ['invoices', 'payments'] as const;
 

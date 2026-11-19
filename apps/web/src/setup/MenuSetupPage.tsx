@@ -495,7 +495,7 @@ export function MenuSetupPage() {
                       <tr>
                         <Th>{t('setup.menu.item')}</Th>
                         <Th numeric>{t('setup.menu.price')}</Th>
-                        <Th>{t('setup.menu.tax')}</Th>
+                        <Th className="hidden sm:table-cell">{t('setup.menu.tax')}</Th>
                         <Th>{t('setup.menu.status')}</Th>
                         <Th>
                           <span className="sr-only">{t('setup.menu.actions')}</span>
@@ -508,9 +508,10 @@ export function MenuSetupPage() {
                           <Td>
                             <span className="font-medium">{it.name}</span>
                             {(it.variants?.length ?? 0) > 0 && <span className="ml-2 text-xs text-muted">{t('setup.menu.variantCount', { count: it.variants!.length })}</span>}
+                            <span className="block text-xs text-muted sm:hidden">{taxName(it.taxCategoryId)}</span>
                           </Td>
                           <Td numeric>{formatMoney(it.basePriceMinorUnits)}</Td>
-                          <Td>{taxName(it.taxCategoryId)}</Td>
+                          <Td className="hidden sm:table-cell">{taxName(it.taxCategoryId)}</Td>
                           <Td>
                             {it.isAvailable === false ? <StatusPill tone="warn">{t('setup.menu.soldOut')}</StatusPill> : <StatusPill tone="ok">{t('setup.menu.onMenu')}</StatusPill>}
                           </Td>

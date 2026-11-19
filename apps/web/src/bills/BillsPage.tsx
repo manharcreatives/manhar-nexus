@@ -27,7 +27,7 @@ type StatusFilter = '' | InvoiceStatus;
 type RangeKey = PresetKey | 'all' | 'custom';
 const PRESETS: PresetKey[] = ['today', 'yesterday', 'last7', 'month'];
 
-const timeOf = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
 
 export function BillsPage() {
   const { t } = useTranslation();

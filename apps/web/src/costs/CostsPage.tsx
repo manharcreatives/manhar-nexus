@@ -416,13 +416,15 @@ function ExpensesTab({ canCreate }: { canCreate: boolean }) {
             <tr>
               <Th className="w-10">
                 {pending.length > 0 && (
-                  <input
+                  <label className="-m-3 flex size-11 cursor-pointer items-center justify-center">
+                    <input
                     type="checkbox"
                     className="size-5 accent-(--color-accent)"
                     aria-label={t('costs.selectAllPending')}
                     checked={allPendingSelected}
                     onChange={() => setSelected(allPendingSelected ? new Set() : new Set(pending.map((x) => x.id)))}
-                  />
+                    />
+                  </label>
                 )}
               </Th>
               <Th>{t('costs.paidOn')}</Th>
@@ -443,13 +445,15 @@ function ExpensesTab({ canCreate }: { canCreate: boolean }) {
                 <tr key={x.id}>
                   <Td>
                     {isPending && (
-                      <input
+                      <label className="-m-3 flex size-11 cursor-pointer items-center justify-center">
+                        <input
                         type="checkbox"
                         className="size-5 accent-(--color-accent)"
                         aria-label={t('costs.selectExpense', { vendor: x.vendorName ?? x.category.name, amount: formatMinorUnits(x.amountMinorUnits) })}
                         checked={selected.has(x.id)}
                         onChange={() => toggleOne(x.id)}
-                      />
+                        />
+                      </label>
                     )}
                   </Td>
                   <Td className="whitespace-nowrap">{formatDate(x.paidAt)}</Td>

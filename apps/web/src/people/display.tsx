@@ -15,7 +15,7 @@ export function describeRole(
 
 export function lastSeenText(t: TFunction, iso: string | null): string {
   const s = lastSeen(iso);
-  if (s.key === 'date') return s.date.toLocaleDateString();
+  if (s.key === 'date') return s.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   if (s.key === 'never' || s.key === 'justNow') return t(`people.lastSeen.${s.key}`);
   return t(`people.lastSeen.${s.key}`, { count: s.count });
 }
