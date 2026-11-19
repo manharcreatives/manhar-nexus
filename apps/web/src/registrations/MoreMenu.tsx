@@ -35,7 +35,7 @@ export function MoreMenu({ label, children, className }: { label: string; childr
   }, [open]);
 
   return (
-    <div ref={wrap} className={cn('relative', className)}>
+    <div ref={wrap} className={cn('relative w-full sm:w-auto', className)}>
       <button
         ref={trigger}
         type="button"
@@ -58,7 +58,7 @@ export function MoreMenu({ label, children, className }: { label: string; childr
             // Any action button inside closes the panel (links and plain text inside do not).
             if ((e.target as HTMLElement).closest('button')) setOpen(false);
           }}
-          className="absolute right-0 top-full z-30 mt-1 flex min-w-56 flex-col gap-1 rounded-panel border border-white/10 bg-surface p-2 shadow-pop sm:left-0 sm:right-auto"
+          className="mt-2 flex w-full min-w-56 max-w-sm flex-col gap-1 rounded-panel border border-white/10 bg-surface p-2 shadow-pop"
         >
           {children}
         </div>

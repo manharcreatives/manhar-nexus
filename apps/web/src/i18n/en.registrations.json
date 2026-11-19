@@ -53,6 +53,7 @@
       "intro": "One click: the restaurant, its first location, the owner login and the modules are created on our server. If a step fails, Retry continues from it and nothing is created twice.",
       "paidNote": "Payment received. The account will be marked Active.",
       "unpaidNote": "No payment is recorded for this request yet.",
+      "mismatchNote": "A payment of a different amount was received. Accept it first, or create a free pilot.",
       "pilot": "Create it anyway as a free pilot (Trial)",
       "needsPaymentOrPilot": "Wait for the payment, or tick the free pilot option.",
       "create": "Create account",

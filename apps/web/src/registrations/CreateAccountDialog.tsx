@@ -160,7 +160,7 @@ export function CreateAccountDialog({
       {!started ? (
         <form id={formId} onSubmit={submit} noValidate className="space-y-5">
           <p className="text-sm text-muted">{t('registrations.account.intro')}</p>
-          <p className="rounded-control bg-white/[0.05] px-3 py-2 text-sm">{paid ? t('registrations.account.paidNote') : t('registrations.account.unpaidNote')}</p>
+          <p className="rounded-control bg-white/[0.05] px-3 py-2 text-sm">{paid ? t('registrations.account.paidNote') : request.payments.some((p) => p.status === 'AMOUNT_MISMATCH') ? t('registrations.account.mismatchNote') : t('registrations.account.unpaidNote')}</p>
           <Field label={t('provision.name')} value={name} onChange={(e) => setName(e.target.value)} error={errors.name} autoFocus data-autofocus />
           <Field label={t('provision.location')} hint={t('provision.locationHint')} value={locationName} onChange={(e) => setLocationName(e.target.value)} error={errors.location} />
           <div className="grid gap-4 sm:grid-cols-2">

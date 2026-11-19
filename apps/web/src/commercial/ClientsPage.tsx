@@ -355,6 +355,11 @@ function ClientDetailView({ summary, onBack }: { summary: ClientSummary; onBack:
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-2xl font-semibold">{detail.name}</h2>
+            <div className="mt-2">
+              <StatusPill tone={COMMERCIAL_TONE[detail.commercialStatus]}>
+                {t(`commercial.status.${detail.commercialStatus}`)}
+              </StatusPill>
+            </div>
             <p className="mt-1 text-sm text-muted">
               {detail.businessType.name} · {t('commercial.clients.locationCount', { count: detail.locations.length })}
             </p>
@@ -362,11 +367,8 @@ function ClientDetailView({ summary, onBack }: { summary: ClientSummary; onBack:
               <PlanInfo client={detail} />
             </div>
           </div>
-          <div className="flex items-end gap-3">
-            <StatusPill tone={COMMERCIAL_TONE[detail.commercialStatus]}>
-              {t(`commercial.status.${detail.commercialStatus}`)}
-            </StatusPill>
-            <div className="w-44">
+          <div className="flex w-full items-end gap-3 sm:w-auto">
+            <div className="w-full sm:w-44">
               <Select
                 label={t('commercial.clients.changeStatus')}
                 value={detail.commercialStatus}
