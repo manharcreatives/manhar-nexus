@@ -40,11 +40,13 @@ export function OrderZones({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-        <div ref={menuRef} data-view-pane="menu" className={cn('flex h-[54dvh] min-h-0 flex-col lg:h-[min(64dvh,38rem)]', view === 'order' && 'hidden lg:flex')}>
+      {/* minmax(0,1fr) on phones too: otherwise the category strip widens the column and the whole dialog scrolls sideways. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        {/* On a phone the pane takes the screen minus the dialog chrome (title, zone bar, total and buttons), so a waiter sees more dishes. */}
+        <div ref={menuRef} data-view-pane="menu" className={cn('flex h-[max(16rem,calc(100dvh-19rem))] min-h-0 flex-col lg:h-[min(64dvh,38rem)]', view === 'order' && 'hidden lg:flex')}>
           {menu}
         </div>
-        <div ref={orderRef} data-view-pane="order" className={cn('flex h-[54dvh] min-h-0 flex-col lg:h-[min(64dvh,38rem)]', view === 'menu' && 'hidden lg:flex')}>
+        <div ref={orderRef} data-view-pane="order" className={cn('flex h-[max(16rem,calc(100dvh-19rem))] min-h-0 flex-col lg:h-[min(64dvh,38rem)]', view === 'menu' && 'hidden lg:flex')}>
           {order}
         </div>
       </div>

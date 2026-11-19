@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useWorkLocation } from '../context/LocationContext';
+import { useAuth } from '../auth/AuthContext';
+import { computeAccess } from '../shell/access';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button';
 import { PageHeader } from '../ui/PageHeader';
@@ -51,6 +54,8 @@ export function TablesPage() {
   const rerun = useRef(false);
   const catalogAt = useRef(0);
   const caps = useRestaurantCaps();
+  const { user } = useAuth();
+  const canSetUpFloor = computeAccess(user).isTenantAdmin;
   const { locationId } = useWorkLocation();
 
   const load = useCallback(async function run(opts?: { forceCatalog?: boolean }): Promise<void> {
@@ -189,7 +194,18 @@ export function TablesPage() {
       </p>
 
       {tables.length === 0 ? (
-        <EmptyState illustration={<EmptyFloorArt />} title={t('restaurant.tables.emptyTitle')} body={t('restaurant.tables.emptyBody')} />
+        <EmptyState
+          illustration={<EmptyFloorArt />}
+          title={t('restaurant.tables.emptyTitle')}
+          body={canSetUpFloor ? t('restaurant.tables.emptyBody') : t('restaurant.tables.emptyBodyStaff')}
+          action={
+            canSetUpFloor ? (
+              <Link to="/floor" className="nx-primary inline-flex min-h-12 items-center rounded-control px-5 text-base font-semibold text-on-accent">
+                {t('restaurant.tables.emptyAction')}
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           {groups.length > 1 && (

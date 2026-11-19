@@ -22,7 +22,7 @@ export interface PaneLine {
 }
 
 const STEP =
-  'grid size-12 shrink-0 place-items-center rounded-control border border-line bg-surface text-xl text-ink transition-colors hover:border-accent/50 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40';
+  'grid size-11 shrink-0 place-items-center rounded-control border border-line bg-surface text-xl sm:size-12 text-ink transition-colors hover:border-accent/50 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40';
 
 function NoteEditor({ line, locked, onSave }: { line: PaneLine; locked: boolean; onSave: (note: string) => void }) {
   const { t } = useTranslation();
@@ -184,9 +184,9 @@ function PaneRow({
           )}
         </div>
       ) : (
-        <div className="mt-2 flex items-center justify-between gap-3">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <p className="tabular text-base font-semibold">{total}</p>
-          <div className="flex items-center gap-1" role="group" aria-label={t('restaurant.builder.quantity', { name: line.name })}>
+          <div className="ml-auto flex items-center gap-1" role="group" aria-label={t('restaurant.builder.quantity', { name: line.name })}>
             <button
               type="button"
               disabled={locked}
@@ -196,7 +196,7 @@ function PaneRow({
             >
               <span aria-hidden>{'−'}</span>
             </button>
-            <span className="tabular w-10 text-center text-lg font-semibold" aria-live="polite">
+            <span className="tabular w-9 text-center text-lg font-semibold" aria-live="polite">
               {line.quantity}
             </span>
             <button type="button" disabled={locked} aria-label={t('restaurant.builder.add', { name: line.name })} onClick={() => onAdjust(line.id, 1)} className={STEP}>

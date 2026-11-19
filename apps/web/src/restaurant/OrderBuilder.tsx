@@ -121,7 +121,8 @@ export function OrderBuilder({
           <Button variant="secondary" size="lg" onClick={onCancel}>
             {t('restaurant.common.cancel')}
           </Button>
-          <Button size="lg" loading={busy} disabled={count === 0} onClick={() => void send()}>
+          {/* The main action: full width under the total on phones, so the thumb always finds it. */}
+          <Button size="lg" className="w-full sm:w-auto" loading={busy} disabled={count === 0} onClick={() => void send()}>
             {busy ? t('restaurant.builder.sending') : t('restaurant.builder.send')}
           </Button>
         </>
