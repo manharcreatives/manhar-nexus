@@ -57,7 +57,7 @@ export default function PayReturnApp() {
       </a>
       <section className="nx-glass w-[min(30rem,100%)] space-y-4 rounded-panel p-6" aria-labelledby="return-title">
         <h1 id="return-title" className="text-2xl font-semibold">
-          {t('payReturn.title')}
+          {paidSeen ? t('payReturn.titlePaid') : t('payReturn.title')}
         </h1>
 
         {!code ? (
@@ -94,7 +94,7 @@ export default function PayReturnApp() {
                   onChange={(e) => setDigits(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   aria-invalid={asked && !valid ? true : undefined}
                   aria-describedby="last4-help"
-                  className="min-h-11 w-32 rounded-control border border-line bg-white/[0.035] px-3 text-center text-lg tracking-widest"
+                  className="min-h-12 w-full rounded-control border border-line bg-white/[0.035] px-3 text-center text-2xl tracking-[0.5em] sm:w-48"
                 />
                 <p id="last4-help" className="text-sm text-muted">
                   {t('payReturn.last4Help')}
@@ -109,7 +109,7 @@ export default function PayReturnApp() {
                     {t('payReturn.noMatch')}
                   </p>
                 ) : null}
-                <Button type="submit">{waiting ? t('payReturn.tryAgainDigits') : t('payReturn.continue')}</Button>
+                <Button type="submit" size="lg" className="w-full sm:w-auto">{waiting ? t('payReturn.tryAgainDigits') : t('payReturn.continue')}</Button>
               </form>
             ) : null}
 
@@ -128,7 +128,7 @@ export default function PayReturnApp() {
               {flow.state === 'ready' ? (
                 <>
                   <p>{t('payReturn.ready')}</p>
-                  <a className={LINK_PRIMARY} href={setPasswordHref(flow.token)}>
+                  <a className={`${LINK_PRIMARY} min-h-12 w-full text-base sm:w-auto`} href={setPasswordHref(flow.token)}>
                     {t('payReturn.setPassword')}
                   </a>
                 </>

@@ -93,7 +93,7 @@ export default function ClaimApp() {
       </a>
       <section className="nx-glass w-[min(30rem,100%)] space-y-4 rounded-panel p-6" aria-labelledby="claim-title">
         <h1 id="claim-title" className="text-2xl font-semibold">
-          {view.kind === 'done' ? t('claim.doneTitle') : t('claim.title')}
+          {view.kind === 'done' ? t('claim.doneTitle') : view.kind === 'invalid' ? t('claim.invalidTitle') : t('claim.title')}
         </h1>
 
         {view.kind === 'form' ? (
@@ -112,7 +112,7 @@ export default function ClaimApp() {
             <p role="alert" className="text-sm text-bad">
               {error}
             </p>
-            <Button type="submit" loading={busy}>
+            <Button type="submit" size="lg" loading={busy} className="w-full sm:w-auto">
               {t('claim.submit')}
             </Button>
           </form>

@@ -89,6 +89,36 @@ describe('RegistrationTicket: price before Pay now', () => {
   });
 });
 
+describe('RegistrationTicket: layout of the confirmation when Pay now is on', () => {
+  it('puts the price and Pay now right under the heading, before the "What happens next" list', async () => {
+    const f = vi.fn().mockResolvedValue(reply(200, { customerPay: true }));
+    ticket(f);
+    const pay = await screen.findByTestId('pay-now');
+    const next = screen.getByRole('heading', { name: 'What happens next' });
+    // The pay block comes first in the page, so a phone shows it on the first screen.
+    expect(pay.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const main = pay.closest('.lp-ticket__main');
+    expect(main).not.toBeNull();
+  });
+
+  it('shows the steps that really happen (pay, workspace created, sign in) and drops the "within one working day" promise', async () => {
+    const f = vi.fn().mockResolvedValue(reply(200, { customerPay: true }));
+    ticket(f);
+    await screen.findByTestId('pay-now');
+    expect(screen.getByText('Pay online with UPI, card or net banking.')).toBeTruthy();
+    expect(screen.getByText(/created as soon as the payment is confirmed/)).toBeTruthy();
+    expect(screen.queryByText(/within one working day with the next step/)).toBeNull();
+  });
+
+  it('without Pay now the original promise and steps stay exactly as they were', async () => {
+    const f = vi.fn().mockResolvedValue(reply(200, { customerPay: false }));
+    ticket(f);
+    await waitFor(() => expect(f).toHaveBeenCalled());
+    expect(screen.getByText(/within one working day with the next step/)).toBeTruthy();
+    expect(screen.queryByText('Pay online with UPI, card or net banking.')).toBeNull();
+  });
+});
+
 describe('RegistrationTicket: Pay now', () => {
   it('shows no Pay now while the server says it is off, and keeps the pay-later promise path', async () => {
     const f = vi.fn().mockResolvedValue(reply(200, { customerPay: false }));

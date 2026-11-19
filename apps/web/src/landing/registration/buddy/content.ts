@@ -174,9 +174,9 @@ const SUBMIT: L<string> = {
 };
 
 const SUCCESS = (ref: string): L<string> => ({
-  en: `Done! Your reference is ${ref}. Keep it handy. We’ll message you within one working day.`,
-  hi: `हो गया! आपका रेफ़रेंस ${ref} है। इसे संभालकर रखिए। हम एक कार्य-दिवस में आपको मैसेज करेंगे।`,
-  gu: `થઈ ગયું! તમારો રેફરન્સ ${ref} છે. તેને સાચવી રાખો. અમે એક કામકાજી દિવસમાં મેસેજ કરીશું.`,
+  en: `Done! Your reference is ${ref}. Keep it handy. The next step is just below.`,
+  hi: `हो गया! आपका रेफ़रेंस ${ref} है। इसे संभालकर रखिए। अगला कदम ठीक नीचे है।`,
+  gu: `થઈ ગયું! તમારો રેફરન્સ ${ref} છે. તેને સાચવી રાખો. આગળનું પગલું બરાબર નીચે છે.`,
 });
 
 const FAILURE: Record<'rate-limit' | 'already-received' | 'network' | 'server' | 'validation', L<string>> = {

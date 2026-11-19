@@ -566,3 +566,20 @@
     min-height: 2.75rem;
   }
 }
+
+/* UX polish: standalone links and buttons are thumb-sized on touch screens (links inside a sentence keep their size). */
+@media (pointer: coarse), (max-width: 767px) {
+  .lp-btn {
+    min-height: 2.75rem;
+  }
+  .lp-about__contact a,
+  .lp-reg__contact a,
+  .lp-insights__list a,
+  .lp-pfc__more,
+  .lp-post__link,
+  .lp-faq__policies a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}

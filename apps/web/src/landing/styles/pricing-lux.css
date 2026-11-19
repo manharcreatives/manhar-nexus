@@ -311,3 +311,14 @@
     transition: none;
   }
 }
+
+/* UX polish: the struck list price and the "Founding price" tag breathe, and the tag is big enough to read. */
+.lp-plan__was {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.6rem;
+}
+.lp-plan__was-tag {
+  font-size: 0.6875rem;
+}

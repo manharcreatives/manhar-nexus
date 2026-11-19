@@ -9,6 +9,15 @@ import { fetchPayAvailable, fetchPaid, PAY_COPY, PAYABLE_PLANS, priceLine, reque
 import type { SubmitOptions } from './submit';
 import { useClaimFlow } from './useClaimFlow';
 
+/** The steps that really happen when the visitor pays online (shown only while Pay now is on the page). */
+const PAY_NEXT_STEPS: readonly [string, string, string] = [
+  'Pay online with UPI, card or net banking.',
+  'Your Business Workspace is created as soon as the payment is confirmed.',
+  'Set your password, sign in and open your first table.',
+];
+/** What follows the reference code when Pay now is offered right below it. */
+const PAY_LEAD_TAIL = '. Keep this reference handy.';
+
 export interface TicketProps {
   contactName: string;
   restaurantName: string;
@@ -96,6 +105,66 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
   const payMessage =
     payState === 'paid' ? paidMessage : payState === 'notYet' ? PAY_COPY.notYet : payState === 'contactUs' ? PAY_COPY.contactUs : payState === 'failed' ? PAY_COPY.failed : '';
 
+  const showPay = payable && payAvailable;
+  // With Pay now on the page, the next steps are the ones that really happen: pay, the account is built, sign in.
+  const shownSteps = showPay && begin === 'pay-and-start' ? PAY_NEXT_STEPS : steps;
+
+  const payBlock = showPay ? (
+    <div className="lp-ticket__pay" data-testid="pay-now">
+      {payState !== 'paid' && price ? (
+        <p className="lp-ticket__price" data-testid="pay-price">
+          {price}
+        </p>
+      ) : null}
+      {payState !== 'paid' ? (
+        <Button variant="primary" size="lg" block onClick={() => void onPay()} disabled={payState === 'busy'}>
+          {payState === 'busy' ? PAY_COPY.busy : PAY_COPY.button}
+        </Button>
+      ) : null}
+      {payState !== 'paid' ? (
+        <Button variant="ghost" size="sm" onClick={() => void onCheck()} disabled={payState === 'checking'}>
+          {payState === 'checking' ? PAY_COPY.checking : PAY_COPY.check}
+        </Button>
+      ) : null}
+      <div className="lp-ticket__hint" role="status" aria-live="polite">
+        <p>{payMessage || PAY_COPY.later}</p>
+        {payState === 'paid' && flow.state !== 'idle' ? (
+          <div className="lp-ticket__claim" data-testid="claim">
+            {flow.state === 'pending' ? (
+              <>
+                <p>{CLAIM_COPY.pending}</p>
+                <p>{CLAIM_COPY.otherDevice}</p>
+              </>
+            ) : null}
+            {flow.state === 'noSecret' || flow.state === 'unknown' ? <p>{CLAIM_COPY.later}</p> : null}
+            {flow.state === 'manual' ? <p>{CLAIM_COPY.manual}</p> : null}
+            {flow.state === 'timedOut' ? <p>{CLAIM_COPY.timedOut}</p> : null}
+            {flow.state === 'rateLimited' ? <p>{CLAIM_COPY.rateLimited}</p> : null}
+            {flow.state === 'ready' ? (
+              <>
+                <p>{CLAIM_COPY.ready}</p>
+                <Button variant="primary" onClick={() => window.location.assign(setPasswordHref(flow.token))}>
+                  {CLAIM_COPY.button}
+                </Button>
+              </>
+            ) : null}
+            {flow.state === 'timedOut' || flow.state === 'rateLimited' ? (
+              <Button variant="secondary" size="sm" onClick={startClaim}>
+                {CLAIM_COPY.retry}
+              </Button>
+            ) : null}
+            {['noSecret', 'unknown', 'manual', 'timedOut', 'rateLimited'].includes(flow.state) ? (
+              <Button href={supportWhatsAppUrl(`Hello, I paid for ${referenceCode} and need my set-password link.`)} external variant="secondary" size="sm">
+                <Icon icon={MessageCircle} size={16} /> {CLAIM_COPY.whatsapp}
+                <span className="lp-visually-hidden"> (opens in a new tab)</span>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="lp-ticket">
       <div className="lp-ticket__main">
@@ -108,11 +177,13 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
         <p className="lp-ticket__lead">
           {success.lead}
           <strong>{success.reference}</strong>
-          {success.tail}
+          {showPay ? PAY_LEAD_TAIL : success.tail}
         </p>
+        {/* The one thing to do next sits right under the heading, so it is on the first screen of a phone. */}
+        {payBlock}
         <h4 className="lp-ticket__next">What happens next</h4>
         <ol className="lp-ticket__steps">
-          {steps.map((line) => (
+          {shownSteps.map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ol>
@@ -129,63 +200,8 @@ export function RegistrationTicket({ contactName, restaurantName, referenceCode,
           {copied === 'done' ? 'Reference copied.' : copied === 'failed' ? 'Could not copy. Select the code and press Ctrl+C.' : ''}
         </span>
       </div>
-      {payable && payAvailable ? (
-        <div className="lp-ticket__pay" data-testid="pay-now">
-          {payState !== 'paid' && price ? (
-            <p className="lp-ticket__price" data-testid="pay-price">
-              {price}
-            </p>
-          ) : null}
-          {payState !== 'paid' ? (
-            <Button variant="primary" size="lg" block onClick={() => void onPay()} disabled={payState === 'busy'}>
-              {payState === 'busy' ? PAY_COPY.busy : PAY_COPY.button}
-            </Button>
-          ) : null}
-          {payState !== 'paid' ? (
-            <Button variant="ghost" size="sm" onClick={() => void onCheck()} disabled={payState === 'checking'}>
-              {payState === 'checking' ? PAY_COPY.checking : PAY_COPY.check}
-            </Button>
-          ) : null}
-          <div className="lp-ticket__hint" role="status" aria-live="polite">
-            <p>{payMessage || PAY_COPY.later}</p>
-            {payState === 'paid' && flow.state !== 'idle' ? (
-              <div className="lp-ticket__claim" data-testid="claim">
-                {flow.state === 'pending' ? (
-                  <>
-                    <p>{CLAIM_COPY.pending}</p>
-                    <p>{CLAIM_COPY.otherDevice}</p>
-                  </>
-                ) : null}
-                {flow.state === 'noSecret' || flow.state === 'unknown' ? <p>{CLAIM_COPY.later}</p> : null}
-                {flow.state === 'manual' ? <p>{CLAIM_COPY.manual}</p> : null}
-                {flow.state === 'timedOut' ? <p>{CLAIM_COPY.timedOut}</p> : null}
-                {flow.state === 'rateLimited' ? <p>{CLAIM_COPY.rateLimited}</p> : null}
-                {flow.state === 'ready' ? (
-                  <>
-                    <p>{CLAIM_COPY.ready}</p>
-                    <Button variant="primary" onClick={() => window.location.assign(setPasswordHref(flow.token))}>
-                      {CLAIM_COPY.button}
-                    </Button>
-                  </>
-                ) : null}
-                {flow.state === 'timedOut' || flow.state === 'rateLimited' ? (
-                  <Button variant="secondary" size="sm" onClick={startClaim}>
-                    {CLAIM_COPY.retry}
-                  </Button>
-                ) : null}
-                {['noSecret', 'unknown', 'manual', 'timedOut', 'rateLimited'].includes(flow.state) ? (
-                  <Button href={supportWhatsAppUrl(`Hello, I paid for ${referenceCode} and need my set-password link.`)} external variant="secondary" size="sm">
-                    <Icon icon={MessageCircle} size={16} /> {CLAIM_COPY.whatsapp}
-                    <span className="lp-visually-hidden"> (opens in a new tab)</span>
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
       <div className="lp-ticket__actions">
-        <Button href={buildWhatsAppUrl({ restaurantName, contactName }, referenceCode)} external variant={payable && payAvailable ? 'secondary' : 'primary'}>
+        <Button href={buildWhatsAppUrl({ restaurantName, contactName }, referenceCode)} external variant={showPay ? 'secondary' : 'primary'}>
           <Icon icon={MessageCircle} size={18} /> Message us on WhatsApp
           <span className="lp-visually-hidden"> (opens in a new tab)</span>
         </Button>

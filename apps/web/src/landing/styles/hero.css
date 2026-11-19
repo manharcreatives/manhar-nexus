@@ -403,3 +403,25 @@
 .lp-hero__sub {
   color: var(--lp-fg-3);
 }
+
+/* UX polish (phones): both hero buttons full width with the arrow on the same line as the words, and room above
+   the stage so the floating ticket does not sit on top of the line above it. */
+@media (max-width: 639px) {
+  .lp-hero__stage {
+    padding-top: 3.25rem;
+  }
+  .lp-hero__magnet {
+    display: block;
+    width: 100%;
+  }
+  .lp-hero__actions .lp-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .lp-hero__actions .lp-btn__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+}

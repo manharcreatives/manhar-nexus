@@ -525,3 +525,28 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+/* UX polish: the ticket's price is the biggest thing after the heading, and the one action under it is easy to find. */
+.lp-ticket__main .lp-ticket__pay {
+  margin-block: 0.25rem 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--w2-line-2);
+  border-radius: 0.875rem;
+  background: var(--w2-sunken);
+}
+.lp-ticket__price {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--w2-ink);
+}
+
+@media (pointer: coarse), (max-width: 767px) {
+  .lp-ticket__actions .lp-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}

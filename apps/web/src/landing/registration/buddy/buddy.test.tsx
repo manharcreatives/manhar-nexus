@@ -177,6 +177,25 @@ describe('RegisterBuddy', () => {
     return vi.waitFor(() => expect(screen.getByTestId('bot').getAttribute('data-mood')).toBe('done'));
   });
 
+  it('on a phone, tucks the bubble away a few seconds after the request is received (it would cover the price and Pay now)', () => {
+    vi.useFakeTimers();
+    render(<RegisterBuddy />);
+    act(() => emitBuddy({ type: 'focus', field: 'city' }));
+    act(() => emitBuddy({ type: 'success', referenceCode: 'NX-1' }));
+    tick(200);
+    expect(screen.queryByRole('status')).not.toBeNull();
+    tick(4600);
+    expect(screen.queryByRole('status')).toBeNull();
+    // The bot stays, and a tap brings the bubble back.
+    expect(screen.getByTestId('bot')).toBeTruthy();
+  });
+
+  it('the success line no longer promises a message "within one working day" (Pay now may be right below it)', () => {
+    for (const lang of ['en', 'hi', 'gu'] as const) {
+      expect(reactTo({ type: 'success', referenceCode: 'NX-1' }, lang).text).not.toMatch(/working day|कार्य-दिवस|કામકાજી/);
+    }
+  });
+
   it('shows an error at once, even over a cheer', () => {
     vi.useFakeTimers();
     render(<RegisterBuddy />);

@@ -143,6 +143,14 @@ export default function RegisterBuddy() {
     return () => io.disconnect();
   }, []);
 
+  // On a phone the bubble sits over the bottom of the screen, which is exactly where the ticket's price and Pay now
+  // are. Once the request is received, say the good news and then tuck the bubble away (the bot stays, tap to reopen).
+  useEffect(() => {
+    if (follow || raw.event.type !== 'success') return;
+    const id = window.setTimeout(() => setBubbleOpen(false), 4500);
+    return () => window.clearTimeout(id);
+  }, [follow, raw.seq, raw.event]);
+
   // A new event reopens a bubble the visitor had tucked away, and may move the bot to another field.
   useEffect(() => {
     if (raw.seq === lastSeq.current) return;

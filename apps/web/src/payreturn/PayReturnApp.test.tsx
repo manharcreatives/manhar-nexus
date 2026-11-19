@@ -142,6 +142,27 @@ describe('/pay/return', () => {
     expect(screen.getByText(/confirming your payment|setting up/i)).toBeTruthy();
   });
 
+  it('the heading does not claim a payment before the server has confirmed one', async () => {
+    rememberPayerSecret('NX-7K2Q9M', 'secret-1');
+    open('?code=NX-7K2Q9M');
+    fetchMock.mockResolvedValue(reply(200, { status: 'pending', paid: false }));
+    render(<PayReturnApp />);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Open your account');
+    await enter('1522');
+    await screen.findByText(/confirming your payment/);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Open your account');
+  });
+
+  it('the heading becomes "Payment received" once the server says it is paid', async () => {
+    rememberPayerSecret('NX-7K2Q9M', 'secret-1');
+    open('?code=NX-7K2Q9M');
+    fetchMock.mockResolvedValue(reply(200, { status: 'pending', paid: true }));
+    render(<PayReturnApp />);
+    await enter('1522');
+    await screen.findByText('Payment received. Thank you!');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Payment received');
+  });
+
   it('does not say payment received while it is not paid yet', async () => {
     rememberPayerSecret('NX-7K2Q9M', 'secret-1');
     open('?code=NX-7K2Q9M');

@@ -159,3 +159,14 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-buddy-hint { animation: none; box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / 0.35); }
 }
+
+/* Thumb-sized: the language chips and the close button are at least 44px on touch screens. */
+@media (pointer: coarse), (max-width: 767px) {
+  .lp-buddy__langs button,
+  .lp-buddy__close {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    font-size: 0.85rem;
+  }
+  .lp-buddy__langs { gap: 0.35rem; }
+}

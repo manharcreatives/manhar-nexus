@@ -97,6 +97,12 @@ describe('ClaimApp: the owner chooses a password', () => {
     expect(screen.queryByLabelText('New password')).toBeNull();
   });
 
+  it('an invalid link has its own heading instead of still saying "Set your password"', () => {
+    open('');
+    render(<ClaimApp />);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('This link no longer works');
+  });
+
   it('too many tries (429) keeps the form so the owner can wait and retry', async () => {
     open(`#t=${TOKEN}`);
     fetchMock.mockResolvedValue(reply(429));
